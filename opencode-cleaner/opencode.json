@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    { "action": "external_directory", "resource": "*", "effect": "deny" },
+    { "action": "external_directory", "resource": "~/.local/share/opencode/*", "effect": "allow" },
+
+    { "action": "read", "resource": "~/.local/share/opencode/*", "effect": "ask" },
+    { "action": "edit", "resource": "~/.local/share/opencode/*", "effect": "ask" },
+
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "python audit.py*", "effect": "allow" },
+    { "action": "shell", "resource": "python .\\audit.py*", "effect": "allow" },
+    { "action": "shell", "resource": "sqlite3 -readonly *", "effect": "allow" },
+    { "action": "shell", "resource": "opencode api get *", "effect": "allow" }
+  ]
+}
