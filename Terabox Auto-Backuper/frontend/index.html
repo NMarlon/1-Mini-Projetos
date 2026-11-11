@@ -83,6 +83,11 @@
 
             <div class="card">
                 <h3>Mapeamentos Existentes</h3>
+                <div class="selection-toolbar">
+                    <span id="mappings-count"></span>
+                    <button type="button" onclick="setAllMappings(true)">Selecionar todos</button>
+                    <button type="button" onclick="setAllMappings(false)">Desmarcar todos</button>
+                </div>
                 <div id="mappings-list"></div>
             </div>
 
@@ -106,7 +111,13 @@
             <h2>Restaurar Arquivos</h2>
             <p>Baixe o manifesto do Terabox e selecione quais arquivos restaurar.</p>
             <button onclick="loadManifest()">📥 Carregar Manifesto</button>
-            <div id="manifest-list"></div>
+            <div id="restore-toolbar" class="selection-toolbar" style="display:none">
+                <span id="restore-count"></span>
+                <button type="button" onclick="setAllRestore(true)">Selecionar todos</button>
+                <button type="button" onclick="setAllRestore(false)">Desmarcar todos</button>
+                <button type="button" onclick="invertRestore()">Inverter</button>
+            </div>
+            <div id="manifest-list" class="manifest-list"></div>
             <div id="restore-actions" style="display:none">
                 <label>Pasta de destino:</label>
                 <div class="input-row">
@@ -141,7 +152,7 @@
     </main>
 
     <footer>
-        <small>Terabox Auto-Backuper v0.2.0</small>
+        <small>Terabox Auto-Backuper v0.3.0</small>
     </footer>
 
     <script src="/static/js/app.js"></script>

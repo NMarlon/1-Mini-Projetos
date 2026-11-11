@@ -35,6 +35,10 @@ class Mapping(BaseModel):
     updated_at: str
     is_file: bool = False
 
+class MappingBulkEnabled(BaseModel):
+    ids: List[int]
+    enabled: bool
+
 # ── Arquivos ──
 
 class FileRecord(BaseModel):
@@ -151,4 +155,4 @@ class RestoreRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.2.0"
+    version: str = "0.3.0"

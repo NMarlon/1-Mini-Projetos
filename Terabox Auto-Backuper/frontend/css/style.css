@@ -176,6 +176,69 @@ button:hover { background: #533483; }
 .mapping-item .info { flex: 1; }
 .mapping-item .actions { margin-top: 0; }
 
+.mapping-item.mapping-disabled {
+    opacity: 0.55;
+    border: 1px dashed #d32f2f;
+}
+
+.mapping-select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 16px 0 0;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.mapping-select input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.selection-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+.selection-toolbar span {
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+.selection-toolbar button {
+    margin-top: 0;
+}
+
+.manifest-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.restore-item {
+    display: block;
+    margin-bottom: 2px;
+    cursor: pointer;
+}
+
+.restore-item input[type="checkbox"] {
+    width: auto;
+    margin: 0 6px 0 0;
+    cursor: pointer;
+}
+
+.restore-item.restore-disabled-backup {
+    color: #d9a441;
+}
+
 footer {
     text-align: center;
     padding: 16px;

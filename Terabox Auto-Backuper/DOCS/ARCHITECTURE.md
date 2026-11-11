@@ -119,6 +119,35 @@ Política padrão (escolhida pelo usuário): **caminho canônico + sobrescrever*
   dedup usa o MD5 do **plaintext** guardado no banco, não o MD5 do ciphertext.
 - O banco tem índice único `(mapping_id, local_rel_path)` e UPSERT de verdade.
 
+## Seleção de Mapeamentos para o Backup
+
+A UI da aba Configuração tem um checkbox **Sincronizar** por mapeamento. O
+estado é gravado em `mappings.enabled` e é a única fonte da verdade:
+
+- **Sincronizar Agora** e **Prévia do Sync** enviam os IDs marcados;
+- **Auto-sync** (scheduler + watchdog) usa `enabled = 1`;
+- Desmarcar **não apaga** nada no Terabox; apenas impede novos envios e remove
+  os arquivos daquele mapeamento do manifesto no próximo sync;
+- Reativar volta a incluir o mapeamento no backup e no manifesto;
+- Se todos forem desmarcados, o próximo sync gera um manifesto vazio para que
+  o Restaurar não continue listando arquivos de mapeamentos desativados;
+- Os botões **Selecionar todos** / **Desmarcar todos** usam
+  `PUT /api/mappings/bulk-enabled`, e o watchdog é recarregado.
+
+## Seleção de Arquivos para Restaurar
+
+- Cada arquivo do manifesto tem um checkbox.
+- A seleção é salva em `localStorage` (`terabox_restore_selected_v1`) e
+  restaurada ao carregar o manifesto, trocar de aba, recarregar a página ou
+  reiniciar o app.
+- **Selecionar todos**, **Desmarcar todos** e **Inverter** operam sobre a lista
+  atual; um contador mostra “X de Y selecionados”.
+- Caminhos que não existem mais no manifesto são removidos da seleção.
+- O Auto-sync não altera a seleção; ele só atualiza o manifesto no Terabox.
+- Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
+  “⚠️ backup desativado”, mas continuam restauráveis manualmente.
+- Limitação: a seleção é local ao navegador/perfil, não viaja para outro PC.
+
 ## Rate Limiting e Otimização
 
 - **Pacing**: mínimo 400ms entre chamadas à API do Terabox
@@ -184,7 +213,7 @@ Política padrão (escolhida pelo usuário): **caminho canônico + sobrescrever*
 
 1. Usuário clica "Restaurar" na UI
 2. Backend baixa o manifesto do Terabox (`/api/filemetas` → dlink)
-3. Exibe lista de arquivos com checkboxes
+3. Exibe lista de arquivos com checkboxes; a seleção é lembrada no navegador
 4. Usuário seleciona quais e pasta de destino local
 5. Backend baixa cada arquivo via dlink e salva em
    `destino/local_rel_path` (preservando a estrutura), com proteção contra

@@ -2,6 +2,13 @@
 
 const API = '/api';
 
+// Seleção de mapeamentos (backup) e de arquivos (restauração)
+let mappingsCache = [];
+let mappingSelectionBusy = 0;
+
+const RESTORE_SELECTION_KEY = 'terabox_restore_selected_v1';
+let restoreFilesCache = [];
+
 // ── Navegação por abas ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -176,20 +183,27 @@ async function loadMappings() {
     try {
         const res = await fetch(API + '/mappings');
         const data = await res.json();
+        mappingsCache = Array.isArray(data) ? data : [];
         const list = document.getElementById('mappings-list');
         list.innerHTML = '';
-        if (data.length === 0) {
+        if (mappingsCache.length === 0) {
             list.innerHTML = '<p>Nenhum mapeamento configurado.</p>';
+            updateMappingsCount();
             return;
         }
-        data.forEach(m => {
+        mappingsCache.forEach(m => {
             const div = document.createElement('div');
-            div.className = 'mapping-item';
+            div.className = 'mapping-item' + (m.enabled ? '' : ' mapping-disabled');
             div.innerHTML = `
+                <label class="mapping-select" title="Incluir este mapeamento no backup">
+                    <input type="checkbox" class="mapping-enabled" data-id="${m.id}" ${m.enabled ? 'checked' : ''}
+                        onchange="toggleMapping(${m.id}, this.checked)">
+                    <span>Sincronizar</span>
+                </label>
                 <div class="info">
                     <strong>${escapeHtml(m.name)}</strong> ${m.is_file ? '📄' : '📁'}<br>
                     <small>${escapeHtml(m.local_path)} → ${escapeHtml(m.remote_path)}</small><br>
-                    <small>${m.is_file ? 'Arquivo' : 'Pasta'} | Subpastas: ${m.include_subfolders ? 'Sim' : 'Não'} | Criptografia: ${m.encrypt ? 'Sim' : 'Não'} | ${m.enabled ? 'Ativo' : 'Inativo'}</small>
+                    <small>${m.is_file ? 'Arquivo' : 'Pasta'} | Subpastas: ${m.include_subfolders ? 'Sim' : 'Não'} | Criptografia: ${m.encrypt ? 'Sim' : 'Não'} | ${m.enabled ? 'Selecionado para backup' : 'NÃO será sincronizado'}</small>
                 </div>
                 <div class="actions">
                     <button onclick="deleteMapping(${m.id})">🗑️</button>
@@ -197,8 +211,69 @@ async function loadMappings() {
             `;
             list.appendChild(div);
         });
+        updateMappingsCount();
     } catch (e) {
         console.error(e);
+    }
+}
+
+function updateMappingsCount() {
+    const el = document.getElementById('mappings-count');
+    if (!el) return;
+    const total = mappingsCache.length;
+    const selected = mappingsCache.filter(m => m.enabled).length;
+    el.textContent = total
+        ? `${selected} de ${total} mapeamento(s) selecionado(s) para o backup`
+        : 'Nenhum mapeamento configurado';
+}
+
+function getSelectedMappingIds() {
+    return Array.from(document.querySelectorAll('.mapping-enabled:checked'))
+        .map(cb => parseInt(cb.dataset.id, 10))
+        .filter(id => Number.isFinite(id));
+}
+
+async function toggleMapping(id, checked) {
+    mappingSelectionBusy++;
+    try {
+        const res = await fetch(`${API}/mappings/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: checked })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'falha ao salvar a seleção');
+        }
+        await loadMappings();
+    } catch (e) {
+        alert('Não foi possível salvar a seleção do mapeamento: ' + e.message);
+        await loadMappings();
+    } finally {
+        mappingSelectionBusy--;
+    }
+}
+
+async function setAllMappings(enabled) {
+    if (!mappingsCache.length) return;
+    mappingSelectionBusy++;
+    try {
+        const ids = mappingsCache.map(m => m.id);
+        const res = await fetch(`${API}/mappings/bulk-enabled`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids, enabled })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'falha ao salvar a seleção');
+        }
+        await loadMappings();
+    } catch (e) {
+        alert('Não foi possível salvar a seleção: ' + e.message);
+        await loadMappings();
+    } finally {
+        mappingSelectionBusy--;
     }
 }
 
@@ -305,12 +380,21 @@ async function importCsv() {
 // ── Sync ──
 async function previewSync() {
     const box = document.getElementById('sync-status');
+    if (mappingSelectionBusy > 0) {
+        box.textContent = '⏳ Aguarde a seleção de mapeamentos ser salva...';
+        return;
+    }
+    const selectedIds = getSelectedMappingIds();
+    if (!selectedIds.length) {
+        box.textContent = '⚠️ Nenhum mapeamento selecionado. Marque ao menos um na aba Configuração.';
+        return;
+    }
     box.textContent = '🔍 Gerando prévia... (nenhum arquivo será enviado)';
     try {
         const res = await fetch(API + '/sync/preview', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: '{}'
+            body: JSON.stringify({ mapping_ids: selectedIds })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -340,16 +424,29 @@ async function previewSync() {
         }
         box.textContent = msg;
         if (data.files_total > 0 && confirm('Executar este plano agora?')) {
-            startSync();
+            startSync(selectedIds);
         }
     } catch (e) {
         box.textContent = '❌ Erro ao gerar prévia: ' + e.message;
     }
 }
 
-async function startSync() {
+async function startSync(mappingIds = null) {
+    if (mappingSelectionBusy > 0) {
+        alert('Aguarde a seleção de mapeamentos ser salva.');
+        return;
+    }
+    const ids = mappingIds || getSelectedMappingIds();
+    if (!ids.length) {
+        alert('Selecione ao menos um mapeamento para sincronizar.');
+        return;
+    }
     try {
-        const res = await fetch(API + '/sync/start', { method: 'POST' });
+        const res = await fetch(API + '/sync/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mapping_ids: ids })
+        });
         const data = await res.json();
         alert('Sync iniciado! Run ID: ' + data.run_id);
         pollSyncStatus();
@@ -415,31 +512,116 @@ async function loadSyncHistory() {
 }
 
 // ── Restaurar ──
+
+function loadRestoreSelection() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(RESTORE_SELECTION_KEY) || '[]');
+        return new Set(Array.isArray(raw) ? raw : []);
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function saveRestoreSelection(selected) {
+    try {
+        localStorage.setItem(RESTORE_SELECTION_KEY, JSON.stringify(Array.from(selected)));
+    } catch (e) {
+        // localStorage indisponível: a seleção vale só para esta página
+    }
+}
+
+function updateRestoreCount() {
+    const el = document.getElementById('restore-count');
+    if (!el) return;
+    const boxes = document.querySelectorAll('#manifest-list input[type="checkbox"]');
+    const selected = Array.from(boxes).filter(cb => cb.checked).length;
+    el.textContent = `${selected} de ${boxes.length} arquivo(s) selecionado(s) para restaurar`;
+}
+
+function saveRestoreFromDom() {
+    const selected = new Set();
+    document.querySelectorAll('#manifest-list input[type="checkbox"]:checked')
+        .forEach(cb => selected.add(cb.value));
+    saveRestoreSelection(selected);
+    updateRestoreCount();
+}
+
+function setAllRestore(checked) {
+    document.querySelectorAll('#manifest-list input[type="checkbox"]')
+        .forEach(cb => { cb.checked = checked; });
+    saveRestoreFromDom();
+}
+
+function invertRestore() {
+    document.querySelectorAll('#manifest-list input[type="checkbox"]')
+        .forEach(cb => { cb.checked = !cb.checked; });
+    saveRestoreFromDom();
+}
+
+function isMappingDisabled(mappingId) {
+    const mapping = mappingsCache.find(m => m.id === mappingId);
+    return mapping ? !mapping.enabled : false;
+}
+
 async function loadManifest() {
     try {
         const res = await fetch(API + '/restore/manifest');
         const data = await res.json();
         const div = document.getElementById('manifest-list');
+        const toolbar = document.getElementById('restore-toolbar');
+        const actions = document.getElementById('restore-actions');
         div.innerHTML = '';
-        if (!data.files || data.files.length === 0) {
+        restoreFilesCache = Array.isArray(data.files) ? data.files : [];
+
+        if (restoreFilesCache.length === 0) {
             div.innerHTML = '<p>Nenhum arquivo no manifesto.</p>';
+            if (toolbar) toolbar.style.display = 'none';
+            if (actions) actions.style.display = 'none';
             return;
         }
-        data.files.forEach(f => {
+
+        // Lembra a seleção entre recarregamentos, troca de aba e reinício.
+        // Remove caminhos que não existem mais no manifesto.
+        const selected = loadRestoreSelection();
+        const currentPaths = new Set(restoreFilesCache.map(f => f.remote_path));
+        for (const path of Array.from(selected)) {
+            if (!currentPaths.has(path)) selected.delete(path);
+        }
+        saveRestoreSelection(selected);
+
+        restoreFilesCache.forEach(f => {
+            const disabled = isMappingDisabled(f.mapping_id);
             const label = document.createElement('label');
+            label.className = 'restore-item' + (disabled ? ' restore-disabled-backup' : '');
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = f.remote_path;
+            cb.checked = selected.has(f.remote_path);
+            cb.addEventListener('change', saveRestoreFromDom);
+            label.appendChild(cb);
+
             const enc = f.encrypted ? ' 🔒' : '';
-            const map = f.mapping_name ? ` [${escapeHtml(f.mapping_name)}]` : '';
-            label.innerHTML = `<input type="checkbox" value="${escapeHtml(f.remote_path)}"> ${escapeHtml(f.local_rel_path)}${enc}${map} (${formatBytes(f.size)})`;
+            const map = f.mapping_name ? ` [${f.mapping_name}]` : '';
+            const badge = disabled ? ' ⚠️ backup desativado' : '';
+            label.appendChild(document.createTextNode(
+                ` ${f.local_rel_path}${enc}${map}${badge} (${formatBytes(f.size)})`
+            ));
+
             div.appendChild(label);
             div.appendChild(document.createElement('br'));
         });
-        document.getElementById('restore-actions').style.display = 'block';
+
+        if (toolbar) toolbar.style.display = 'flex';
+        if (actions) actions.style.display = 'block';
+        updateRestoreCount();
     } catch (e) {
         alert('Erro ao carregar manifesto: ' + e.message);
     }
 }
 
 async function startRestore() {
+    saveRestoreFromDom();
     const checkboxes = document.querySelectorAll('#manifest-list input[type="checkbox"]:checked');
     const files = Array.from(checkboxes).map(cb => cb.value);
     const dest = document.getElementById('restore-dest').value;

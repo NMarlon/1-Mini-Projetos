@@ -17,6 +17,7 @@ python app.py
 ## Funcionalidades
 
 - Configuração de múltiplos mapeamentos (pasta/arquivo local → pasta remota no Terabox)
+- Checkbox **Sincronizar** por mapeamento; o que estiver desmarcado não entra no backup manual nem no Auto-sync
 - Importação de lista colada no formato `origem; destino` (uma por linha)
 - Opção de incluir/excluir subpastas por mapeamento
 - **Prévia (dry-run)** antes de sincronizar: mostra o que será enviado, substituído ou ignorado
@@ -24,6 +25,7 @@ python app.py
 - Deduplicação por caminho exato + tamanho + MD5
 - Arquivo alterado é **substituído no mesmo caminho** (sem pastas/arquivos com data)
 - Nomes com emoji são sanitizados no Terabox; o Restaurar devolve o nome original
+- **Seleção de restauração persistente**: os checkboxes da aba Restaurar são lembrados ao recarregar o manifesto e ao reiniciar o app
 - Autenticação automática via perfil do navegador (Chrome/Edge/Firefox/Dia)
 - Notificações toast do Windows
 - Criptografia opcional por mapeamento (upload e restore corrigidos)
@@ -51,6 +53,28 @@ C:\Users\marlo\Projetos; /Backup/Projetos
 
 Depois de importar, clique em **Prévia do Sync** para revisar e só então
 **Sincronizar Agora**.
+
+## Selecionar o que entra no backup
+
+Em **Mapeamentos Existentes**, cada mapeamento tem o checkbox **Sincronizar**:
+
+- Marcado → entra no botão **Sincronizar Agora**, na **Prévia** e no **Auto-sync**.
+- Desmarcado → não é enviado nem pelo botão nem pelo Auto-sync.
+- **Selecionar todos** / **Desmarcar todos** mudam todos de uma vez.
+- Desmarcar não apaga nada no Terabox; apenas para de enviar novos arquivos.
+- O contador mostra quantos mapeamentos estão selecionados.
+
+## Manter a seleção de restauração
+
+Na aba **Restaurar**, depois de carregar o manifesto:
+
+- Marque os arquivos que deseja restaurar.
+- A seleção fica salva no navegador e é restaurada ao recarregar o manifesto,
+  trocar de aba, recarregar a página ou reiniciar o app.
+- Use **Selecionar todos**, **Desmarcar todos** ou **Inverter** para acelerar.
+- Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
+  **⚠️ backup desativado**, mas ainda podem ser restaurados manualmente.
+- A seleção é local ao navegador/perfil; ela não é enviada ao Terabox.
 
 ## Testes
 

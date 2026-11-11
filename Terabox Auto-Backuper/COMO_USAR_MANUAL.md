@@ -130,10 +130,38 @@ Se nenhum perfil mostrar ✅, faça login no Terabox nesse perfil primeiro.
 3. Se estiver tudo certo, confirme para executar
 4. Acompanhe o progresso na aba **"Status"**
 
+### Escolher quais mapeamentos entram no backup
+
+Na lista **"Mapeamentos Existentes"**, cada mapeamento tem o checkbox
+**Sincronizar**:
+
+- **Marcado** = entra no backup manual, na prévia e no Auto-sync.
+- **Desmarcado** = não é enviado. O cartão fica esmaecido e mostra
+  "NÃO será sincronizado".
+- Use **Selecionar todos** / **Desmarcar todos** para mudar tudo de uma vez.
+- Desmarcar **não apaga** o que já está no Terabox; só para de enviar novos
+  arquivos daquele mapeamento.
+- O contador acima da lista mostra quantos estão selecionados.
+
 > O app mantém **um único arquivo por caminho**. Se o conteúdo mudou, ele
 > substitui o arquivo no mesmo lugar; não cria pastas/arquivos com data.
 > Emojis são removidos apenas do caminho remoto (o Restaurar devolve o nome
 > original).
+
+### Manter a seleção de restauração
+
+Na aba **"Restaurar"**, depois de carregar o manifesto:
+
+1. Marque os arquivos que deseja baixar.
+2. A seleção fica salva no navegador: ao recarregar o manifesto, trocar de aba,
+   recarregar a página ou reiniciar o app, os mesmos arquivos continuam
+   marcados.
+3. Use **Selecionar todos**, **Desmarcar todos** ou **Inverter** para acelerar.
+4. Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
+   **"⚠️ backup desativado"**, mas ainda podem ser restaurados manualmente.
+
+> A seleção de restauração é local ao navegador/perfil. Ela não é enviada ao
+> Terabox e não aparece em outro computador.
 
 ---
 

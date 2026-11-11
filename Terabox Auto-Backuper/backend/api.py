@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from backend import database
 from backend.models import (
-    Mapping, MappingCreate, MappingUpdate,
+    Mapping, MappingCreate, MappingUpdate, MappingBulkEnabled,
     SyncStatus, SyncRequest, Settings, SettingsUpdate,
     AuthStatus, AuthConnect, AuthConnectManual, BrowserProfile, HealthResponse,
     RestoreRequest, CsvImportRequest,
@@ -158,6 +158,39 @@ async def create_mapping(body: MappingCreate):
     row = await database.fetch_one("SELECT * FROM mappings WHERE id = ?", (mid,))
     await _reload_file_monitor()
     return _mapping_model(row)
+
+
+@router.put("/mappings/bulk-enabled")
+async def bulk_enable_mappings(body: MappingBulkEnabled):
+    """Liga/desliga vários mapeamentos de uma vez.
+
+    A seleção é persistida no campo ``enabled``. O sync manual envia apenas os
+    IDs marcados e o Auto-sync lê ``enabled = 1`` do banco, então os dois usam
+    exatamente a mesma seleção.
+    """
+    if not body.ids:
+        return {
+            "updated": 0,
+            "enabled": body.enabled,
+            "mappings": [_mapping_model(r) for r in await database.fetch_all(
+                "SELECT * FROM mappings ORDER BY id"
+            )],
+        }
+
+    placeholders = ",".join("?" * len(body.ids))
+    now = datetime.now().isoformat()
+    await database.execute(
+        f"UPDATE mappings SET enabled = ?, updated_at = ? WHERE id IN ({placeholders})",
+        (int(body.enabled), now, *body.ids),
+    )
+    await _reload_file_monitor()
+
+    rows = await database.fetch_all("SELECT * FROM mappings ORDER BY id")
+    return {
+        "updated": len(body.ids),
+        "enabled": body.enabled,
+        "mappings": [_mapping_model(r) for r in rows],
+    }
 
 
 @router.put("/mappings/{mapping_id}", response_model=Mapping)

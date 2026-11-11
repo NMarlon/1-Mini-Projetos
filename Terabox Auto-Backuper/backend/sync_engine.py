@@ -160,7 +160,11 @@ class SyncEngine:
     # ── Mapeamentos ──
 
     async def _get_mappings(self, mapping_ids: Optional[List[int]]) -> List[dict]:
-        if mapping_ids:
+        # ``None`` = todos os habilitados (Auto-sync). Lista vazia = nada
+        # selecionado; não deve cair no caso "todos".
+        if mapping_ids is not None:
+            if not mapping_ids:
+                return []
             placeholders = ",".join("?" * len(mapping_ids))
             return await database.fetch_all(
                 f"SELECT * FROM mappings WHERE id IN ({placeholders}) AND enabled = 1",
@@ -372,6 +376,17 @@ class SyncEngine:
         try:
             mappings = await self._get_mappings(mapping_ids)
             if not mappings:
+                # Nenhum mapeamento selecionado: atualiza o manifesto para
+                # vazio, senão o Restaurar continuaria listando arquivos de
+                # mapeamentos que foram desmarcados.
+                try:
+                    await self._update_manifest(
+                        client, SyncPlan(mappings=[]), run_started
+                    )
+                except Exception as exc:
+                    self._record_status_error(
+                        "manifesto", f"falha ao atualizar manifesto: {exc}"
+                    )
                 await self._finish_run(run_id, "completed")
                 return
 

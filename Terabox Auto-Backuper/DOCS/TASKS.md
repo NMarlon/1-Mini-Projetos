@@ -155,6 +155,20 @@
 - **Teste**: sync de `📥 Inbox` → `Inbox_hash`; restore devolve `📥 Inbox`
 - **Depende de**: T17, T21
 
+### T23. Seleção persistente de mapeamentos e arquivos de restauração ✅
+- **Status**: Concluída (2026-11-11)
+- **Descrição**: Poder marcar/desmarcar o que entra no backup e o que será restaurado, mantendo a escolha entre execuções.
+- **Solução**:
+  - Checkbox **Sincronizar** por mapeamento, persistido em `mappings.enabled`
+  - `PUT /api/mappings/bulk-enabled` para selecionar/desmarcar todos
+  - Sync manual e prévia enviam apenas os IDs marcados; Auto-sync usa `enabled = 1`
+  - Manifesto vazio quando nenhum mapeamento está selecionado
+  - Checkboxes da aba Restaurar persistidos em `localStorage`
+  - Botões Selecionar todos/Desmarcar todos/Inverter e contador
+  - Aviso “backup desativado” para arquivos de mapeamentos desmarcados
+- **Teste**: desmarcar mapeamento → prévia vazia; reativar → volta; seleção de restauração sobrevive a reload e a novo sync; 31 testes unitários passando
+- **Depende de**: T17, T21
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

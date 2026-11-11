@@ -18,6 +18,20 @@
   criptografia ativa podem consumir RAM; o formato atual (Fernet) não é
   streaming. Para arquivos > 2GB, considerar desativar criptografia ou evoluir
   para AES-GCM em blocos.
+- **Seleção de restauração é local ao navegador**: fica no `localStorage` do
+  perfil e não viaja para outro PC. Para levar a seleção junto com o manifesto,
+  seria preciso salvar no banco e incluir um campo `selected` no manifesto.
+- **Manifesto vazio ao desmarcar tudo**: se todos os mapeamentos forem
+  desmarcados, o próximo sync grava um manifesto vazio. Os arquivos continuam
+  no Terabox, mas o Restaurar deixa de listá-los até um mapeamento ser
+  reativado e sincronizado.
+- **Colisão de nomes sanitizados**: nomes que só diferem por ponto inicial
+  podem cair no mesmo caminho remoto. Exemplo real: `.kkrieger.md` e
+  `kkrieger.md` viram `.../kkrieger.md`, porque a sanitização remove o ponto
+  inicial. O planejador detecta o caminho duplicado e ignora o segundo; o
+  manifesto reconstruído prefere o nome natural. Corrigir na raiz exigiria
+  anexar hash a nomes que perdem o ponto inicial, mas isso mudaria caminhos já
+  enviados (ex.: `.obsidian` → `obsidian`).
 
 ## Ideias de Implementação Futura
 

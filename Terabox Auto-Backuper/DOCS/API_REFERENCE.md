@@ -30,6 +30,14 @@ Cria novo mapeamento. A origem pode ser pasta ou arquivo único.
 Atualiza mapeamento. Se origem, destino ou criptografia mudarem, o cache de
 arquivos daquele mapeamento é limpo.
 
+### PUT /api/mappings/bulk-enabled
+Liga/desliga vários mapeamentos de uma vez. É o endpoint usado pelos botões
+**Selecionar todos** / **Desmarcar todos**.
+- **Body**: `{ "ids": [1, 2, 3], "enabled": true }`
+- **Response**: `{ "updated": 3, "enabled": true, "mappings": [...] }`
+- O campo `enabled` é a fonte da verdade: o sync manual envia apenas os IDs
+  marcados e o Auto-sync lê `enabled = 1` do banco.
+
 ### DELETE /api/mappings/{id}
 Remove mapeamento e seus registros de arquivos.
 
@@ -54,7 +62,9 @@ Importa uma lista colada no formato `origem; destino`, uma por linha.
 
 ### POST /api/sync/preview
 Calcula o plano (dry-run) sem enviar nada.
-- **Body**: `{ "mapping_ids": [1, 2] | null (todos) }`
+- **Body**: `{ "mapping_ids": [1, 2] }`
+- `mapping_ids` ausente/`null` = todos os mapeamentos habilitados (Auto-sync).
+- `mapping_ids: []` = nenhum mapeamento; a prévia retorna vazio.
 - **Response**:
   ```json
   {
@@ -70,7 +80,9 @@ Calcula o plano (dry-run) sem enviar nada.
 
 ### POST /api/sync/start
 Inicia sync manual.
-- **Body**: `{ "mapping_ids": [1, 2] | null (todos) }`
+- **Body**: `{ "mapping_ids": [1, 2] }`
+- Envie apenas os IDs marcados na UI. Sem `mapping_ids`, usa todos os
+  mapeamentos com `enabled = 1` (mesma regra do Auto-sync).
 - **Response**: `{ "run_id": 42, "status": "started" }`
 
 ### POST /api/sync/stop
@@ -91,6 +103,12 @@ Stream de eventos de sync em tempo real (Server-Sent Events).
 
 ### GET /api/restore/manifest
 Baixa e retorna o manifesto do Terabox.
+
+### Observação sobre a seleção de restauração
+Os checkboxes da aba **Restaurar** são persistidos no `localStorage` do
+navegador (`terabox_restore_selected_v1`). A seleção sobrevive a recarregar o
+manifesto, trocar de aba, recarregar a página e reiniciar o app. Ela não é
+enviada ao Terabox; é uma preferência local do navegador/perfil.
 
 ### POST /api/restore/download
 Inicia download seletivo.
@@ -114,7 +132,7 @@ Atualiza configurações.
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.1.0" }`
+Health check. `{ "status": "ok", "version": "0.3.0" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

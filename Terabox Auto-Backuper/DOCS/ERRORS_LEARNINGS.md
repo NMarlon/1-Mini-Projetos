@@ -17,6 +17,18 @@
 
 ## Erros Registrados
 
+### [2026-11-11] Sync de teste sobrescreveu o manifesto global
+**Contexto**: Validar a seleção de mapeamentos com um mapeamento descartável (`_teste_selecao`) e 2 arquivos.
+**Erro**: O sync de teste gravou `/_terabox_autobackup_manifest.json` apenas com os 2 arquivos de teste. O backup real (`Marlon Desktop`, ~3.900 arquivos) sumiu da aba Restaurar, e a limpeza seguinte apagou o manifesto.
+**Causa**: O manifesto é **global**, não por mapeamento. Usar uma pasta remota descartável não isola o manifesto; qualquer sync o sobrescreve.
+**Solução**:
+- Reconstruir o manifesto a partir da pasta local + snapshot remoto, sem reenviar arquivos: 3.879 arquivos e 1.102 pastas recuperados.
+- Deduplicar por `remote_path` e preferir o nome local natural quando dois arquivos colidem (ex.: `.kkrieger.md` e `kkrieger.md`).
+- Verificar baixando o manifesto de volta e conferindo a contagem.
+**Aprendizado**: Antes de qualquer sync de teste, salve o manifesto remoto ou use um caminho de manifesto isolado. O manifesto é o artefato que alimenta o Restaurar; perdê-lo não perde os arquivos, mas esconde o backup da UI.
+
+---
+
 ### [2026-11-09] Pastas duplicadas com data durante o sync
 **Contexto**: Sync do Desktop com muitos arquivos
 **Erro**: Pastas como `Marlon Desktop_20261109_190922` apareciam a cada execução
