@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terabox Auto-Backuper</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>📦 Terabox Auto-Backuper</h1>
+        <nav>
+            <button class="tab-btn active" data-tab="config">Configuração</button>
+            <button class="tab-btn" data-tab="status">Status</button>
+            <button class="tab-btn" data-tab="restore">Restaurar</button>
+            <button class="tab-btn" data-tab="settings">Configurações</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Aba Configuração -->
+        <section id="tab-config" class="tab active">
+            <h2>Mapeamentos</h2>
+            <div id="auth-bar" class="auth-bar">
+                <span id="auth-status">Verificando autenticação...</span>
+                <div class="auth-controls">
+                    <label>Navegador:
+                        <select id="auth-browser" onchange="onBrowserChange()">
+                            <option value="auto">Automático</option>
+                            <option value="chrome">Chrome</option>
+                            <option value="edge">Edge</option>
+                            <option value="firefox">Firefox</option>
+                            <option value="brave">Brave</option>
+                            <option value="arc">Arc</option>
+                            <option value="dia">Dia</option>
+                            <option value="manual">Manual (colar cookies)</option>
+                        </select>
+                    </label>
+                    <label id="profile-label" style="display:none;">Perfil:
+                        <select id="auth-profile"></select>
+                    </label>
+                    <button id="btn-connect" onclick="connectAuth()">Conectar ao Terabox</button>
+                    <button id="btn-disconnect" onclick="disconnectAuth()" style="display:none">Desconectar</button>
+                </div>
+                <div id="manual-cookies" style="display:none; margin-top:12px;">
+                    <label>Cole os cookies aqui:
+                        <textarea id="manual-cookies-input" rows="4" placeholder="ndus=...; csrfToken=...; browserid=...; lang=en; ndut_fmt=..."></textarea>
+                    </label>
+                    <button onclick="connectManual()">Conectar com cookies manuais</button>
+                    <p class="help-text">Não sabe como copiar? Leia o arquivo <strong>COMO_USAR_MANUAL.md</strong> na pasta do projeto.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Novo Mapeamento</h3>
+                <form id="form-mapping" onsubmit="createMapping(event)">
+                    <label>Nome: <input type="text" id="m-name" required></label>
+                    <label>Pasta ou arquivo local:</label>
+                    <div class="input-row">
+                        <input type="text" id="m-local" required placeholder="C:\minha\pasta ou C:\minha\pasta\arquivo.pdf">
+                        <button type="button" class="btn-browse" onclick="pickFolder('m-local')">📁 Selecionar...</button>
+                    </div>
+                    <label>Pasta remota (Terabox): <input type="text" id="m-remote" required placeholder="/backup/pasta"></label>
+                    <label><input type="checkbox" id="m-subfolders" checked> Incluir subpastas</label>
+                    <label><input type="checkbox" id="m-encrypt"> Criptografar arquivos</label>
+                    <button type="submit">Adicionar</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Importar lista (CSV)</h3>
+                <p class="help-text">
+                    Cole uma linha por item, no formato
+                    <code>C:\Pasta\Arquivo; /Backup/Pasta</code>.
+                    A origem pode ser pasta ou arquivo; o destino é sempre uma pasta no Terabox.
+                    Linhas em branco e linhas começando com <code>#</code> são ignoradas.
+                </p>
+                <textarea id="csv-input" rows="8" placeholder="C:\Users\marlo\Documentos; /Backup/Documentos&#10;C:\Users\marlo\Fotos\foto.jpg; /Backup/Fotos"></textarea>
+                <label><input type="checkbox" id="csv-subfolders" checked> Incluir subpastas</label>
+                <button onclick="importCsv()">📋 Validar e importar lista</button>
+                <div id="csv-result"></div>
+            </div>
+
+            <div class="card">
+                <h3>Mapeamentos Existentes</h3>
+                <div id="mappings-list"></div>
+            </div>
+
+            <div class="actions">
+                <button onclick="previewSync()">🔍 Prévia do Sync</button>
+                <button class="btn-primary" onclick="startSync()">🔄 Sincronizar Agora</button>
+                <button class="btn-danger" onclick="stopSync()">⏹ Parar</button>
+            </div>
+        </section>
+
+        <!-- Aba Status -->
+        <section id="tab-status" class="tab">
+            <h2>Status do Sync</h2>
+            <div id="sync-status" class="status-box"></div>
+            <h3>Histórico</h3>
+            <div id="sync-history"></div>
+        </section>
+
+        <!-- Aba Restaurar -->
+        <section id="tab-restore" class="tab">
+            <h2>Restaurar Arquivos</h2>
+            <p>Baixe o manifesto do Terabox e selecione quais arquivos restaurar.</p>
+            <button onclick="loadManifest()">📥 Carregar Manifesto</button>
+            <div id="manifest-list"></div>
+            <div id="restore-actions" style="display:none">
+                <label>Pasta de destino:</label>
+                <div class="input-row">
+                    <input type="text" id="restore-dest" placeholder="C:\restore">
+                    <button type="button" class="btn-browse" onclick="pickFolder('restore-dest')">📁 Selecionar...</button>
+                </div>
+                <label><input type="checkbox" id="restore-structure" checked> Preservar estrutura de pastas</label>
+                <button class="btn-primary" onclick="startRestore()">⬇️ Restaurar Selecionados</button>
+            </div>
+        </section>
+
+        <!-- Aba Configurações -->
+        <section id="tab-settings" class="tab">
+            <h2>Configurações</h2>
+            <form id="form-settings" onsubmit="saveSettings(event)">
+                <label>Intervalo de sync (minutos): <input type="number" id="s-interval" min="5" value="30"></label>
+                <label><input type="checkbox" id="s-autosync" checked> Sync automático</label>
+                <label><input type="checkbox" id="s-notifications" checked> Notificações toast</label>
+                <label>Uploads simultâneos: <input type="number" id="s-concurrent" min="1" max="10" value="3"></label>
+                <label>Navegador para auth:
+                    <select id="s-browser">
+                        <option value="auto">Automático</option>
+                        <option value="chrome">Chrome</option>
+                        <option value="edge">Edge</option>
+                        <option value="firefox">Firefox</option>
+                    </select>
+                </label>
+                <label><input type="checkbox" id="s-autostart"> Iniciar com o Windows</label>
+                <button type="submit">Salvar</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <small>Terabox Auto-Backuper v0.2.0</small>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

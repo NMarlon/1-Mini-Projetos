@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# Data
+data/*.db
+data/*.sqlite
+data/*.log
+data/*.bak*
+*.db-journal
+
+# Secrets / credentials (never commit)
+secrets.json
+settings.json
+data/auth_cache.json
+*.key
+
+# Build / dist
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Temp
+temp/
+curl/
+curl.zip
+*.zip
+
+# Node (if any)
+node_modules/
+debug.log

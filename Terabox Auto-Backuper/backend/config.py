@@ -1,0 +1,42 @@
+"""Configurações globais do aplicativo."""
+
+import os
+from pathlib import Path
+
+# Diretório raiz do projeto
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_DIR / "data"
+FRONTEND_DIR = PROJECT_DIR / "frontend"
+
+# Servidor
+HOST = "127.0.0.1"
+PORT = 8765
+
+# Banco de dados
+DB_PATH = DATA_DIR / "app.db"
+
+# Terabox
+BASE_URL_TB = "https://www.terabox.com"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+APP_ID = "250528"
+CHANNEL = "dubox"
+CLIENT_TYPE = "5"
+
+# Sync
+DEFAULT_SYNC_INTERVAL_MINUTES = 30
+DEFAULT_MAX_CONCURRENT = 3
+DEFAULT_RATE_LIMIT_MS = 400
+DEFAULT_DEBOUNCE_SECONDS = 2
+MAX_RETRIES = 3
+CHUNK_SIZE_BYTES = 120 * 1024 * 1024  # 120MB
+LARGE_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024  # 2GB
+
+# jsToken
+JSTOKEN_TTL_SECONDS = 300  # 5 minutos
+
+# Temp
+TEMP_DIR = PROJECT_DIR / "temp"
+
+# Garantir que diretórios existam
+DATA_DIR.mkdir(exist_ok=True)
+TEMP_DIR.mkdir(exist_ok=True)

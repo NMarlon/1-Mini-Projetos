@@ -1,0 +1,34 @@
+# Core web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+
+# Database
+aiosqlite>=0.20.0
+sqlalchemy>=2.0.36
+
+# HTTP client
+httpx>=0.28.0
+requests>=2.32.0
+
+# File monitoring
+watchdog>=6.0.0
+
+# Scheduling
+apscheduler>=3.10.4
+
+# Browser cookie extraction (supports Chrome App-Bound v20)
+rookie-cookies>=0.6.0
+
+# Encryption
+cryptography>=43.0.0
+
+# Windows notifications
+winotify>=1.1.0
+
+# Utilities
+python-multipart>=0.0.12
+python-dotenv>=1.0.1
+aiofiles>=24.1.0
+watchfiles>=1.0.0
