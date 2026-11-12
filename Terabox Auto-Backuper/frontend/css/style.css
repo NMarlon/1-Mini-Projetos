@@ -214,29 +214,137 @@ button:hover { background: #533483; }
 }
 
 .manifest-list {
-    max-height: 60vh;
+    max-height: 65vh;
     overflow-y: auto;
     background: #16213e;
     border: 1px solid #0f3460;
     border-radius: 8px;
-    padding: 12px;
+    padding: 8px;
     margin-top: 12px;
 }
 
-.restore-item {
-    display: block;
-    margin-bottom: 2px;
+.restore-loading {
+    color: #aaa;
+    padding: 12px;
+}
+
+.restore-error {
+    color: #ff8a80;
+    padding: 12px;
+}
+
+.tree-folder-row,
+.tree-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 3px 6px 3px calc(6px + var(--depth, 0) * 16px);
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tree-file {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.tree-folder-row:hover,
+.tree-file:hover {
+    background: rgba(83, 52, 131, 0.28);
+}
+
+.tree-toggle {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #8ab4f8;
+    font-size: 0.85rem;
+    line-height: 1;
     cursor: pointer;
 }
 
-.restore-item input[type="checkbox"] {
+.tree-toggle:hover {
+    background: #0f3460;
+}
+
+.tree-toggle:focus-visible {
+    outline: 2px solid #e94560;
+    outline-offset: -2px;
+}
+
+.tree-folder-row input[type="checkbox"],
+.tree-file input[type="checkbox"] {
     width: auto;
-    margin: 0 6px 0 0;
+    margin: 0;
+    flex: 0 0 auto;
     cursor: pointer;
 }
 
-.restore-item.restore-disabled-backup {
+.tree-folder-icon,
+.tree-file-icon {
+    flex: 0 0 auto;
+}
+
+.tree-folder-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.tree-mapping > .tree-folder-row .tree-folder-name {
+    color: #e94560;
+}
+
+.tree-file-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-folder-meta,
+.tree-file-size {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #8f9bb3;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.tree-badge {
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+}
+
+.tree-badge-warning {
+    flex: 0 0 auto;
     color: #d9a441;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.tree-folder-row.restore-disabled-backup .tree-folder-name,
+.tree-file.restore-disabled-backup .tree-file-name {
+    color: #d9a441;
+}
+
+.tree-children {
+    display: block;
+}
+
+.tree-children[hidden] {
+    display: none;
 }
 
 footer {
@@ -249,4 +357,14 @@ footer {
 @media (max-width: 768px) {
     header { flex-direction: column; gap: 12px; }
     nav { flex-wrap: wrap; justify-content: center; }
+
+    .tree-folder-row,
+    .tree-file {
+        padding-left: calc(4px + var(--depth, 0) * 12px);
+    }
+
+    .tree-folder-meta,
+    .tree-file-size {
+        display: none;
+    }
 }

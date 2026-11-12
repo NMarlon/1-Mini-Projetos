@@ -105,17 +105,24 @@ Stream de eventos de sync em tempo real (Server-Sent Events).
 Baixa e retorna o manifesto do Terabox.
 
 ### Observação sobre a seleção de restauração
-Os checkboxes da aba **Restaurar** são persistidos no `localStorage` do
-navegador (`terabox_restore_selected_v1`). A seleção sobrevive a recarregar o
-manifesto, trocar de aba, recarregar a página e reiniciar o app. Ela não é
-enviada ao Terabox; é uma preferência local do navegador/perfil.
+A aba **Restaurar** mostra o manifesto em árvore (mapeamento → pastas →
+arquivos) e seleciona tudo por padrão. A seleção é persistida no `localStorage`
+do navegador (`terabox_restore_selected_v2`) somente após uma alteração do
+usuário. A chave antiga `terabox_restore_selected_v1` é migrada quando contém
+caminhos; uma v1 vazia é tratada como ausência de seleção. A seleção sobrevive a
+recarregar o manifesto, trocar de aba, recarregar a página e reiniciar o app.
+Ela não é enviada ao Terabox; é uma preferência local do navegador/perfil.
 
 ### POST /api/restore/download
 Inicia download seletivo.
 - **Body**: `{ "files": ["/remote/path1", "/remote/path2"], "destination": "C:/restore", "preserve_structure": true }`
+- `files` deve conter apenas `remote_path` de arquivos; caminhos de pasta da
+  árvore não são enviados.
 - Com `preserve_structure=true`, usa o `local_rel_path` do manifesto,
-  recriando as pastas originais (inclusive nomes com emoji). Arquivos
-  criptografados são baixados como `.enc` e descriptografados no destino.
+  recriando as pastas originais (inclusive nomes com emoji). Caminhos
+  absolutos ou com `..` são reduzidos ao nome do arquivo por
+  `resolve_restore_relative()`. Arquivos criptografados são baixados como
+  `.enc` e descriptografados no destino.
 - **Response**: `{ "results": [ { "remote_path": "...", "local_path": "...", "success": true, "error": null } ] }`
 
 ## Configurações
@@ -132,7 +139,7 @@ Atualiza configurações.
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.0" }`
+Health check. `{ "status": "ok", "version": "0.3.1" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

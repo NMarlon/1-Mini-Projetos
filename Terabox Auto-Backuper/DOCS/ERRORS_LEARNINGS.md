@@ -17,6 +17,20 @@
 
 ## Erros Registrados
 
+### [2026-11-12] Seleção de restauração nascia vazia e ficava presa
+**Contexto**: Melhorar a aba Restaurar, que listava 5.277 arquivos em uma lista plana.
+**Erro**: O manifesto abria com todos os arquivos desmarcados, e o estado vazio continuava após recarregar.
+**Causa**: `JSON.parse(localStorage.getItem(KEY) || '[]')` não distingue "chave ausente" de "lista vazia". Além disso, `loadManifest()` chamava `saveRestoreSelection()` logo após carregar e gravava `[]`, transformando o defeito em estado permanente.
+**Solução**:
+- Nova chave `terabox_restore_selected_v2`; a v1 é migrada se tiver caminhos.
+- v1 vazia (`[]`) é tratada como ausência de seleção e volta para "todos".
+- A seleção só é gravada depois de uma alteração do usuário.
+- A árvore usa checkbox de pasta em três estados, mas o backend recebe apenas `remote_path` de arquivos.
+- Checkboxes de pasta têm classe própria; nunca usar `input[type="checkbox"]` genérico para montar o payload.
+**Aprendizado**: `localStorage.getItem()` retorna `null` quando a chave não existe; não usar `|| '[]'` quando vazio e ausente têm significados diferentes. Não persistir um estado padrão antes de o usuário interagir.
+
+---
+
 ### [2026-11-11] Sync de teste sobrescreveu o manifesto global
 **Contexto**: Validar a seleção de mapeamentos com um mapeamento descartável (`_teste_selecao`) e 2 arquivos.
 **Erro**: O sync de teste gravou `/_terabox_autobackup_manifest.json` apenas com os 2 arquivos de teste. O backup real (`Marlon Desktop`, ~3.900 arquivos) sumiu da aba Restaurar, e a limpeza seguinte apagou o manifesto.

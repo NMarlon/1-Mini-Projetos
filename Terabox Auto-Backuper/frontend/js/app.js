@@ -6,8 +6,15 @@ const API = '/api';
 let mappingsCache = [];
 let mappingSelectionBusy = 0;
 
-const RESTORE_SELECTION_KEY = 'terabox_restore_selected_v1';
+const RESTORE_SELECTION_KEY_V1 = 'terabox_restore_selected_v1';
+const RESTORE_SELECTION_KEY = 'terabox_restore_selected_v2';
+const RESTORE_SAVE_DELAY_MS = 250;
 let restoreFilesCache = [];
+let restoreTree = null;
+let restoreSelection = new Set();
+let restoreSelectionDirty = false;
+let restoreSaveTimer = null;
+let restoreDirNodes = new Map();
 
 // ── Navegação por abas ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -513,49 +520,77 @@ async function loadSyncHistory() {
 
 // ── Restaurar ──
 
-function loadRestoreSelection() {
+function getRestoreStorageItem(key) {
     try {
-        const raw = JSON.parse(localStorage.getItem(RESTORE_SELECTION_KEY) || '[]');
-        return new Set(Array.isArray(raw) ? raw : []);
+        return localStorage.getItem(key);
     } catch (e) {
-        return new Set();
+        return null;
     }
 }
 
-function saveRestoreSelection(selected) {
+function resolveRestoreSelection() {
+    const allPaths = restoreFilesCache
+        .map(file => file.remote_path)
+        .filter(Boolean);
+    const selected = RestoreTree.resolveInitialSelection({
+        v2Raw: getRestoreStorageItem(RESTORE_SELECTION_KEY),
+        v1Raw: getRestoreStorageItem(RESTORE_SELECTION_KEY_V1),
+        allPaths: allPaths
+    });
+    return RestoreTree.pruneSelection(selected, allPaths);
+}
+
+function saveRestoreSelectionNow() {
+    if (restoreSaveTimer) {
+        clearTimeout(restoreSaveTimer);
+        restoreSaveTimer = null;
+    }
+    if (!restoreSelectionDirty) return;
     try {
-        localStorage.setItem(RESTORE_SELECTION_KEY, JSON.stringify(Array.from(selected)));
+        localStorage.setItem(
+            RESTORE_SELECTION_KEY,
+            JSON.stringify(Array.from(restoreSelection))
+        );
     } catch (e) {
         // localStorage indisponível: a seleção vale só para esta página
     }
+    restoreSelectionDirty = false;
+}
+
+function scheduleRestoreSelectionSave() {
+    restoreSelectionDirty = true;
+    if (restoreSaveTimer) clearTimeout(restoreSaveTimer);
+    restoreSaveTimer = setTimeout(saveRestoreSelectionNow, RESTORE_SAVE_DELAY_MS);
 }
 
 function updateRestoreCount() {
     const el = document.getElementById('restore-count');
     if (!el) return;
-    const boxes = document.querySelectorAll('#manifest-list input[type="checkbox"]');
-    const selected = Array.from(boxes).filter(cb => cb.checked).length;
-    el.textContent = `${selected} de ${boxes.length} arquivo(s) selecionado(s) para restaurar`;
+    if (!restoreTree) {
+        el.textContent = '';
+        return;
+    }
+    const summary = RestoreTree.selectionSummary(restoreTree, restoreSelection);
+    el.textContent = `${summary.count.toLocaleString('pt-BR')} de ${summary.total.toLocaleString('pt-BR')} arquivo(s) selecionado(s) • ${formatBytes(summary.size)} de ${formatBytes(summary.totalSize)}`;
 }
 
-function saveRestoreFromDom() {
-    const selected = new Set();
-    document.querySelectorAll('#manifest-list input[type="checkbox"]:checked')
-        .forEach(cb => selected.add(cb.value));
-    saveRestoreSelection(selected);
+function updateRestoreFolderDom(node) {
+    if (!node.checkbox) return;
+    const state = RestoreTree.folderState(node, restoreSelection);
+    node.checkbox.checked = state.checked;
+    node.checkbox.indeterminate = state.indeterminate;
+    if (node.metaEl) {
+        node.metaEl.textContent = `${state.count.toLocaleString('pt-BR')}/${state.total.toLocaleString('pt-BR')} • ${formatBytes(node.totalSize)}`;
+    }
+}
+
+function refreshRestoreSelectionUI() {
+    if (!restoreTree) return;
+    RestoreTree.walkDirs(restoreTree, updateRestoreFolderDom);
+    document.querySelectorAll('#manifest-list .tree-file-checkbox').forEach(cb => {
+        cb.checked = restoreSelection.has(cb.value);
+    });
     updateRestoreCount();
-}
-
-function setAllRestore(checked) {
-    document.querySelectorAll('#manifest-list input[type="checkbox"]')
-        .forEach(cb => { cb.checked = checked; });
-    saveRestoreFromDom();
-}
-
-function invertRestore() {
-    document.querySelectorAll('#manifest-list input[type="checkbox"]')
-        .forEach(cb => { cb.checked = !cb.checked; });
-    saveRestoreFromDom();
 }
 
 function isMappingDisabled(mappingId) {
@@ -563,87 +598,350 @@ function isMappingDisabled(mappingId) {
     return mapping ? !mapping.enabled : false;
 }
 
+function setRestoreFolderExpanded(node, expanded) {
+    if (!node.childrenEl) return;
+    node.childrenEl.hidden = !expanded;
+    node.toggleEl.textContent = expanded ? '▾' : '▸';
+    node.toggleEl.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    node.toggleEl.setAttribute(
+        'aria-label',
+        `${expanded ? 'Recolher' : 'Expandir'} ${node.name}`
+    );
+}
+
+function renderRestoreDir(node) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tree-folder' + (node.isMapping ? ' tree-mapping' : '');
+    wrapper.dataset.dirKey = node.key;
+
+    const row = document.createElement('div');
+    row.className = 'tree-folder-row';
+    row.style.setProperty('--depth', String(Math.max(0, node.depth - 1)));
+    if (node.isMapping && isMappingDisabled(node.mappingId)) {
+        row.classList.add('restore-disabled-backup');
+    }
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'tree-toggle';
+    toggle.textContent = '▸';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', `Expandir ${node.name}`);
+    row.appendChild(toggle);
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'tree-folder-checkbox';
+    checkbox.dataset.dirKey = node.key;
+    checkbox.title = 'Selecionar todos os arquivos desta pasta';
+    checkbox.setAttribute(
+        'aria-label',
+        `Selecionar todos os arquivos de ${node.name}`
+    );
+    row.appendChild(checkbox);
+
+    const icon = document.createElement('span');
+    icon.className = 'tree-folder-icon';
+    icon.textContent = node.isMapping ? '📦' : '📁';
+    row.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'tree-folder-name';
+    name.textContent = node.name;
+    name.title = node.isMapping ? `Mapeamento: ${node.name}` : node.key;
+    row.appendChild(name);
+
+    if (node.isMapping && isMappingDisabled(node.mappingId)) {
+        const warning = document.createElement('span');
+        warning.className = 'tree-badge-warning';
+        warning.textContent = '⚠️ backup desativado';
+        row.appendChild(warning);
+    }
+
+    const meta = document.createElement('span');
+    meta.className = 'tree-folder-meta';
+    row.appendChild(meta);
+
+    const children = document.createElement('div');
+    children.className = 'tree-children';
+    children.hidden = true;
+
+    node.rowEl = row;
+    node.toggleEl = toggle;
+    node.checkbox = checkbox;
+    node.metaEl = meta;
+    node.childrenEl = children;
+
+    for (const child of node.dirs.values()) {
+        children.appendChild(renderRestoreDir(child));
+    }
+    for (const file of node.files) {
+        children.appendChild(renderRestoreFile(file));
+    }
+
+    wrapper.appendChild(row);
+    wrapper.appendChild(children);
+    restoreDirNodes.set(node.key, node);
+    return wrapper;
+}
+
+function renderRestoreFile(file) {
+    const label = document.createElement('label');
+    label.className = 'tree-file' +
+        (isMappingDisabled(file.mappingId) ? ' restore-disabled-backup' : '');
+    label.style.setProperty('--depth', String(Math.max(0, file.depth - 1)));
+    label.title = file.relPath;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'tree-file-checkbox';
+    checkbox.value = file.remotePath;
+    checkbox.dataset.filePath = file.remotePath;
+    label.appendChild(checkbox);
+
+    const icon = document.createElement('span');
+    icon.className = 'tree-file-icon';
+    icon.textContent = '📄';
+    label.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'tree-file-name';
+    name.textContent = file.name;
+    label.appendChild(name);
+
+    if (file.encrypted) {
+        const encrypted = document.createElement('span');
+        encrypted.className = 'tree-badge';
+        encrypted.textContent = '🔒';
+        label.appendChild(encrypted);
+    }
+
+    if (isMappingDisabled(file.mappingId)) {
+        const warning = document.createElement('span');
+        warning.className = 'tree-badge-warning';
+        warning.textContent = '⚠️';
+        label.appendChild(warning);
+    }
+
+    const size = document.createElement('span');
+    size.className = 'tree-file-size';
+    size.textContent = formatBytes(file.size);
+    label.appendChild(size);
+
+    return label;
+}
+
+function renderRestoreTree() {
+    const container = document.getElementById('manifest-list');
+    container.innerHTML = '';
+    restoreDirNodes = new Map();
+    const fragment = document.createDocumentFragment();
+    for (const mapping of restoreTree.dirs.values()) {
+        fragment.appendChild(renderRestoreDir(mapping));
+    }
+    container.appendChild(fragment);
+    refreshRestoreSelectionUI();
+}
+
+function getRestoreDirNode(element) {
+    const wrapper = element.closest('.tree-folder');
+    if (!wrapper) return null;
+    return restoreDirNodes.get(wrapper.dataset.dirKey) || null;
+}
+
+function onRestoreTreeClick(event) {
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest('input[type="checkbox"]')) return;
+    const row = event.target.closest('.tree-folder-row');
+    if (!row) return;
+    const node = getRestoreDirNode(row);
+    if (!node) return;
+    setRestoreFolderExpanded(node, node.childrenEl.hidden);
+}
+
+function onRestoreTreeChange(event) {
+    const target = event.target;
+    if (target.classList.contains('tree-file-checkbox')) {
+        if (target.checked) restoreSelection.add(target.value);
+        else restoreSelection.delete(target.value);
+        scheduleRestoreSelectionSave();
+        refreshRestoreSelectionUI();
+        return;
+    }
+
+    if (target.classList.contains('tree-folder-checkbox')) {
+        const node = restoreDirNodes.get(target.dataset.dirKey);
+        if (!node) return;
+        RestoreTree.applyFolderSelection(node, restoreSelection, target.checked);
+        scheduleRestoreSelectionSave();
+        refreshRestoreSelectionUI();
+    }
+}
+
+function setAllRestore(checked) {
+    if (!restoreTree) return;
+    RestoreTree.applyAllSelection(restoreTree, restoreSelection, checked);
+    scheduleRestoreSelectionSave();
+    refreshRestoreSelectionUI();
+}
+
+function invertRestore() {
+    if (!restoreTree) return;
+    RestoreTree.invertSelection(restoreTree, restoreSelection);
+    scheduleRestoreSelectionSave();
+    refreshRestoreSelectionUI();
+}
+
+function expandAllRestore() {
+    if (!restoreTree) return;
+    RestoreTree.walkDirs(restoreTree, node => setRestoreFolderExpanded(node, true));
+}
+
+function collapseAllRestore() {
+    if (!restoreTree) return;
+    RestoreTree.walkDirs(restoreTree, node => setRestoreFolderExpanded(node, false));
+}
+
 async function loadManifest() {
+    const div = document.getElementById('manifest-list');
+    const toolbar = document.getElementById('restore-toolbar');
+    const actions = document.getElementById('restore-actions');
+    const loadButton = document.getElementById('restore-load-btn');
+
     try {
+        if (!mappingsCache.length) await loadMappings();
+
+        if (loadButton) {
+            loadButton.disabled = true;
+            loadButton.textContent = '⏳ Carregando manifesto...';
+        }
+        div.innerHTML = '<p class="restore-loading">Baixando manifesto do Terabox...</p>';
+        if (toolbar) toolbar.style.display = 'none';
+        if (actions) actions.style.display = 'none';
+
         const res = await fetch(API + '/restore/manifest');
+        if (!res.ok) {
+            let detail = `HTTP ${res.status}`;
+            try {
+                const error = await res.json();
+                detail = error.detail || detail;
+            } catch (e) {
+                // resposta sem JSON
+            }
+            throw new Error(detail);
+        }
         const data = await res.json();
-        const div = document.getElementById('manifest-list');
-        const toolbar = document.getElementById('restore-toolbar');
-        const actions = document.getElementById('restore-actions');
-        div.innerHTML = '';
-        restoreFilesCache = Array.isArray(data.files) ? data.files : [];
+        restoreFilesCache = Array.isArray(data.files)
+            ? data.files.filter(file => file && file.remote_path)
+            : [];
 
         if (restoreFilesCache.length === 0) {
-            div.innerHTML = '<p>Nenhum arquivo no manifesto.</p>';
+            restoreTree = null;
+            restoreSelection = new Set();
+            restoreDirNodes = new Map();
+            div.innerHTML = '';
+            const message = document.createElement('p');
+            message.textContent = data.error || 'Nenhum arquivo no manifesto.';
+            div.appendChild(message);
             if (toolbar) toolbar.style.display = 'none';
             if (actions) actions.style.display = 'none';
             return;
         }
 
-        // Lembra a seleção entre recarregamentos, troca de aba e reinício.
-        // Remove caminhos que não existem mais no manifesto.
-        const selected = loadRestoreSelection();
-        const currentPaths = new Set(restoreFilesCache.map(f => f.remote_path));
-        for (const path of Array.from(selected)) {
-            if (!currentPaths.has(path)) selected.delete(path);
-        }
-        saveRestoreSelection(selected);
-
-        restoreFilesCache.forEach(f => {
-            const disabled = isMappingDisabled(f.mapping_id);
-            const label = document.createElement('label');
-            label.className = 'restore-item' + (disabled ? ' restore-disabled-backup' : '');
-
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.value = f.remote_path;
-            cb.checked = selected.has(f.remote_path);
-            cb.addEventListener('change', saveRestoreFromDom);
-            label.appendChild(cb);
-
-            const enc = f.encrypted ? ' 🔒' : '';
-            const map = f.mapping_name ? ` [${f.mapping_name}]` : '';
-            const badge = disabled ? ' ⚠️ backup desativado' : '';
-            label.appendChild(document.createTextNode(
-                ` ${f.local_rel_path}${enc}${map}${badge} (${formatBytes(f.size)})`
-            ));
-
-            div.appendChild(label);
-            div.appendChild(document.createElement('br'));
-        });
+        restoreSelection = resolveRestoreSelection();
+        restoreTree = RestoreTree.buildRestoreTree(restoreFilesCache);
+        restoreSelectionDirty = false;
+        renderRestoreTree();
 
         if (toolbar) toolbar.style.display = 'flex';
         if (actions) actions.style.display = 'block';
-        updateRestoreCount();
     } catch (e) {
-        alert('Erro ao carregar manifesto: ' + e.message);
+        restoreTree = null;
+        restoreSelection = new Set();
+        restoreDirNodes = new Map();
+        div.innerHTML = '';
+        const message = document.createElement('p');
+        message.className = 'restore-error';
+        message.textContent = 'Erro ao carregar manifesto: ' + e.message;
+        div.appendChild(message);
+        if (toolbar) toolbar.style.display = 'none';
+        if (actions) actions.style.display = 'none';
+    } finally {
+        if (loadButton) {
+            loadButton.disabled = false;
+            loadButton.textContent = '📥 Carregar Manifesto';
+        }
     }
 }
 
 async function startRestore() {
-    saveRestoreFromDom();
-    const checkboxes = document.querySelectorAll('#manifest-list input[type="checkbox"]:checked');
-    const files = Array.from(checkboxes).map(cb => cb.value);
-    const dest = document.getElementById('restore-dest').value;
-    if (files.length === 0) { alert('Selecione ao menos um arquivo.'); return; }
-    if (!dest) { alert('Informe a pasta de destino.'); return; }
+    if (!restoreTree) {
+        alert('Carregue o manifesto primeiro.');
+        return;
+    }
+    if (restoreSelectionDirty) saveRestoreSelectionNow();
+
+    const files = RestoreTree.collectSelectedPaths(restoreTree, restoreSelection);
+    const dest = document.getElementById('restore-dest').value.trim();
+    const preserveStructure = document.getElementById('restore-structure').checked;
+
+    if (files.length === 0) {
+        alert('Selecione ao menos um arquivo.');
+        return;
+    }
+    if (!dest) {
+        alert('Informe a pasta de destino.');
+        return;
+    }
+
+    const summary = RestoreTree.selectionSummary(restoreTree, restoreSelection);
+    if (files.length > 100 || summary.size > 500 * 1024 * 1024) {
+        const confirmed = confirm(
+            `Restaurar ${files.length.toLocaleString('pt-BR')} arquivo(s) ` +
+            `(${formatBytes(summary.size)}) para:\n${dest}\n\n` +
+            'Isso pode demorar. Continuar?'
+        );
+        if (!confirmed) return;
+    }
+
+    if (!preserveStructure) {
+        const confirmed = confirm(
+            'A opção "Preservar estrutura de pastas" está desmarcada.\n\n' +
+            'Todos os arquivos serão colocados diretamente na pasta de destino, ' +
+            'sem subpastas, e arquivos com o mesmo nome podem ser sobrescritos.\n\n' +
+            'Continuar?'
+        );
+        if (!confirmed) return;
+    }
+
     try {
         const res = await fetch(API + '/restore/download', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                files,
+                files: files,
                 destination: dest,
-                preserve_structure: document.getElementById('restore-structure').checked
+                preserve_structure: preserveStructure
             })
         });
+        if (!res.ok) {
+            let detail = `HTTP ${res.status}`;
+            try {
+                const error = await res.json();
+                detail = error.detail || detail;
+            } catch (e) {
+                // resposta sem JSON
+            }
+            throw new Error(detail);
+        }
         const data = await res.json();
-        const ok = data.results.filter(r => r.success).length;
-        let msg = 'Restauração concluída: ' + ok + '/' + data.results.length;
-        const failures = data.results.filter(r => !r.success);
+        const results = Array.isArray(data.results) ? data.results : [];
+        const ok = results.filter(result => result.success).length;
+        let msg = 'Restauração concluída: ' + ok + '/' + results.length;
+        const failures = results.filter(result => !result.success);
         if (failures.length) {
-            msg += '\n\nFalhas:\n' + failures.slice(0, 20).map(r =>
-                `${r.remote_path}: ${r.error || 'erro desconhecido'}`).join('\n');
+            msg += '\n\nFalhas:\n' + failures.slice(0, 20).map(result =>
+                `${result.remote_path}: ${result.error || 'erro desconhecido'}`).join('\n');
         }
         alert(msg);
     } catch (e) {
@@ -728,6 +1026,13 @@ function formatBytes(bytes) {
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
+    const manifestList = document.getElementById('manifest-list');
+    if (manifestList) {
+        manifestList.addEventListener('click', onRestoreTreeClick);
+        manifestList.addEventListener('change', onRestoreTreeChange);
+    }
+    window.addEventListener('beforeunload', saveRestoreSelectionNow);
+
     checkAuth();
     loadMappings();
     loadSyncHistory();

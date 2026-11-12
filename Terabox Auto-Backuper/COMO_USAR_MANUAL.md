@@ -148,20 +148,43 @@ Na lista **"Mapeamentos Existentes"**, cada mapeamento tem o checkbox
 > Emojis são removidos apenas do caminho remoto (o Restaurar devolve o nome
 > original).
 
-### Manter a seleção de restauração
+### Restaurar arquivos (árvore por pastas)
 
-Na aba **"Restaurar"**, depois de carregar o manifesto:
+Na aba **"Restaurar"**, depois de clicar em **"Carregar Manifesto"**:
 
-1. Marque os arquivos que deseja baixar.
-2. A seleção fica salva no navegador: ao recarregar o manifesto, trocar de aba,
-   recarregar a página ou reiniciar o app, os mesmos arquivos continuam
-   marcados.
-3. Use **Selecionar todos**, **Desmarcar todos** ou **Inverter** para acelerar.
-4. Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
+1. A lista abre **recolhida**, agrupada por mapeamento (ex.: `saves`,
+   `schematics`, `files`). Clique na seta ou no nome da pasta para abrir.
+2. **Todos os arquivos já vêm marcados por padrão.** Desmarque apenas o que não
+   quiser restaurar.
+3. O checkbox de uma pasta seleciona ou desmarca todos os arquivos dentro dela.
+   Ele fica **indeterminado** quando só parte dos arquivos está marcada.
+4. Use os botões **Selecionar todos**, **Desmarcar todos**, **Inverter**,
+   **Expandir tudo** e **Recolher tudo** para acelerar.
+5. A seleção fica salva no navegador: ao recarregar o manifesto, trocar de aba,
+   recarregar a página ou reiniciar o app, a mesma escolha continua.
+6. Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
    **"⚠️ backup desativado"**, mas ainda podem ser restaurados manualmente.
 
 > A seleção de restauração é local ao navegador/perfil. Ela não é enviada ao
 > Terabox e não aparece em outro computador.
+
+### Preservar estrutura de pastas
+
+A opção **"Preservar estrutura de pastas"** já vem marcada. Ela mantém as
+subpastas originais dentro da pasta de destino:
+
+```text
+5506831188076592432/games/com.mojang/minecraftpe/clientId.txt
+→ C:\restore\5506831188076592432\games\com.mojang\minecraftpe\clientId.txt
+```
+
+O **nome do mapeamento** (ex.: `saves`, `files`) é usado apenas para organizar
+a árvore na tela; ele não vira uma pasta no destino. Se você desmarcar essa
+opção, o app avisa que os arquivos serão todos colocados diretamente na pasta
+de destino, sem subpastas, e que nomes iguais podem ser sobrescritos.
+
+> Antes de restaurar muitos arquivos, o app pede confirmação. Para testar em um
+> PC novo, comece com poucos arquivos e confira a pasta de destino.
 
 ---
 

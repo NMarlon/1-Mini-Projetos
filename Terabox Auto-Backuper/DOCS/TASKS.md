@@ -169,6 +169,23 @@
 - **Teste**: desmarcar mapeamento → prévia vazia; reativar → volta; seleção de restauração sobrevive a reload e a novo sync; 31 testes unitários passando
 - **Depende de**: T17, T21
 
+### T24. Árvore de restauração por pastas e seleção total por padrão ✅
+- **Status**: Concluída (2026-11-12)
+- **Descrição**: A aba Restaurar exibia milhares de arquivos em uma lista plana e todos desmarcados; era inviável selecionar e conferir a estrutura.
+- **Solução**:
+  - Árvore em níveis: mapeamento → pastas de `local_rel_path` → arquivos
+  - Pastas recolhidas por padrão; clique na seta/nome expande
+  - Checkbox de pasta em três estados (marcado/desmarcado/indeterminado)
+  - Todos os arquivos selecionados por padrão
+  - Toolbar com Selecionar todos, Desmarcar todos, Inverter, Expandir tudo e Recolher tudo
+  - Contador por pasta e global, com tamanho selecionado
+  - Persistência em `terabox_restore_selected_v2`; migração da v1 e tratamento de v1 vazia como ausência de seleção
+  - Confirmação antes de restaurar muitos arquivos ou achatar a estrutura
+  - `restore_tree.js` com helpers puros testáveis
+  - `resolve_restore_relative()` no backend para centralizar a proteção contra path traversal
+- **Teste**: 39 testes Python (`python -m unittest discover -s tests`) e 10 testes Node (`node --test tests/test_restore_tree.cjs`); validação no navegador com 5.282 arquivos, seleção total, tri-state, persistência de vazio e payload apenas com `remote_path`
+- **Depende de**: T21, T23
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

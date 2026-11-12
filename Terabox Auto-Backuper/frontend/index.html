@@ -110,12 +110,14 @@
         <section id="tab-restore" class="tab">
             <h2>Restaurar Arquivos</h2>
             <p>Baixe o manifesto do Terabox e selecione quais arquivos restaurar.</p>
-            <button onclick="loadManifest()">📥 Carregar Manifesto</button>
+            <button id="restore-load-btn" onclick="loadManifest()">📥 Carregar Manifesto</button>
             <div id="restore-toolbar" class="selection-toolbar" style="display:none">
                 <span id="restore-count"></span>
                 <button type="button" onclick="setAllRestore(true)">Selecionar todos</button>
                 <button type="button" onclick="setAllRestore(false)">Desmarcar todos</button>
                 <button type="button" onclick="invertRestore()">Inverter</button>
+                <button type="button" onclick="expandAllRestore()">Expandir tudo</button>
+                <button type="button" onclick="collapseAllRestore()">Recolher tudo</button>
             </div>
             <div id="manifest-list" class="manifest-list"></div>
             <div id="restore-actions" style="display:none">
@@ -125,6 +127,10 @@
                     <button type="button" class="btn-browse" onclick="pickFolder('restore-dest')">📁 Selecionar...</button>
                 </div>
                 <label><input type="checkbox" id="restore-structure" checked> Preservar estrutura de pastas</label>
+                <p class="help-text">
+                    Mantém as subpastas do backup dentro da pasta de destino.
+                    O nome do mapeamento é usado apenas para organizar a lista.
+                </p>
                 <button class="btn-primary" onclick="startRestore()">⬇️ Restaurar Selecionados</button>
             </div>
         </section>
@@ -152,9 +158,10 @@
     </main>
 
     <footer>
-        <small>Terabox Auto-Backuper v0.3.0</small>
+        <small>Terabox Auto-Backuper v0.3.1</small>
     </footer>
 
+    <script src="/static/js/restore_tree.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

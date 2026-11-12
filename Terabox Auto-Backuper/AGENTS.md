@@ -57,7 +57,8 @@ Terabox Auto-Backuper/
 ├── frontend/                 # SPA (HTML/CSS/JS vanilla)
 │   ├── index.html
 │   ├── css/style.css
-│   └── js/app.js
+│   ├── js/app.js
+│   └── js/restore_tree.js  # Árvore/seleção pura da aba Restaurar
 ├── DOCS/                     # Toda documentação
 ├── data/                     # SQLite DB, logs (gitignored)
 ├── tests/                    # Testes

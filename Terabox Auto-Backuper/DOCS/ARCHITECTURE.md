@@ -8,7 +8,7 @@ Aplicativo local com servidor FastAPI em `localhost:8765` e interface web (SPA v
 ┌─────────────────────────────────────────────────────────────┐
 │                    NAVEGADOR (localhost:8765)                │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  SPA (index.html + app.js + style.css)               │   │
+│  │  SPA (index.html + app.js + restore_tree.js + css)   │   │
 │  │  - Configuração de mapeamentos                       │   │
 │  │  - Status de sync em tempo real (SSE/polling)        │   │
 │  │  - Restaurar (processo reverso)                      │   │
@@ -136,13 +136,21 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 
 ## Seleção de Arquivos para Restaurar
 
-- Cada arquivo do manifesto tem um checkbox.
-- A seleção é salva em `localStorage` (`terabox_restore_selected_v1`) e
-  restaurada ao carregar o manifesto, trocar de aba, recarregar a página ou
-  reiniciar o app.
-- **Selecionar todos**, **Desmarcar todos** e **Inverter** operam sobre a lista
-  atual; um contador mostra “X de Y selecionados”.
+- O manifesto é exibido em árvore: primeiro nível por mapeamento, depois as
+  pastas reais de `local_rel_path` e, por fim, os arquivos.
+- **Todos os arquivos começam selecionados** quando não existe seleção salva.
+- O checkbox de pasta tem três estados (marcado, desmarcado e indeterminado) e
+  seleciona/desmarca toda a subárvore.
+- **Selecionar todos**, **Desmarcar todos**, **Inverter**, **Expandir tudo** e
+  **Recolher tudo** operam sobre a árvore; um contador mostra “X de Y” e o
+  tamanho selecionado.
+- A seleção é salva em `localStorage` (`terabox_restore_selected_v2`) somente
+  quando o usuário altera algo. A chave antiga (`..._v1`) é migrada quando tem
+  caminhos; uma v1 vazia (`[]`) é tratada como ausência de seleção, porque era
+  o estado defeituoso gravado pela versão anterior.
 - Caminhos que não existem mais no manifesto são removidos da seleção.
+- A seleção enviada ao backend contém apenas `remote_path` de arquivos;
+  checkboxes de pasta são exclusivamente de UI.
 - O Auto-sync não altera a seleção; ele só atualiza o manifesto no Terabox.
 - Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
   “⚠️ backup desativado”, mas continuam restauráveis manualmente.
@@ -213,13 +221,18 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 
 1. Usuário clica "Restaurar" na UI
 2. Backend baixa o manifesto do Terabox (`/api/filemetas` → dlink)
-3. Exibe lista de arquivos com checkboxes; a seleção é lembrada no navegador
-4. Usuário seleciona quais e pasta de destino local
+3. Exibe a árvore por mapeamento/pastas com todos os arquivos selecionados por
+   padrão; a seleção é lembrada no navegador
+4. Usuário ajusta a seleção e escolhe a pasta de destino local
 5. Backend baixa cada arquivo via dlink e salva em
-   `destino/local_rel_path` (preservando a estrutura), com proteção contra
-   path traversal
+   `destino/local_rel_path` (preservando a estrutura), usando
+   `resolve_restore_relative()` para bloquear path traversal
 6. Se criptografado, baixa o `.enc` para temp e descriptografa para o nome original
 7. Resultado por arquivo (sucesso/erro) é devolvido à UI
+
+> O agrupamento por mapeamento é apenas visual. A estrutura preservada é a do
+> `local_rel_path` dentro de cada mapeamento; o nome do mapeamento não vira
+> pasta no destino.
 
 ## Autostart Windows
 

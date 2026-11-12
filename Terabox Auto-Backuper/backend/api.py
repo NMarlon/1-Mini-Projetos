@@ -26,9 +26,9 @@ from backend import windows_startup
 from backend.process_utils import run_hidden
 from backend.csv_import import parse_mapping_csv
 from backend.paths import (
-    is_safe_relative_path,
     normalize_local,
     normalize_remote,
+    resolve_restore_relative,
     sanitize_remote_path,
 )
 
@@ -460,11 +460,9 @@ async def restore_download(body: RestoreRequest):
             remote_path = normalize_remote(remote_path)
             entry = manifest_map.get(remote_path, {})
             original_rel = entry.get("local_rel_path") or posixpath.basename(remote_path)
-            rel = original_rel
-            if not body.preserve_structure or not is_safe_relative_path(rel):
-                # Mesmo sem preservar a estrutura, mantém o nome local original
-                # (importante para arquivos com emoji que foram sanitizados no remoto).
-                rel = posixpath.basename(original_rel)
+            # Mantém o nome local original (importante para arquivos com emoji
+            # que foram sanitizados no remoto) e protege contra path traversal.
+            rel = resolve_restore_relative(original_rel, body.preserve_structure)
 
             local_path = dest / Path(rel)
             try:

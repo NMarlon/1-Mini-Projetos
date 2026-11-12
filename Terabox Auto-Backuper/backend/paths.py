@@ -64,6 +64,34 @@ def is_safe_relative_path(rel_path: str) -> bool:
     return bool(parts) and ".." not in parts
 
 
+def resolve_restore_relative(
+    rel_path: str, preserve_structure: bool = True
+) -> str:
+    """Define o caminho relativo usado ao restaurar um arquivo.
+
+    Quando ``preserve_structure`` é verdadeiro e o caminho é seguro, mantém as
+    subpastas originais. Caso contrário, usa apenas o nome do arquivo. Isso
+    impede que caminhos absolutos ou com ``..`` escapem da pasta de destino.
+    """
+    rel = to_posix(rel_path or "").strip().rstrip("/")
+    original_parts = rel.split("/")
+    if (
+        preserve_structure
+        and is_safe_relative_path(rel)
+        and original_parts
+        and original_parts[-1] not in ("", ".", "..")
+    ):
+        parts = [part for part in original_parts if part not in ("", ".")]
+        return "/".join(parts)
+
+    name = posixpath.basename(rel)
+    # basename("..") ainda seria "..", que escaparia do destino. Nunca
+    # devolver um componente especial para o download.
+    if name in ("", ".", ".."):
+        return "arquivo_restaurado"
+    return name
+
+
 # Caracteres que o Terabox recusa em nomes (emoji/símbolos) ou que não são
 # seguros em caminhos. Letras acentuadas, números, espaços e pontuação comum
 # continuam permitidos.
