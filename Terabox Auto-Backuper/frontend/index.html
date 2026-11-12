@@ -110,6 +110,13 @@
         <section id="tab-restore" class="tab">
             <h2>Restaurar Arquivos</h2>
             <p>Baixe o manifesto do Terabox e selecione quais arquivos restaurar.</p>
+            <div class="restore-target-info">
+                <strong>Destino automático:</strong> cada arquivo volta para a pasta
+                original do mapeamento correspondente, como configurado na aba
+                Configuração. Pastas existentes são mescladas; arquivos com o mesmo
+                caminho são substituídos. Nada fora dos arquivos selecionados é apagado.
+            </div>
+            <p id="restore-mode" class="help-text"></p>
             <button id="restore-load-btn" onclick="loadManifest()">📥 Carregar Manifesto</button>
             <div id="restore-toolbar" class="selection-toolbar" style="display:none">
                 <span id="restore-count"></span>
@@ -121,17 +128,8 @@
             </div>
             <div id="manifest-list" class="manifest-list"></div>
             <div id="restore-actions" style="display:none">
-                <label>Pasta de destino:</label>
-                <div class="input-row">
-                    <input type="text" id="restore-dest" placeholder="C:\restore">
-                    <button type="button" class="btn-browse" onclick="pickFolder('restore-dest')">📁 Selecionar...</button>
-                </div>
-                <label><input type="checkbox" id="restore-structure" checked> Preservar estrutura de pastas</label>
-                <p class="help-text">
-                    Mantém as subpastas do backup dentro da pasta de destino.
-                    O nome do mapeamento é usado apenas para organizar a lista.
-                </p>
-                <button class="btn-primary" onclick="startRestore()">⬇️ Restaurar Selecionados</button>
+                <div id="restore-plan-summary" class="restore-plan-summary" hidden></div>
+                <button id="restore-start-btn" class="btn-primary" onclick="startRestore()">⬇️ Restaurar Selecionados</button>
             </div>
         </section>
 
@@ -152,13 +150,22 @@
                     </select>
                 </label>
                 <label><input type="checkbox" id="s-autostart"> Iniciar com o Windows</label>
+
+                <h3>Restauração</h3>
+                <label><input type="checkbox" id="s-restore-confirm" checked> Perguntar antes de sobrescrever arquivos existentes</label>
+                <p class="help-text">
+                    Quando desmarcado, o Restaurar substitui arquivos com o mesmo
+                    caminho sem pedir confirmação. O relatório final ainda mostra
+                    o que foi substituído.
+                </p>
+
                 <button type="submit">Salvar</button>
             </form>
         </section>
     </main>
 
     <footer>
-        <small>Terabox Auto-Backuper v0.3.1</small>
+        <small>Terabox Auto-Backuper v0.3.2</small>
     </footer>
 
     <script src="/static/js/restore_tree.js"></script>

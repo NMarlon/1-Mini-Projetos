@@ -46,6 +46,7 @@ Terabox Auto-Backuper/
 │   ├── models.py             # Pydantic + tabelas
 │   ├── terabox_client.py     # Cliente Terabox (list/upload/download/precreate/create)
 │   ├── auth.py               # rookie-cookies + jsToken scraping/refresh
+│   ├── restore.py            # Destino original, plano e conflitos do Restaurar
 │   ├── sync_engine.py        # Motor de sync (plano, execução, manifesto v2)
 │   ├── sync_plan.py          # Decisão pura de dedup (upload/replace/skip)
 │   ├── paths.py              # Normalização POSIX + sanitização de nomes remotos
@@ -58,7 +59,7 @@ Terabox Auto-Backuper/
 │   ├── index.html
 │   ├── css/style.css
 │   ├── js/app.js
-│   └── js/restore_tree.js  # Árvore/seleção pura da aba Restaurar
+│   └── js/restore_tree.js    # Árvore/seleção pura da aba Restaurar
 ├── DOCS/                     # Toda documentação
 ├── data/                     # SQLite DB, logs (gitignored)
 ├── tests/                    # Testes

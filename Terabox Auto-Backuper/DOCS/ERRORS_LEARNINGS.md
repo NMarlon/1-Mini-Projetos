@@ -17,6 +17,21 @@
 
 ## Erros Registrados
 
+### [2026-11-12] Restaurar pedia uma pasta de destino que já existia na configuração
+**Contexto**: Implementar a restauração em árvore para 5.282 arquivos.
+**Erro**: A aba Restaurar pedia uma "Pasta de destino" manual e o backend gravava em `destination/local_rel_path`, ignorando `mappings.local_path`. O usuário podia restaurar no lugar errado, ou sobrescrever arquivos sem aviso.
+**Causa**: O processo reverso foi pensado como "exportar para uma pasta", não como "devolver ao lugar original". O manifesto já tinha `mapping_id` e `local_rel_path`, mas o backend nunca consultava o mapeamento atual.
+**Solução**:
+- O destino agora é `mapping.local_path` (pasta) ou o próprio arquivo (mapeamento de arquivo único).
+- `POST /api/restore/plan` classifica criar/substituir/erro antes de baixar.
+- `allow_overwrite=false` retorna 409 em conflitos; a UI só confirma e reenvia quando o usuário autoriza.
+- Configuração `restore_confirm_overwrite` permite desligar a pergunta.
+- `mappings.is_file` é persistido para não confundir arquivo apagado com pasta.
+- O cache `files` é atualizado após o restore para o próximo sync não reenviar o mesmo conteúdo.
+**Aprendizado**: Se o dado de destino já existe na configuração, o fluxo reverso deve derivá-lo dela. Não pedir ao usuário uma informação que o sistema já tem; isso cria divergência e risco de escrever no lugar errado. Planejar antes de baixar (dry-run) permite avisar sobre substituições sem tocar no disco.
+
+---
+
 ### [2026-11-12] Seleção de restauração nascia vazia e ficava presa
 **Contexto**: Melhorar a aba Restaurar, que listava 5.277 arquivos em uma lista plana.
 **Erro**: O manifesto abria com todos os arquivos desmarcados, e o estado vazio continuava após recarregar.

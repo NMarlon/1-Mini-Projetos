@@ -15,6 +15,7 @@ let restoreSelection = new Set();
 let restoreSelectionDirty = false;
 let restoreSaveTimer = null;
 let restoreDirNodes = new Map();
+let restoreConfirmOverwrite = true;
 
 // ── Navegação por abas ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -594,8 +595,77 @@ function refreshRestoreSelectionUI() {
 }
 
 function isMappingDisabled(mappingId) {
-    const mapping = mappingsCache.find(m => m.id === mappingId);
+    const mapping = mappingsCache.find(
+        m => Number(m.id) === Number(mappingId)
+    );
     return mapping ? !mapping.enabled : false;
+}
+
+function remoteUnderRestore(remotePath, rootPath) {
+    const remote = String(remotePath || '').replace(/\\/g, '/');
+    const root = String(rootPath || '')
+        .replace(/\\/g, '/')
+        .replace(/\/+$/, '');
+    return Boolean(root) &&
+        (remote === root || remote.startsWith(root + '/'));
+}
+
+function mappingRemoteRootLength(mapping) {
+    return String(mapping.remote_path || '')
+        .replace(/\\/g, '/')
+        .replace(/\/+$/, '')
+        .length;
+}
+
+function mappingMatchesRestore(mapping, mappingName, remotePath) {
+    const underRemote = remoteUnderRestore(remotePath, mapping.remote_path);
+    const sameName = Boolean(mappingName) &&
+        String(mapping.name || '').toLowerCase() ===
+        String(mappingName || '').toLowerCase();
+    return underRemote || sameName;
+}
+
+function getRestoreMapping(mappingId, mappingName, remotePath) {
+    const byId = mappingsCache.find(
+        m => Number(m.id) === Number(mappingId)
+    );
+    if (byId && mappingMatchesRestore(byId, mappingName, remotePath)) {
+        return byId;
+    }
+
+    const byPrefix = mappingsCache.filter(
+        m => remoteUnderRestore(remotePath, m.remote_path)
+    );
+    if (byPrefix.length) {
+        const maxLen = Math.max(
+            ...byPrefix.map(mappingRemoteRootLength)
+        );
+        const best = byPrefix.filter(
+            m => mappingRemoteRootLength(m) === maxLen
+        );
+        if (best.length === 1) return best[0];
+    }
+
+    const byName = mappingsCache.filter(m =>
+        mappingName &&
+        String(m.name || '').toLowerCase() ===
+        String(mappingName || '').toLowerCase()
+    );
+    return byName.length === 1 ? byName[0] : null;
+}
+
+function getRestoreNodeMapping(node) {
+    const file = node.allFiles && node.allFiles[0];
+    if (!file) return null;
+    return getRestoreMapping(node.mappingId, file.mappingName, file.remotePath);
+}
+
+function updateRestoreMode() {
+    const el = document.getElementById('restore-mode');
+    if (!el) return;
+    el.textContent = restoreConfirmOverwrite
+        ? 'Modo atual: perguntar antes de sobrescrever arquivos existentes.'
+        : 'Modo atual: sobrescrever arquivos existentes sem perguntar (o relatório final mostra as substituições).';
 }
 
 function setRestoreFolderExpanded(node, expanded) {
@@ -680,6 +750,24 @@ function renderRestoreDir(node) {
     }
 
     wrapper.appendChild(row);
+
+    if (node.isMapping) {
+        const mapping = getRestoreNodeMapping(node);
+        const dest = document.createElement('div');
+        dest.className = 'tree-mapping-dest';
+        if (mapping) {
+            dest.textContent = `${mapping.is_file ? '📄 Arquivo' : '📁 Pasta'}: ${mapping.local_path}`;
+            dest.title = mapping.local_path;
+            if (!mapping.enabled) {
+                dest.classList.add('restore-disabled-backup');
+            }
+        } else {
+            dest.textContent = '⚠️ Mapeamento não encontrado em Configuração';
+            dest.classList.add('restore-mapping-missing');
+        }
+        wrapper.appendChild(dest);
+    }
+
     wrapper.appendChild(children);
     restoreDirNodes.set(node.key, node);
     return wrapper;
@@ -807,6 +895,13 @@ async function loadManifest() {
     const toolbar = document.getElementById('restore-toolbar');
     const actions = document.getElementById('restore-actions');
     const loadButton = document.getElementById('restore-load-btn');
+    const planSummary = document.getElementById('restore-plan-summary');
+
+    if (planSummary) {
+        planSummary.hidden = true;
+        planSummary.textContent = '';
+        planSummary.classList.remove('has-conflicts', 'has-errors');
+    }
 
     try {
         if (!mappingsCache.length) await loadMappings();
@@ -855,6 +950,7 @@ async function loadManifest() {
 
         if (toolbar) toolbar.style.display = 'flex';
         if (actions) actions.style.display = 'block';
+        updateRestoreMode();
     } catch (e) {
         restoreTree = null;
         restoreSelection = new Set();
@@ -874,6 +970,61 @@ async function loadManifest() {
     }
 }
 
+function restoreErrorText(detail, fallback) {
+    if (!detail) return fallback;
+    if (typeof detail === 'string') return detail;
+    if (detail.message) return detail.message;
+    return fallback;
+}
+
+function updateRestorePlanSummary(summary, conflicts, errors) {
+    const el = document.getElementById('restore-plan-summary');
+    if (!el) return;
+    if (!summary || !summary.total) {
+        el.hidden = true;
+        el.textContent = '';
+        el.classList.remove('has-conflicts', 'has-errors');
+        return;
+    }
+    el.hidden = false;
+    el.textContent =
+        `${summary.create || 0} criar • ` +
+        `${summary.replace || 0} substituir • ` +
+        `${summary.errors || 0} erro(s)` +
+        (summary.mappings ? ` • ${summary.mappings} mapeamento(s)` : '');
+    el.classList.toggle('has-conflicts', conflicts > 0);
+    el.classList.toggle('has-errors', errors > 0);
+}
+
+async function requestRestoreDownload(files, allowOverwrite) {
+    const res = await fetch(API + '/restore/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            files: files,
+            allow_overwrite: allowOverwrite
+        })
+    });
+
+    let payload = null;
+    try {
+        payload = await res.json();
+    } catch (e) {
+        payload = null;
+    }
+
+    if (!res.ok) {
+        const err = new Error(restoreErrorText(
+            payload && payload.detail,
+            `HTTP ${res.status}`
+        ));
+        err.status = res.status;
+        err.detail = payload && payload.detail;
+        throw err;
+    }
+    return payload || {};
+}
+
 async function startRestore() {
     if (!restoreTree) {
         alert('Carregue o manifesto primeiro.');
@@ -882,70 +1033,182 @@ async function startRestore() {
     if (restoreSelectionDirty) saveRestoreSelectionNow();
 
     const files = RestoreTree.collectSelectedPaths(restoreTree, restoreSelection);
-    const dest = document.getElementById('restore-dest').value.trim();
-    const preserveStructure = document.getElementById('restore-structure').checked;
-
     if (files.length === 0) {
         alert('Selecione ao menos um arquivo.');
         return;
     }
-    if (!dest) {
-        alert('Informe a pasta de destino.');
-        return;
-    }
-
-    const summary = RestoreTree.selectionSummary(restoreTree, restoreSelection);
-    if (files.length > 100 || summary.size > 500 * 1024 * 1024) {
-        const confirmed = confirm(
-            `Restaurar ${files.length.toLocaleString('pt-BR')} arquivo(s) ` +
-            `(${formatBytes(summary.size)}) para:\n${dest}\n\n` +
-            'Isso pode demorar. Continuar?'
-        );
-        if (!confirmed) return;
-    }
-
-    if (!preserveStructure) {
-        const confirmed = confirm(
-            'A opção "Preservar estrutura de pastas" está desmarcada.\n\n' +
-            'Todos os arquivos serão colocados diretamente na pasta de destino, ' +
-            'sem subpastas, e arquivos com o mesmo nome podem ser sobrescritos.\n\n' +
-            'Continuar?'
-        );
-        if (!confirmed) return;
-    }
+    const selection = RestoreTree.selectionSummary(restoreTree, restoreSelection);
 
     try {
-        const res = await fetch(API + '/restore/download', {
+        const statusRes = await fetch(API + '/sync/status');
+        if (statusRes.ok) {
+            const status = await statusRes.json();
+            if (status.running && !confirm(
+                'Há um sync em andamento. Restaurar agora pode alterar ' +
+                'arquivos que estão sendo enviados.\n\nContinuar?'
+            )) {
+                return;
+            }
+        }
+    } catch (e) {
+        // Sem status do sync, segue com a restauração.
+    }
+
+    let plan;
+    try {
+        const res = await fetch(API + '/restore/plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                files: files,
-                destination: dest,
-                preserve_structure: preserveStructure
-            })
+            body: JSON.stringify({ files: files })
         });
         if (!res.ok) {
             let detail = `HTTP ${res.status}`;
             try {
                 const error = await res.json();
-                detail = error.detail || detail;
+                detail = restoreErrorText(error.detail, detail);
             } catch (e) {
                 // resposta sem JSON
             }
             throw new Error(detail);
         }
-        const data = await res.json();
+        plan = await res.json();
+    } catch (e) {
+        alert('Erro ao preparar a restauração: ' + e.message);
+        return;
+    }
+
+    const summary = plan.summary || {};
+    const targets = Array.isArray(plan.files) ? plan.files : [];
+    const valid = targets.filter(target => target.action !== 'error');
+    const errors = targets.filter(target => target.action === 'error');
+    const conflicts = valid.filter(target => target.action === 'replace');
+    updateRestorePlanSummary(summary, conflicts.length, errors.length);
+
+    if (!valid.length) {
+        const examples = errors.slice(0, 12).map(target =>
+            `${target.remote_path}: ${target.error || 'erro'}`
+        ).join('\n');
+        alert(
+            'Nenhum arquivo pode ser restaurado.\n\n' +
+            (examples || 'Verifique os mapeamentos na aba Configuração.')
+        );
+        return;
+    }
+
+    const lines = [
+        `${valid.length.toLocaleString('pt-BR')} arquivo(s) para restaurar.`,
+        `${summary.create || 0} serão criados.`,
+        `${conflicts.length} já existem e serão substituídos.`
+    ];
+    if (errors.length) {
+        lines.push(`${errors.length} arquivo(s) serão ignorados por erro.`);
+    }
+    lines.push(`Tamanho selecionado: ${formatBytes(selection.size)}.`);
+
+    if (errors.length) {
+        const examples = errors.slice(0, 10).map(target =>
+            `${target.remote_path}: ${target.error || 'erro'}`
+        ).join('\n');
+        const proceed = confirm(
+            lines.join('\n') + '\n\nNão será possível restaurar:\n' +
+            examples +
+            (errors.length > 10 ? `\n... e mais ${errors.length - 10}.` : '') +
+            '\n\nContinuar apenas com os arquivos válidos?'
+        );
+        if (!proceed) return;
+    }
+
+    if (valid.length > 100 || selection.size > 500 * 1024 * 1024) {
+        const confirmed = confirm(
+            `Restaurar ${valid.length.toLocaleString('pt-BR')} arquivo(s) ` +
+            `(${formatBytes(selection.size)}) nas pastas originais?\n\n` +
+            'Isso pode demorar. Continuar?'
+        );
+        if (!confirmed) return;
+    }
+
+    if (conflicts.length && restoreConfirmOverwrite) {
+        const examples = conflicts.slice(0, 10)
+            .map(target => target.local_path || target.remote_path)
+            .join('\n');
+        const confirmed = confirm(
+            `${conflicts.length.toLocaleString('pt-BR')} arquivo(s) já existem ` +
+            'e serão substituídos:\n\n' +
+            examples +
+            (conflicts.length > 10 ? `\n... e mais ${conflicts.length - 10}.` : '') +
+            '\n\nDeseja continuar?'
+        );
+        if (!confirmed) return;
+    }
+
+    const validFiles = valid.map(target => target.remote_path);
+    const allowOverwrite = conflicts.length > 0;
+    const startBtn = document.getElementById('restore-start-btn');
+    if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.textContent = '⏳ Restaurando...';
+    }
+
+    try {
+        let data;
+        try {
+            data = await requestRestoreDownload(validFiles, allowOverwrite);
+        } catch (e) {
+            if (e.status === 409 && e.detail && Array.isArray(e.detail.conflicts)) {
+                const newConflicts = e.detail.conflicts;
+                const examples = newConflicts.slice(0, 10)
+                    .map(target => target.local_path || target.remote_path)
+                    .join('\n');
+                const shouldReplace = !restoreConfirmOverwrite || confirm(
+                    `${newConflicts.length.toLocaleString('pt-BR')} arquivo(s) ` +
+                    'passaram a existir e serão substituídos:\n\n' +
+                    examples +
+                    '\n\nSubstituir mesmo assim?'
+                );
+                if (!shouldReplace) return;
+                data = await requestRestoreDownload(validFiles, true);
+            } else {
+                throw e;
+            }
+        }
+
         const results = Array.isArray(data.results) ? data.results : [];
-        const ok = results.filter(result => result.success).length;
-        let msg = 'Restauração concluída: ' + ok + '/' + results.length;
+        const resultSummary = data.summary || {};
+        const replaced = results.filter(result => result.success && result.overwritten);
         const failures = results.filter(result => !result.success);
+
+        let msg = 'Restauração concluída.\n\n' +
+            `Restaurados: ${resultSummary.restored ?? results.filter(result => result.success).length}` +
+            ` • Criados: ${resultSummary.created ?? 0}` +
+            ` • Substituídos: ${resultSummary.replaced ?? replaced.length}` +
+            ` • Falhas: ${resultSummary.failed ?? failures.length}`;
+
+        if (replaced.length) {
+            msg += '\n\nSubstituídos:\n' + replaced.slice(0, 20)
+                .map(result => result.local_path || result.remote_path)
+                .join('\n');
+            if (replaced.length > 20) {
+                msg += `\n... e mais ${replaced.length - 20}.`;
+            }
+        }
+
         if (failures.length) {
             msg += '\n\nFalhas:\n' + failures.slice(0, 20).map(result =>
-                `${result.remote_path}: ${result.error || 'erro desconhecido'}`).join('\n');
+                `${result.remote_path}: ${result.error || 'erro desconhecido'}`
+            ).join('\n');
+            if (failures.length > 20) {
+                msg += `\n... e mais ${failures.length - 20}.`;
+            }
         }
+
         alert(msg);
     } catch (e) {
-        alert('Erro: ' + e.message);
+        alert('Erro ao restaurar: ' + e.message);
+    } finally {
+        if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.textContent = '⬇️ Restaurar Selecionados';
+        }
     }
 }
 
@@ -960,6 +1223,9 @@ async function loadSettings() {
         document.getElementById('s-concurrent').value = data.max_concurrent_uploads;
         document.getElementById('s-browser').value = data.browser_preference;
         document.getElementById('s-autostart').checked = data.autostart;
+        restoreConfirmOverwrite = data.restore_confirm_overwrite !== false;
+        document.getElementById('s-restore-confirm').checked = restoreConfirmOverwrite;
+        updateRestoreMode();
     } catch (e) {
         console.error(e);
     }
@@ -973,7 +1239,8 @@ async function saveSettings(e) {
         notifications: document.getElementById('s-notifications').checked,
         max_concurrent_uploads: parseInt(document.getElementById('s-concurrent').value),
         browser_preference: document.getElementById('s-browser').value,
-        autostart: document.getElementById('s-autostart').checked
+        autostart: document.getElementById('s-autostart').checked,
+        restore_confirm_overwrite: document.getElementById('s-restore-confirm').checked
     };
     try {
         const res = await fetch(API + '/settings', {
@@ -982,6 +1249,9 @@ async function saveSettings(e) {
             body: JSON.stringify(body)
         });
         if (res.ok) {
+            restoreConfirmOverwrite =
+                document.getElementById('s-restore-confirm').checked;
+            updateRestoreMode();
             alert('Configurações salvas!');
         }
     } catch (e) {
@@ -1005,7 +1275,7 @@ async function pickFolder(inputId) {
         alert('Não foi possível abrir o seletor de pastas: ' + e.message);
     } finally {
         input.disabled = false;
-        input.placeholder = oldValue ? '' : (inputId === 'm-local' ? 'C:\\minha\\pasta' : 'C:\\restore');
+        input.placeholder = oldValue ? '' : 'C:\\minha\\pasta';
     }
 }
 
@@ -1033,6 +1303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.addEventListener('beforeunload', saveRestoreSelectionNow);
 
+    updateRestoreMode();
     checkAuth();
     loadMappings();
     loadSyncHistory();

@@ -213,6 +213,39 @@ button:hover { background: #533483; }
     margin-top: 0;
 }
 
+.restore-target-info {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-left: 4px solid #2e7d32;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    line-height: 1.45;
+}
+
+.restore-target-info strong {
+    color: #8ab4f8;
+}
+
+.restore-plan-summary {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    color: #c9d3e6;
+    font-size: 0.85rem;
+}
+
+.restore-plan-summary.has-conflicts {
+    border-color: #d9a441;
+    color: #d9a441;
+}
+
+.restore-plan-summary.has-errors {
+    border-color: #d32f2f;
+    color: #ff8a80;
+}
+
 .manifest-list {
     max-height: 65vh;
     overflow-y: auto;
@@ -305,6 +338,24 @@ button:hover { background: #533483; }
     color: #e94560;
 }
 
+.tree-mapping-dest {
+    padding: 0 6px 4px calc(6px + 1 * 16px + 22px + 8px);
+    color: #8f9bb3;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-mapping-dest.restore-disabled-backup {
+    color: #d9a441;
+}
+
+.tree-mapping-dest.restore-mapping-missing {
+    color: #ff8a80;
+}
+
 .tree-file-name {
     flex: 1 1 auto;
     min-width: 0;
@@ -366,5 +417,9 @@ footer {
     .tree-folder-meta,
     .tree-file-size {
         display: none;
+    }
+
+    .tree-mapping-dest {
+        padding-left: calc(4px + 1 * 12px + 22px + 8px);
     }
 }

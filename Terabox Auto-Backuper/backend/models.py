@@ -101,6 +101,7 @@ class Settings(BaseModel):
     autostart: bool = False
     browser_preference: str = "auto"  # auto, chrome, edge, firefox
     encryption_key: Optional[str] = None
+    restore_confirm_overwrite: bool = True
 
 class SettingsUpdate(BaseModel):
     sync_interval_minutes: Optional[int] = None
@@ -110,6 +111,7 @@ class SettingsUpdate(BaseModel):
     autostart: Optional[bool] = None
     browser_preference: Optional[str] = None
     encryption_key: Optional[str] = None
+    restore_confirm_overwrite: Optional[bool] = None
 
 # ── Auth ──
 
@@ -146,13 +148,15 @@ class RestoreFile(BaseModel):
     synced_at: Optional[str] = None
     encrypted: bool = False
 
+class RestorePlanRequest(BaseModel):
+    files: List[str]
+
 class RestoreRequest(BaseModel):
     files: List[str]
-    destination: str
-    preserve_structure: bool = True
+    allow_overwrite: bool = False
 
 # ── Health ──
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.3.1"
+    version: str = "0.3.2"

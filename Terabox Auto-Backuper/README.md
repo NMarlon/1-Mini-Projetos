@@ -26,10 +26,12 @@ python app.py
 - Arquivo alterado é **substituído no mesmo caminho** (sem pastas/arquivos com data)
 - Nomes com emoji são sanitizados no Terabox; o Restaurar devolve o nome original
 - **Seleção de restauração persistente**: os checkboxes da aba Restaurar são lembrados ao recarregar o manifesto e ao reiniciar o app
+- **Restaurar nas pastas originais**: cada arquivo volta para o `local_path` do mapeamento, mesclando pastas e substituindo arquivos existentes
+- **Aviso de sobrescrita configurável**: pergunta antes de substituir (padrão) ou substitui direto, com relatório final
 - Autenticação automática via perfil do navegador (Chrome/Edge/Firefox/Dia)
 - Notificações toast do Windows
 - Criptografia opcional por mapeamento (upload e restore corrigidos)
-- Processo reverso: restaurar arquivos de um novo PC preservando a estrutura
+- Processo reverso também funciona em outro PC, casando os mapeamentos pelo caminho remoto/nome
 - Autostart com o Windows
 
 > O sync é um **backup unidirecional**: local → Terabox. O app não apaga
@@ -64,14 +66,20 @@ Em **Mapeamentos Existentes**, cada mapeamento tem o checkbox **Sincronizar**:
 - Desmarcar não apaga nada no Terabox; apenas para de enviar novos arquivos.
 - O contador mostra quantos mapeamentos estão selecionados.
 
-## Manter a seleção de restauração
+## Restaurar arquivos
 
 Na aba **Restaurar**, depois de carregar o manifesto:
 
-- Marque os arquivos que deseja restaurar.
+- A árvore abre agrupada por mapeamento e mostra o **destino original** de cada
+  um. Não existe campo de pasta de destino manual.
+- **Todos os arquivos já vêm marcados**; desmarque o que não quiser restaurar.
+- Pastas existentes são mescladas; arquivos no mesmo caminho são substituídos.
+- Antes de baixar, o app mostra quantos arquivos serão criados, substituídos ou
+  ignorados por erro.
+- Em **Configurações → Restauração**, a opção
+  **“Perguntar antes de sobrescrever arquivos existentes”** vem ligada.
 - A seleção fica salva no navegador e é restaurada ao recarregar o manifesto,
   trocar de aba, recarregar a página ou reiniciar o app.
-- Use **Selecionar todos**, **Desmarcar todos** ou **Inverter** para acelerar.
 - Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
   **⚠️ backup desativado**, mas ainda podem ser restaurados manualmente.
 - A seleção é local ao navegador/perfil; ela não é enviada ao Terabox.
@@ -80,6 +88,7 @@ Na aba **Restaurar**, depois de carregar o manifesto:
 
 ```bash
 python -m unittest discover -s tests -v
+node --test tests/test_restore_tree.cjs
 ```
 
 ## Documentação

@@ -154,37 +154,64 @@ Na aba **"Restaurar"**, depois de clicar em **"Carregar Manifesto"**:
 
 1. A lista abre **recolhida**, agrupada por mapeamento (ex.: `saves`,
    `schematics`, `files`). Clique na seta ou no nome da pasta para abrir.
-2. **Todos os arquivos já vêm marcados por padrão.** Desmarque apenas o que não
+2. Cada mapeamento mostra o **destino original** logo abaixo do nome, por
+   exemplo `📁 Pasta: C:\Users\marlo\AppData\Roaming\Mindustry\saves`.
+3. **Todos os arquivos já vêm marcados por padrão.** Desmarque apenas o que não
    quiser restaurar.
-3. O checkbox de uma pasta seleciona ou desmarca todos os arquivos dentro dela.
+4. O checkbox de uma pasta seleciona ou desmarca todos os arquivos dentro dela.
    Ele fica **indeterminado** quando só parte dos arquivos está marcada.
-4. Use os botões **Selecionar todos**, **Desmarcar todos**, **Inverter**,
+5. Use os botões **Selecionar todos**, **Desmarcar todos**, **Inverter**,
    **Expandir tudo** e **Recolher tudo** para acelerar.
-5. A seleção fica salva no navegador: ao recarregar o manifesto, trocar de aba,
+6. A seleção fica salva no navegador: ao recarregar o manifesto, trocar de aba,
    recarregar a página ou reiniciar o app, a mesma escolha continua.
-6. Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
+7. Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
    **"⚠️ backup desativado"**, mas ainda podem ser restaurados manualmente.
 
-> A seleção de restauração é local ao navegador/perfil. Ela não é enviada ao
-> Terabox e não aparece em outro computador.
+### Para onde cada arquivo volta
 
-### Preservar estrutura de pastas
-
-A opção **"Preservar estrutura de pastas"** já vem marcada. Ela mantém as
-subpastas originais dentro da pasta de destino:
+O app **não pede mais uma pasta de destino**. Ele usa o caminho original do
+mapeamento que está na aba Configuração:
 
 ```text
-5506831188076592432/games/com.mojang/minecraftpe/clientId.txt
-→ C:\restore\5506831188076592432\games\com.mojang\minecraftpe\clientId.txt
+Mapeamento de pasta:
+C:\Users\marlo\AppData\Roaming\Mindustry\saves
++ 0.msav
+→ C:\Users\marlo\AppData\Roaming\Mindustry\saves\0.msav
+
+Mapeamento de arquivo único:
+C:\Users\marlo\AppData\Roaming\Ditto\Ditto.db
+→ C:\Users\marlo\AppData\Roaming\Ditto\Ditto.db
 ```
 
-O **nome do mapeamento** (ex.: `saves`, `files`) é usado apenas para organizar
-a árvore na tela; ele não vira uma pasta no destino. Se você desmarcar essa
-opção, o app avisa que os arquivos serão todos colocados diretamente na pasta
-de destino, sem subpastas, e que nomes iguais podem ser sobrescritos.
+- Pastas existentes são **mescladas**; nada que não foi selecionado é apagado.
+- Arquivos que já existem no mesmo caminho são **substituídos**.
+- Antes de baixar, o app mostra quantos arquivos serão criados, substituídos ou
+  ignorados por erro.
+- Se o destino tiver uma pasta onde deveria haver um arquivo, o app **não
+  apaga** a pasta: mostra um erro e continua com os demais.
+- Se o mapeamento não existir mais, o arquivo não é restaurado. Recrie o
+  mapeamento na aba Configuração com o mesmo caminho remoto.
 
-> Antes de restaurar muitos arquivos, o app pede confirmação. Para testar em um
-> PC novo, comece com poucos arquivos e confira a pasta de destino.
+### Perguntar antes de sobrescrever
+
+Na aba **Configurações → Restauração** existe a opção:
+
+```text
+[x] Perguntar antes de sobrescrever arquivos existentes
+```
+
+- **Ligada (padrão):** antes de substituir, o app mostra a quantidade e alguns
+  caminhos e pede confirmação.
+- **Desligada:** a substituição acontece direto. O relatório final ainda mostra
+  quantos e quais arquivos foram substituídos.
+
+> Restaurar altera os arquivos locais. Se você restaurar uma versão antiga, o
+> próximo sync pode enviar essa versão de volta ao Terabox. O app atualiza o
+> cache local após o restore para evitar reenvios desnecessários de conteúdo
+> idêntico.
+>
+> Para testar em um PC novo, comece com poucos arquivos e confira os caminhos
+> mostrados na árvore antes de confirmar.
 
 ---
 
@@ -194,7 +221,10 @@ de destino, sem subpastas, e que nomes iguais podem ser sobrescritos.
 R: O cookie `ndus` dura cerca de 1 ano. Os outros expiram mais rápido. Se a conexão falhar, repita o processo.
 
 **P: Posso usar em outro PC?**
-R: Sim! Use a aba **"Restaurar"** para baixar os arquivos em outro computador.
+R: Sim. Recrie na aba Configuração os mapeamentos com os mesmos caminhos
+remotos e use **"Restaurar"**. O app tenta casar cada arquivo do manifesto pelo
+ID, pelo caminho remoto e pelo nome do mapeamento; se não conseguir, mostra
+"mapeamento não encontrado" em vez de gravar no lugar errado.
 
 **P: A sincronização é automática?**
 R: Sim, se ativada nas Configurações. O app monitora as pastas e sincroniza automaticamente.

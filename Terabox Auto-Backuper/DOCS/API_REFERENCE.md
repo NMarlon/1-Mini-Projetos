@@ -113,17 +113,74 @@ caminhos; uma v1 vazia é tratada como ausência de seleção. A seleção sobre
 recarregar o manifesto, trocar de aba, recarregar a página e reiniciar o app.
 Ela não é enviada ao Terabox; é uma preferência local do navegador/perfil.
 
+### POST /api/restore/plan
+Prévia da restauração. Não baixa arquivos nem cria/altera nada no disco.
+- **Body**: `{ "files": ["/remote/path1", "/remote/path2"] }`
+- Resolve o mapeamento atual de cada arquivo (`mapping_id`, prefixo remoto ou
+  nome único) e devolve o destino local, o tipo (`create`/`replace`/`error`) e
+  os motivos de erro.
+- **Response**:
+```json
+{
+  "summary": {
+    "total": 3,
+    "create": 1,
+    "replace": 1,
+    "errors": 1,
+    "mappings": 2,
+    "missing_mappings": 0,
+    "duplicates": 0,
+    "encrypted": 0
+  },
+  "files": [
+    {
+      "remote_path": "/remote/path1",
+      "mapping_id": 25,
+      "mapping_name": "saves",
+      "local_path": "C:\\...\\saves\\0.msav",
+      "local_rel_path": "0.msav",
+      "action": "replace",
+      "exists": true,
+      "encrypted": false,
+      "error": null,
+      "error_code": null,
+      "mapping_is_file": false,
+      "size": 1234
+    }
+  ]
+}
+```
+
 ### POST /api/restore/download
-Inicia download seletivo.
-- **Body**: `{ "files": ["/remote/path1", "/remote/path2"], "destination": "C:/restore", "preserve_structure": true }`
+Inicia a restauração seletiva nas **pastas originais** dos mapeamentos.
+- **Body**: `{ "files": ["/remote/path1"], "allow_overwrite": true }`
 - `files` deve conter apenas `remote_path` de arquivos; caminhos de pasta da
   árvore não são enviados.
-- Com `preserve_structure=true`, usa o `local_rel_path` do manifesto,
-  recriando as pastas originais (inclusive nomes com emoji). Caminhos
-  absolutos ou com `..` são reduzidos ao nome do arquivo por
-  `resolve_restore_relative()`. Arquivos criptografados são baixados como
-  `.enc` e descriptografados no destino.
-- **Response**: `{ "results": [ { "remote_path": "...", "local_path": "...", "success": true, "error": null } ] }`
+- Mapeamento de pasta: grava em `mapping.local_path / local_rel_path`,
+  mesclando com o que já existe. Mapeamento de arquivo único: grava exatamente
+  em `mapping.local_path`.
+- Arquivos existentes no mesmo caminho são substituídos. Se
+  `allow_overwrite=false` e houver conflito, retorna **409** com
+  `detail.summary` e `detail.conflicts`, sem baixar nada.
+- Caminhos absolutos, com `..` ou que escapem da pasta original são rejeitados.
+  Arquivos criptografados são baixados como `.enc` e descriptografados no
+  destino.
+- **Response**:
+```json
+{
+  "summary": { "restored": 1, "created": 0, "replaced": 1, "failed": 0 },
+  "results": [
+    {
+      "remote_path": "/remote/path1",
+      "local_path": "C:\\...\\saves\\0.msav",
+      "success": true,
+      "overwritten": true,
+      "action": "replaced",
+      "error": null
+    }
+  ]
+}
+```
 
 ## Configurações
 
@@ -132,14 +189,16 @@ Retorna configurações globais.
 
 ### PUT /api/settings
 Atualiza configurações.
-- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "autostart": false }`
+- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "autostart": false, "restore_confirm_overwrite": true }`
 - `auto_sync=false` remove o job do scheduler **e** impede o watchdog de
   disparar sync por alteração de arquivo.
+- `restore_confirm_overwrite` controla se o Restaurar pergunta antes de
+  substituir arquivos existentes. Padrão: `true`.
 
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.1" }`
+Health check. `{ "status": "ok", "version": "0.3.2" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

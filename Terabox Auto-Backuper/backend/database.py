@@ -1,5 +1,7 @@
 """Camada de acesso ao SQLite via aiosqlite."""
 
+import os
+
 import aiosqlite
 from datetime import datetime
 from backend.config import DB_PATH
@@ -27,6 +29,7 @@ async def init_db():
                 include_subfolders INTEGER NOT NULL DEFAULT 1,
                 encrypt INTEGER NOT NULL DEFAULT 0,
                 enabled INTEGER NOT NULL DEFAULT 1,
+                is_file INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
@@ -83,6 +86,7 @@ async def init_db():
             "max_concurrent_uploads": "3",
             "autostart": "false",
             "browser_preference": "auto",
+            "restore_confirm_overwrite": "true",
         }
         for key, value in defaults.items():
             await db.execute(
@@ -114,6 +118,30 @@ async def _migrate_schema(db: aiosqlite.Connection):
     for name, definition in new_columns.items():
         if name not in columns:
             await db.execute(f"ALTER TABLE files ADD COLUMN {name} {definition}")
+
+    # Tipo original do mapeamento (arquivo único x pasta). É persistido para
+    # que o Restaurar recrie o arquivo no caminho certo mesmo que ele tenha
+    # sido apagado depois do backup.
+    mapping_columns = await _table_columns(db, "mappings")
+    if "is_file" not in mapping_columns:
+        await db.execute(
+            "ALTER TABLE mappings ADD COLUMN is_file INTEGER NOT NULL DEFAULT 0"
+        )
+
+    cursor = await db.execute(
+        "SELECT value FROM settings WHERE key = 'mappings_is_file_backfilled'"
+    )
+    if await cursor.fetchone() is None:
+        cursor = await db.execute("SELECT id, local_path FROM mappings")
+        for row in await cursor.fetchall():
+            await db.execute(
+                "UPDATE mappings SET is_file = ? WHERE id = ?",
+                (int(os.path.isfile(row[1] or "")), row[0]),
+            )
+        await db.execute(
+            "INSERT OR REPLACE INTO settings (key, value) "
+            "VALUES ('mappings_is_file_backfilled', 'true')"
+        )
 
     # Remover linhas órfãs (mapeamento apagado)
     await db.execute(
@@ -190,6 +218,20 @@ async def execute(query: str, params: tuple = ()):
         cursor = await db.execute(query, params)
         await db.commit()
         return cursor.lastrowid
+    finally:
+        await db.close()
+
+
+async def execute_many(query: str, params_list) -> int:
+    """Executa a mesma query para várias linhas em uma única conexão."""
+    params_list = list(params_list or [])
+    if not params_list:
+        return 0
+    db = await get_db()
+    try:
+        await db.executemany(query, params_list)
+        await db.commit()
+        return len(params_list)
     finally:
         await db.close()
 

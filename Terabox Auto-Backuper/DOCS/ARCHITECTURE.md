@@ -154,6 +154,8 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 - O Auto-sync não altera a seleção; ele só atualiza o manifesto no Terabox.
 - Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
   “⚠️ backup desativado”, mas continuam restauráveis manualmente.
+- Cada nó de mapeamento mostra o caminho local de destino atual. Se o
+  mapeamento não existir mais, o nó avisa e o arquivo não é restaurado.
 - Limitação: a seleção é local ao navegador/perfil, não viaja para outro PC.
 
 ## Rate Limiting e Otimização
@@ -223,12 +225,43 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 2. Backend baixa o manifesto do Terabox (`/api/filemetas` → dlink)
 3. Exibe a árvore por mapeamento/pastas com todos os arquivos selecionados por
    padrão; a seleção é lembrada no navegador
-4. Usuário ajusta a seleção e escolhe a pasta de destino local
-5. Backend baixa cada arquivo via dlink e salva em
-   `destino/local_rel_path` (preservando a estrutura), usando
-   `resolve_restore_relative()` para bloquear path traversal
-6. Se criptografado, baixa o `.enc` para temp e descriptografa para o nome original
-7. Resultado por arquivo (sucesso/erro) é devolvido à UI
+4. Usuário ajusta a seleção. Não existe mais pasta de destino manual: cada
+   arquivo usa a pasta original do mapeamento
+5. Backend monta um plano somente leitura (`POST /api/restore/plan`) com:
+   destino de cada arquivo, se ele será criado ou substituído, e erros
+6. Se a configuração `restore_confirm_overwrite` estiver ligada, a UI pede
+   confirmação antes de substituir arquivos existentes
+7. Backend baixa cada arquivo via dlink e grava no destino original
+8. Se criptografado, baixa o `.enc` para temp, descriptografa para um
+   `.restore-part` na mesma pasta e faz `os.replace` atômico
+9. Resultado por arquivo (criado/substituído/erro) é devolvido à UI
+
+## Resolução de Destino no Restaurar
+
+O destino não vem da UI; vem do mapeamento atual em Configuração.
+
+| Tipo de mapeamento | Destino |
+|---|---|
+| Pasta | `mapping.local_path / local_rel_path` |
+| Arquivo único | `mapping.local_path` (o arquivo em si) |
+
+Regras:
+
+- `mapping.is_file` é persistido no banco para diferenciar arquivo único de
+  pasta mesmo quando o arquivo original foi apagado.
+- O mapeamento é resolvido por `mapping_id` validado contra o caminho remoto ou
+  nome; se o ID não servir (outro PC), usa o prefixo remoto mais longo e, por
+  último, o nome único. Nunca usa apenas o ID.
+- Pastas existentes são mescladas. Nada é apagado.
+- Arquivo no mesmo caminho vira `replace`; pasta no lugar de arquivo (ou
+  vice-versa) vira erro.
+- `local_rel_path` precisa ser relativo e seguro. O destino resolvido ainda é
+  conferido contra `mapping.local_path` para bloquear `..`, unidades diferentes
+  e symlinks/junções que escapem da pasta.
+- Dois arquivos selecionados para o mesmo destino geram erro.
+- Após um restore bem-sucedido, o cache local (`files`) é atualizado com
+  tamanho, MD5 e mtime do arquivo restaurado, para o próximo sync não reenviar
+  conteúdo idêntico.
 
 > O agrupamento por mapeamento é apenas visual. A estrutura preservada é a do
 > `local_rel_path` dentro de cada mapeamento; o nome do mapeamento não vira

@@ -3,9 +3,7 @@
 import asyncio
 import json
 import os
-import posixpath
 from datetime import datetime
-from pathlib import Path
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException
@@ -16,7 +14,7 @@ from backend.models import (
     Mapping, MappingCreate, MappingUpdate, MappingBulkEnabled,
     SyncStatus, SyncRequest, Settings, SettingsUpdate,
     AuthStatus, AuthConnect, AuthConnectManual, BrowserProfile, HealthResponse,
-    RestoreRequest, CsvImportRequest,
+    RestorePlanRequest, RestoreRequest, CsvImportRequest,
 )
 from backend import auth
 from backend.sync_engine import sync_engine
@@ -28,8 +26,11 @@ from backend.csv_import import parse_mapping_csv
 from backend.paths import (
     normalize_local,
     normalize_remote,
-    resolve_restore_relative,
     sanitize_remote_path,
+)
+from backend.restore import (
+    build_restore_plan,
+    compute_file_metadata,
 )
 
 router = APIRouter()
@@ -121,7 +122,7 @@ def _mapping_model(row: dict) -> Mapping:
     data["include_subfolders"] = bool(data.get("include_subfolders"))
     data["encrypt"] = bool(data.get("encrypt"))
     data["enabled"] = bool(data.get("enabled"))
-    data["is_file"] = os.path.isfile(data.get("local_path") or "")
+    data["is_file"] = bool(data.get("is_file"))
     return Mapping(**data)
 
 
@@ -148,12 +149,15 @@ async def create_mapping(body: MappingCreate):
     if existing:
         return _mapping_model(existing)
     now = datetime.now().isoformat()
+    is_file = os.path.isfile(local_path)
     mid = await database.execute(
-        """INSERT INTO mappings (name, local_path, remote_path, include_subfolders, encrypt, enabled, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO mappings
+           (name, local_path, remote_path, include_subfolders, encrypt, enabled,
+            is_file, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (body.name.strip() or os.path.basename(local_path.rstrip("\\/")), local_path, remote_path,
-         int(bool(body.include_subfolders) and not os.path.isfile(local_path)),
-         int(body.encrypt), int(body.enabled), now, now),
+         int(bool(body.include_subfolders) and not is_file),
+         int(body.encrypt), int(body.enabled), int(is_file), now, now),
     )
     row = await database.fetch_one("SELECT * FROM mappings WHERE id = ?", (mid,))
     await _reload_file_monitor()
@@ -206,6 +210,7 @@ async def update_mapping(mapping_id: int, body: MappingUpdate):
         if not os.path.exists(local_path):
             raise HTTPException(status_code=400, detail=f"Origem não encontrada: {local_path}")
         updates["local_path"] = local_path
+        updates["is_file"] = int(os.path.isfile(local_path))
     if body.remote_path is not None:
         remote_path = sanitize_remote_path(normalize_remote(body.remote_path))
         if remote_path == "/":
@@ -292,8 +297,9 @@ async def import_mappings_csv(body: CsvImportRequest):
         now = datetime.now().isoformat()
         mid = await database.execute(
             """INSERT INTO mappings
-               (name, local_path, remote_path, include_subfolders, encrypt, enabled, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (name, local_path, remote_path, include_subfolders, encrypt, enabled,
+                is_file, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 name,
                 entry.source,
@@ -301,6 +307,7 @@ async def import_mappings_csv(body: CsvImportRequest):
                 int(body.include_subfolders and not entry.source_is_file),
                 int(body.encrypt),
                 int(body.enabled),
+                int(entry.source_is_file),
                 now,
                 now,
             ),
@@ -435,6 +442,48 @@ async def restore_manifest():
         await client.close()
 
 
+async def _load_restore_context(client):
+    """Baixa o manifesto e carrega os mapeamentos atuais."""
+    manifest = await _download_manifest(client)
+    if manifest is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Manifesto não encontrado no Terabox. "
+                "Faça um backup antes de restaurar."
+            ),
+        )
+    mappings = await database.fetch_all("SELECT * FROM mappings ORDER BY id")
+    return manifest, mappings
+
+
+@router.post("/restore/plan")
+async def restore_plan(body: RestorePlanRequest):
+    """Prévia da restauração: destinos, conflitos e erros, sem baixar nada."""
+    auth_data = await auth.get_cached_auth()
+    if not auth_data:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    from backend.terabox_client import TeraboxClient
+    client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
+    try:
+        manifest, mappings = await _load_restore_context(client)
+        plan = build_restore_plan(body.files, manifest, mappings)
+        return plan.to_dict()
+    finally:
+        await client.close()
+
+
+def _restore_result_failure(target, error: str) -> dict:
+    return {
+        "remote_path": target.remote_path,
+        "local_path": target.local_path,
+        "success": False,
+        "overwritten": False,
+        "action": "error",
+        "error": error or "erro desconhecido",
+    }
+
+
 @router.post("/restore/download")
 async def restore_download(body: RestoreRequest):
     auth_data = await auth.get_cached_auth()
@@ -442,77 +491,209 @@ async def restore_download(body: RestoreRequest):
         raise HTTPException(status_code=401, detail="Não autenticado")
     from backend.terabox_client import TeraboxClient
     client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
-    dest = Path(normalize_local(body.destination))
-    dest.mkdir(parents=True, exist_ok=True)
-
-    manifest = await _download_manifest(client)
-    manifest_map = {}
-    if manifest:
-        manifest_map = {
-            normalize_remote(f.get("remote_path")): f
-            for f in manifest.get("files", [])
-            if f.get("remote_path")
-        }
-
-    results = []
     try:
-        for remote_path in body.files:
-            remote_path = normalize_remote(remote_path)
-            entry = manifest_map.get(remote_path, {})
-            original_rel = entry.get("local_rel_path") or posixpath.basename(remote_path)
-            # Mantém o nome local original (importante para arquivos com emoji
-            # que foram sanitizados no remoto) e protege contra path traversal.
-            rel = resolve_restore_relative(original_rel, body.preserve_structure)
+        manifest, mappings = await _load_restore_context(client)
+        plan = build_restore_plan(body.files, manifest, mappings)
 
-            local_path = dest / Path(rel)
-            try:
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-            except Exception as exc:
-                results.append({
-                    "remote_path": remote_path,
-                    "local_path": str(local_path),
-                    "success": False,
-                    "error": f"não foi possível criar a pasta: {exc}",
-                })
+        conflicts = [
+            target for target in plan.targets if target.action == "replace"
+        ]
+        if conflicts and not body.allow_overwrite:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": (
+                        f"{len(conflicts)} arquivo(s) já existem e precisam "
+                        "de confirmação para serem substituídos."
+                    ),
+                    "summary": plan.summary,
+                    "conflicts": [
+                        target.to_dict() for target in conflicts[:100]
+                    ],
+                },
+            )
+
+        needs_key = any(
+            target.encrypted and target.action != "error"
+            for target in plan.targets
+        )
+        encryption_key = (
+            await database.get_setting("encryption_key") if needs_key else None
+        )
+
+        results = []
+        plain_updates = []
+        encrypted_updates = []
+        now = datetime.now().isoformat()
+
+        for target in plan.targets:
+            if target.action == "error" or not target.local_path:
+                results.append(
+                    _restore_result_failure(
+                        target, target.error or "erro desconhecido"
+                    )
+                )
                 continue
 
+            local_path = target.local_path
+            parent = os.path.dirname(local_path)
+            try:
+                os.makedirs(parent, exist_ok=True)
+            except Exception as exc:
+                results.append(
+                    _restore_result_failure(
+                        target, f"não foi possível criar a pasta: {exc}"
+                    )
+                )
+                continue
+
+            existed = os.path.exists(local_path)
             ok = False
             error = None
             try:
-                if entry.get("encrypted"):
-                    key = await database.get_setting("encryption_key")
-                    if not key:
-                        raise RuntimeError("arquivo criptografado, mas a chave de criptografia não está configurada")
+                if target.encrypted:
+                    if not encryption_key:
+                        raise RuntimeError(
+                            "arquivo criptografado, mas a chave de "
+                            "criptografia não está configurada"
+                        )
                     from backend.encryption import decrypt_file
                     import tempfile
                     import uuid
-                    tmp_path = os.path.join(
-                        tempfile.gettempdir(), f"_restore_{uuid.uuid4().hex[:8]}.enc"
+
+                    tmp_enc = os.path.join(
+                        tempfile.gettempdir(),
+                        f"_restore_{uuid.uuid4().hex[:8]}.enc",
                     )
-                    ok = await client.download_file(remote_path, tmp_path)
-                    if ok:
-                        await asyncio.to_thread(
-                            decrypt_file, key, tmp_path, str(local_path)
-                        )
+                    # O arquivo final é montado como .restore-part na mesma
+                    # pasta para que o os.replace seja atômico.
+                    part_path = local_path + ".restore-part"
                     try:
-                        os.remove(tmp_path)
-                    except Exception:
-                        pass
+                        ok = await client.download_file(
+                            target.remote_path, tmp_enc
+                        )
+                        if ok:
+                            await asyncio.to_thread(
+                                decrypt_file,
+                                encryption_key,
+                                tmp_enc,
+                                part_path,
+                            )
+                            os.replace(part_path, local_path)
+                    finally:
+                        for path in (tmp_enc, part_path):
+                            try:
+                                if os.path.exists(path):
+                                    os.remove(path)
+                            except Exception:
+                                pass
                 else:
-                    ok = await client.download_file(remote_path, str(local_path))
+                    ok = await client.download_file(
+                        target.remote_path, local_path
+                    )
             except Exception as exc:
                 error = str(exc)
                 ok = False
 
-            results.append({
-                "remote_path": remote_path,
-                "local_path": str(local_path),
-                "success": bool(ok),
-                "error": error,
-            })
+            if not ok:
+                results.append(
+                    _restore_result_failure(
+                        target, error or "falha no download"
+                    )
+                )
+                continue
+
+            # Atualiza o cache local para o próximo sync não reenviar um
+            # arquivo que já é idêntico ao que está no Terabox.
+            size = target.size
+            md5 = None
+            mtime_ns = None
+            try:
+                metadata = await asyncio.to_thread(
+                    compute_file_metadata, local_path
+                )
+                size = metadata["size"]
+                md5 = metadata["md5"]
+                mtime_ns = metadata["mtime_ns"]
+            except Exception:
+                pass
+
+            if target.mapping_id is not None and target.local_rel_path:
+                if target.encrypted:
+                    if md5:
+                        encrypted_updates.append(
+                            (
+                                size,
+                                md5,
+                                mtime_ns,
+                                now,
+                                target.mapping_id,
+                                target.local_rel_path,
+                            )
+                        )
+                elif md5:
+                    plain_updates.append(
+                        (
+                            size,
+                            md5,
+                            md5,
+                            mtime_ns,
+                            now,
+                            target.mapping_id,
+                            target.local_rel_path,
+                        )
+                    )
+
+            results.append(
+                {
+                    "remote_path": target.remote_path,
+                    "local_path": local_path,
+                    "success": True,
+                    "overwritten": bool(existed),
+                    "action": "replaced" if existed else "created",
+                    "error": None,
+                }
+            )
+
+        # A atualização do cache é secundária: os arquivos já foram
+        # restaurados. Se o banco falhar, o próximo sync apenas reavalia.
+        try:
+            if plain_updates:
+                await database.execute_many(
+                    """UPDATE files
+                       SET size = ?, md5 = ?, remote_md5 = ?, mtime_ns = ?,
+                           status = 'uploaded', last_synced_at = ?, error = NULL
+                       WHERE mapping_id = ? AND local_rel_path = ?""",
+                    plain_updates,
+                )
+            if encrypted_updates:
+                await database.execute_many(
+                    """UPDATE files
+                       SET size = ?, md5 = ?, mtime_ns = ?,
+                           status = 'uploaded', last_synced_at = ?, error = NULL
+                       WHERE mapping_id = ? AND local_rel_path = ?""",
+                    encrypted_updates,
+                )
+        except Exception:
+            pass
+
+        restored = sum(1 for result in results if result["success"])
+        replaced = sum(
+            1
+            for result in results
+            if result["success"] and result["overwritten"]
+        )
+        return {
+            "summary": {
+                "restored": restored,
+                "created": restored - replaced,
+                "replaced": replaced,
+                "failed": len(results) - restored,
+            },
+            "results": results,
+        }
     finally:
         await client.close()
-    return {"results": results}
 
 
 # ── Settings ──
@@ -520,7 +701,15 @@ async def restore_download(body: RestoreRequest):
 @router.get("/settings", response_model=Settings)
 async def get_settings():
     data = {}
-    for key in ("sync_interval_minutes", "auto_sync", "notifications", "max_concurrent_uploads", "autostart", "browser_preference"):
+    for key in (
+        "sync_interval_minutes",
+        "auto_sync",
+        "notifications",
+        "max_concurrent_uploads",
+        "autostart",
+        "browser_preference",
+        "restore_confirm_overwrite",
+    ):
         val = await database.get_setting(key)
         data[key] = val
     return Settings(
@@ -531,6 +720,9 @@ async def get_settings():
         autostart=data.get("autostart", "false") == "true",
         browser_preference=data.get("browser_preference", "auto"),
         encryption_key=data.get("encryption_key"),
+        restore_confirm_overwrite=(
+            data.get("restore_confirm_overwrite", "true") == "true"
+        ),
     )
 
 
@@ -559,6 +751,11 @@ async def update_settings(body: SettingsUpdate):
         await database.set_setting("browser_preference", body.browser_preference)
     if body.encryption_key is not None:
         await database.set_setting("encryption_key", body.encryption_key)
+    if body.restore_confirm_overwrite is not None:
+        await database.set_setting(
+            "restore_confirm_overwrite",
+            "true" if body.restore_confirm_overwrite else "false",
+        )
 
     # Atualizar scheduler se necessário
     if body.sync_interval_minutes is not None:

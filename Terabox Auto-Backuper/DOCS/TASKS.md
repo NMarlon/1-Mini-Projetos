@@ -182,9 +182,28 @@
   - Persistência em `terabox_restore_selected_v2`; migração da v1 e tratamento de v1 vazia como ausência de seleção
   - Confirmação antes de restaurar muitos arquivos ou achatar a estrutura
   - `restore_tree.js` com helpers puros testáveis
-  - `resolve_restore_relative()` no backend para centralizar a proteção contra path traversal
+  - Validação de caminho relativo no backend (substituída na T25 pela resolução por mapeamento)
 - **Teste**: 39 testes Python (`python -m unittest discover -s tests`) e 10 testes Node (`node --test tests/test_restore_tree.cjs`); validação no navegador com 5.282 arquivos, seleção total, tri-state, persistência de vazio e payload apenas com `remote_path`
 - **Depende de**: T21, T23
+
+### T25. Restaurar nas pastas originais com mesclagem e confirmação ✅
+- **Status**: Concluída (2026-11-12)
+- **Descrição**: O Restaurar pedia uma pasta de destino manual, embora o destino correto já esteja em `mappings.local_path`. Era possível restaurar no lugar errado ou sobrescrever sem aviso.
+- **Solução**:
+  - Remove o campo de pasta de destino e a opção de achatar a estrutura
+  - Mapeamento de pasta: restaura em `local_path/local_rel_path`
+  - Mapeamento de arquivo único: restaura em `local_path` (o próprio arquivo)
+  - Mescla pastas existentes; nunca apaga arquivos não selecionados
+  - Arquivo no mesmo caminho vira `replace` e é reportado
+  - `POST /api/restore/plan` mostra criar/substituir/erros antes de baixar
+  - Configuração `restore_confirm_overwrite` (padrão ligada) controla a pergunta
+  - `allow_overwrite=false` retorna 409 se houver conflito, sem baixar nada
+  - Resolve mapeamento por ID validado, prefixo remoto e nome único (outro PC)
+  - Persiste `mappings.is_file` para recriar arquivo único mesmo se apagado
+  - Atualiza o cache `files` após restaurar para evitar reenvio desnecessário
+  - `backend/restore.py` com resolução de destino e planejamento puros
+- **Teste**: 59 testes Python e 10 testes Node; plano real com 5.282 arquivos e 18 mapeamentos: 5.281 `replace`, 1 `create`, 0 erros; migração testada em banco temporário e em cópia do banco real
+- **Depende de**: T21, T24
 
 ## Como proceder em cada tarefa
 
