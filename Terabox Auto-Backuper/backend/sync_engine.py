@@ -387,6 +387,7 @@ class SyncEngine:
                     self._record_status_error(
                         "manifesto", f"falha ao atualizar manifesto: {exc}"
                     )
+                await self._save_remote_config(client)
                 await self._finish_run(run_id, "completed")
                 return
 
@@ -473,6 +474,7 @@ class SyncEngine:
             except Exception as exc:
                 self._record_status_error("manifesto", f"falha ao atualizar manifesto: {exc}")
 
+            await self._save_remote_config(client)
             await self._finish_run(run_id, "completed")
 
         except Exception as exc:
@@ -863,7 +865,8 @@ class SyncEngine:
             verified.update(snapshot.files.keys())
 
         rows = await database.fetch_all(
-            """SELECT f.*, m.name AS mapping_name
+            """SELECT f.*, m.name AS mapping_name, m.uid AS mapping_uid,
+                      m.remote_path AS mapping_remote_path
                FROM files f JOIN mappings m ON f.mapping_id = m.id
                WHERE f.status = 'uploaded'"""
         )
@@ -880,7 +883,11 @@ class SyncEngine:
                     "md5": row["md5"],
                     "remote_md5": row.get("remote_md5"),
                     "mapping_id": row["mapping_id"],
+                    "mapping_uid": row.get("mapping_uid"),
                     "mapping_name": row["mapping_name"],
+                    "mapping_remote_path": normalize_remote(
+                        row.get("mapping_remote_path") or ""
+                    ),
                     "synced_at": row["last_synced_at"],
                     "encrypted": bool(row.get("encrypted")),
                 }
@@ -940,6 +947,20 @@ class SyncEngine:
                 os.remove(tmp)
             except Exception:
                 pass
+
+    async def _save_remote_config(self, client: TeraboxClient):
+        """Atualiza o cadastro remoto no fim do sync, sem falhar o backup."""
+        try:
+            from backend.remote_config import remote_config_manager
+
+            await remote_config_manager.save_now(
+                client=client, reason="sync_finished"
+            )
+        except Exception as exc:
+            self._record_status_error(
+                "configuração remota",
+                f"falha ao salvar configuração remota: {exc}",
+            )
 
     # ── Finalização ──
 

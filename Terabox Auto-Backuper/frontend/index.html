@@ -17,6 +17,17 @@
         </nav>
     </header>
 
+    <div id="remote-config-banner" class="remote-config-banner" hidden>
+        <div class="remote-config-banner-text">
+            <strong>📦 Configuração encontrada no Terabox</strong>
+            <span id="remote-config-banner-detail"></span>
+        </div>
+        <div class="remote-config-banner-actions">
+            <button type="button" class="btn-primary" onclick="openRemoteConfigImport()">Revisar importação</button>
+            <button type="button" onclick="dismissRemoteConfigBanner()">Dispensar</button>
+        </div>
+    </div>
+
     <main>
         <!-- Aba Configuração -->
         <section id="tab-config" class="tab active">
@@ -159,15 +170,81 @@
                     o que foi substituído.
                 </p>
 
+                <h3>Configuração no Terabox</h3>
+                <p class="help-text">
+                    O app salva um arquivo JSON no Terabox com os mapeamentos e
+                    os caminhos locais de cada computador. Ele nunca guarda
+                    cookies, tokens, senhas ou a chave de criptografia. Um
+                    atalho fixo na raiz (<code>_terabox_autobackup_config.json</code>)
+                    permite encontrar o arquivo mesmo se você mudar a pasta ou o
+                    nome.
+                </p>
+                <label><input type="checkbox" id="s-remote-enabled" checked>
+                    Salvar os mapeamentos no Terabox</label>
+                <label>Nome deste computador:
+                    <input type="text" id="s-machine-name" maxlength="80"
+                        placeholder="Ex.: Marlon-PC">
+                </label>
+                <label>Caminho do arquivo de configuração:
+                    <input type="text" id="s-remote-path"
+                        placeholder="/config-terabox-auto-backup/terabox-auto-backup.json">
+                </label>
+                <label><input type="checkbox" id="s-remote-autosave" checked>
+                    Salvar automaticamente após alterações e no fim do sync</label>
+                <div class="remote-config-actions">
+                    <button type="button" onclick="saveRemoteConfigNow()">💾 Salvar agora</button>
+                    <button type="button" onclick="openRemoteConfigImport()">📥 Revisar importação</button>
+                </div>
+                <div id="remote-config-status" class="remote-config-status">
+                    Verificando configuração remota...
+                </div>
+
                 <button type="submit">Salvar</button>
             </form>
         </section>
     </main>
 
+    <div id="remote-config-modal" class="modal" hidden>
+        <div class="modal-content" role="dialog" aria-modal="true"
+            aria-labelledby="remote-config-modal-title">
+            <div class="modal-header">
+                <h3 id="remote-config-modal-title">Importar configuração do Terabox</h3>
+                <button type="button" class="modal-close"
+                    onclick="closeRemoteConfigModal()" aria-label="Fechar">✕</button>
+            </div>
+            <div id="remote-import-summary" class="remote-import-summary"></div>
+            <div class="remote-rebase">
+                <label>Trocar prefixo dos caminhos:
+                    <input type="text" id="remote-rebase-old"
+                        placeholder="C:\Users\Marlon">
+                </label>
+                <label>por:
+                    <input type="text" id="remote-rebase-new"
+                        placeholder="D:\Backup">
+                </label>
+                <button type="button" onclick="applyRemoteRebase()">
+                    Aplicar aos selecionados
+                </button>
+            </div>
+            <div class="selection-toolbar">
+                <span id="remote-import-count"></span>
+                <button type="button" onclick="setAllRemoteImport(true)">Selecionar todos</button>
+                <button type="button" onclick="setAllRemoteImport(false)">Desmarcar todos</button>
+            </div>
+            <div id="remote-import-list" class="remote-import-list"></div>
+            <div class="modal-actions">
+                <button type="button" onclick="closeRemoteConfigModal()">Cancelar</button>
+                <button type="button" class="btn-primary" id="remote-import-confirm"
+                    onclick="confirmRemoteImport()">Importar selecionados</button>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <small>Terabox Auto-Backuper v0.3.2</small>
+        <small>Terabox Auto-Backuper v0.3.3</small>
     </footer>
 
+    <script src="/static/js/remote_config.js"></script>
     <script src="/static/js/restore_tree.js"></script>
     <script src="/static/js/app.js"></script>
 </body>

@@ -34,6 +34,7 @@ class Mapping(BaseModel):
     created_at: str
     updated_at: str
     is_file: bool = False
+    uid: str = ""
 
 class MappingBulkEnabled(BaseModel):
     ids: List[int]
@@ -102,6 +103,10 @@ class Settings(BaseModel):
     browser_preference: str = "auto"  # auto, chrome, edge, firefox
     encryption_key: Optional[str] = None
     restore_confirm_overwrite: bool = True
+    machine_name: str = ""
+    remote_config_enabled: bool = True
+    remote_config_path: str = "/config-terabox-auto-backup/terabox-auto-backup.json"
+    remote_config_auto_save: bool = True
 
 class SettingsUpdate(BaseModel):
     sync_interval_minutes: Optional[int] = None
@@ -112,6 +117,10 @@ class SettingsUpdate(BaseModel):
     browser_preference: Optional[str] = None
     encryption_key: Optional[str] = None
     restore_confirm_overwrite: Optional[bool] = None
+    machine_name: Optional[str] = None
+    remote_config_enabled: Optional[bool] = None
+    remote_config_path: Optional[str] = None
+    remote_config_auto_save: Optional[bool] = None
 
 # ── Auth ──
 
@@ -155,8 +164,22 @@ class RestoreRequest(BaseModel):
     files: List[str]
     allow_overwrite: bool = False
 
+# ── Configuração remota ──
+
+class RemoteConfigSaveRequest(BaseModel):
+    force: bool = False
+
+class RemoteConfigImportItem(BaseModel):
+    uid: str
+    local_path: str
+
+class RemoteConfigImportRequest(BaseModel):
+    config_hash: str = ""
+    mappings: List[RemoteConfigImportItem] = Field(default_factory=list)
+    adopt_path: bool = True
+
 # ── Health ──
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.3.2"
+    version: str = "0.3.3"

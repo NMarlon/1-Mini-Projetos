@@ -23,9 +23,11 @@ def make_mapping(
     remote_path,
     is_file=False,
     enabled=True,
+    uid=None,
 ):
     return {
         "id": mapping_id,
+        "uid": uid or f"uid-{mapping_id}",
         "name": name,
         "local_path": str(local_path),
         "remote_path": remote_path,
@@ -267,6 +269,30 @@ class RestoreMappingResolutionTest(unittest.TestCase):
             resolve_restore_mapping(entry, [wrong, right]),
             right,
         )
+
+    def test_uid_resolve_mesmo_com_id_de_outro_pc(self):
+        wrong = make_mapping(
+            1, "outro", "C:/tmp/outro", "/Outro", uid="uid-outro"
+        )
+        right = make_mapping(
+            2, "saves", "C:/tmp/saves", "/Backup/saves", uid="uid-saves"
+        )
+        entry = make_entry("0.msav", "/Backup/saves/0.msav", 1, "saves")
+        entry["mapping_uid"] = "uid-saves"
+
+        self.assertIs(
+            resolve_restore_mapping(entry, [wrong, right]),
+            right,
+        )
+
+    def test_uid_ausente_segue_para_prefixo(self):
+        right = make_mapping(
+            2, "saves", "C:/tmp/saves", "/Backup/saves", uid="uid-saves"
+        )
+        entry = make_entry("0.msav", "/Backup/saves/0.msav", 99, "saves")
+        entry["mapping_uid"] = "uid-inexistente"
+
+        self.assertIs(resolve_restore_mapping(entry, [right]), right)
 
     def test_sem_id_resolve_por_nome_unico(self):
         mapping = make_mapping(2, "saves", "C:/tmp/saves", "/Backup/saves")

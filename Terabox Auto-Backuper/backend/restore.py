@@ -50,6 +50,7 @@ class RestoreTarget:
 
     remote_path: str
     mapping_id: Optional[int] = None
+    mapping_uid: Optional[str] = None
     mapping_name: str = ""
     local_path: Optional[str] = None
     local_rel_path: str = ""
@@ -65,6 +66,7 @@ class RestoreTarget:
         return {
             "remote_path": self.remote_path,
             "mapping_id": self.mapping_id,
+            "mapping_uid": self.mapping_uid,
             "mapping_name": self.mapping_name,
             "local_path": self.local_path,
             "local_rel_path": self.local_rel_path,
@@ -101,6 +103,11 @@ def _id_value(value) -> Optional[int]:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _uid_value(value) -> Optional[str]:
+    text = str(value or "").strip()
+    return text or None
 
 
 def _size_value(value) -> int:
@@ -145,10 +152,11 @@ def resolve_restore_mapping(entry: dict, mappings) -> Optional[dict]:
     1. ``mapping_id`` exato, mas só se o caminho remoto ou o nome também
        confirmarem. Isso evita escrever no lugar errado quando o backup veio de
        outro PC e os IDs foram recriados.
-    2. ``mapping_remote_path`` exato, se o manifesto novo trouxer esse campo.
-    3. Prefixo remoto mais longo (o mapeamento cujo ``remote_path`` contém o
+    2. ``mapping_uid`` estável, quando o manifesto novo trouxer esse campo.
+    3. ``mapping_remote_path`` exato, se o manifesto novo trouxer esse campo.
+    4. Prefixo remoto mais longo (o mapeamento cujo ``remote_path`` contém o
        arquivo).
-    4. Nome do mapeamento, somente se for único.
+    5. Nome do mapeamento, somente se for único.
     """
 
     mappings = list(mappings or [])
@@ -159,6 +167,16 @@ def resolve_restore_mapping(entry: dict, mappings) -> Optional[dict]:
                 mapping, entry
             ):
                 return mapping
+
+    entry_uid = _uid_value(entry.get("mapping_uid"))
+    if entry_uid:
+        by_uid = [
+            mapping
+            for mapping in mappings
+            if _uid_value(mapping.get("uid")) == entry_uid
+        ]
+        if len(by_uid) == 1:
+            return by_uid[0]
 
     entry_remote_root = entry.get("mapping_remote_path")
     if entry_remote_root:
@@ -441,6 +459,7 @@ def build_restore_plan(files, manifest: dict, mappings) -> RestorePlan:
                 RestoreTarget(
                     remote_path=remote_path,
                     mapping_id=_id_value(entry.get("mapping_id")),
+                    mapping_uid=_uid_value(entry.get("mapping_uid")),
                     mapping_name=str(entry.get("mapping_name") or ""),
                     local_rel_path=to_posix(entry.get("local_rel_path") or ""),
                     encrypted=bool(entry.get("encrypted")),
@@ -462,6 +481,7 @@ def build_restore_plan(files, manifest: dict, mappings) -> RestorePlan:
                 RestoreTarget(
                     remote_path=remote_path,
                     mapping_id=_id_value(mapping.get("id")),
+                    mapping_uid=_uid_value(mapping.get("uid")),
                     mapping_name=str(mapping.get("name") or ""),
                     local_path=exc.local_path,
                     local_rel_path=to_posix(entry.get("local_rel_path") or ""),
@@ -479,6 +499,7 @@ def build_restore_plan(files, manifest: dict, mappings) -> RestorePlan:
             RestoreTarget(
                 remote_path=remote_path,
                 mapping_id=_id_value(mapping.get("id")),
+                mapping_uid=_uid_value(mapping.get("uid")),
                 mapping_name=str(mapping.get("name") or ""),
                 local_path=str(target_path),
                 local_rel_path=to_posix(entry.get("local_rel_path") or ""),

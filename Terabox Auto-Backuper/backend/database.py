@@ -1,10 +1,12 @@
 """Camada de acesso ao SQLite via aiosqlite."""
 
 import os
+import socket
+import uuid
 
 import aiosqlite
 from datetime import datetime
-from backend.config import DB_PATH
+from backend.config import DB_PATH, DEFAULT_REMOTE_CONFIG_PATH
 from backend.paths import sanitize_remote_path
 
 
@@ -30,6 +32,7 @@ async def init_db():
                 encrypt INTEGER NOT NULL DEFAULT 0,
                 enabled INTEGER NOT NULL DEFAULT 1,
                 is_file INTEGER NOT NULL DEFAULT 0,
+                uid TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
@@ -87,12 +90,26 @@ async def init_db():
             "autostart": "false",
             "browser_preference": "auto",
             "restore_confirm_overwrite": "true",
+            "remote_config_enabled": "true",
+            "remote_config_path": DEFAULT_REMOTE_CONFIG_PATH,
+            "remote_config_auto_save": "true",
         }
         for key, value in defaults.items():
             await db.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
                 (key, value),
             )
+
+        # Identidade estável desta instalação. O nome é editável; o ID nunca
+        # muda, para que o arquivo remoto não confunda dois computadores.
+        await db.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('machine_id', ?)",
+            (str(uuid.uuid4()),),
+        )
+        await db.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('machine_name', ?)",
+            (socket.gethostname() or "PC",),
+        )
         await db.commit()
     finally:
         await db.close()
@@ -142,6 +159,23 @@ async def _migrate_schema(db: aiosqlite.Connection):
             "INSERT OR REPLACE INTO settings (key, value) "
             "VALUES ('mappings_is_file_backfilled', 'true')"
         )
+
+    # Identificador estável por mapeamento. É a chave usada pelo arquivo de
+    # configuração remota e pelo manifesto, independente dos IDs locais.
+    mapping_columns = await _table_columns(db, "mappings")
+    if "uid" not in mapping_columns:
+        await db.execute("ALTER TABLE mappings ADD COLUMN uid TEXT")
+    cursor = await db.execute(
+        "SELECT id FROM mappings WHERE uid IS NULL OR TRIM(uid) = ''"
+    )
+    for row in await cursor.fetchall():
+        await db.execute(
+            "UPDATE mappings SET uid = ? WHERE id = ?",
+            (str(uuid.uuid4()), row[0]),
+        )
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_mappings_uid ON mappings(uid)"
+    )
 
     # Remover linhas órfãs (mapeamento apagado)
     await db.execute(
@@ -246,3 +280,18 @@ async def set_setting(key: str, value: str):
         "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
         (key, value, value),
     )
+
+
+async def get_machine_identity() -> dict:
+    """Retorna (e cria, se necessário) a identidade desta instalação."""
+    machine_id = (await get_setting("machine_id") or "").strip()
+    if not machine_id:
+        machine_id = str(uuid.uuid4())
+        await set_setting("machine_id", machine_id)
+
+    machine_name = (await get_setting("machine_name") or "").strip()
+    if not machine_name:
+        machine_name = socket.gethostname() or "PC"
+        await set_setting("machine_name", machine_name)
+
+    return {"machine_id": machine_id, "machine_name": machine_name}

@@ -97,7 +97,7 @@ class DatabaseMigrationTest(unittest.IsolatedAsyncioTestCase):
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "SELECT id, name, is_file FROM mappings ORDER BY id"
+                "SELECT id, name, is_file, uid FROM mappings ORDER BY id"
             )
             return await cursor.fetchall()
 
@@ -108,6 +108,7 @@ class DatabaseMigrationTest(unittest.IsolatedAsyncioTestCase):
             cursor = await db.execute("PRAGMA table_info(mappings)")
             columns = {row[1] for row in await cursor.fetchall()}
             self.assertIn("is_file", columns)
+            self.assertIn("uid", columns)
 
             cursor = await db.execute(
                 "SELECT value FROM settings "
@@ -115,19 +116,42 @@ class DatabaseMigrationTest(unittest.IsolatedAsyncioTestCase):
             )
             self.assertIsNotNone(await cursor.fetchone())
 
+            for key, expected in (
+                ("restore_confirm_overwrite", "true"),
+                ("remote_config_enabled", "true"),
+                ("remote_config_auto_save", "true"),
+                (
+                    "remote_config_path",
+                    "/config-terabox-auto-backup/terabox-auto-backup.json",
+                ),
+            ):
+                cursor = await db.execute(
+                    "SELECT value FROM settings WHERE key = ?", (key,)
+                )
+                row = await cursor.fetchone()
+                self.assertEqual(row[0], expected)
+
             cursor = await db.execute(
-                "SELECT value FROM settings "
-                "WHERE key = 'restore_confirm_overwrite'"
+                "SELECT name FROM sqlite_master WHERE type = 'index' "
+                "AND name = 'idx_mappings_uid'"
             )
-            row = await cursor.fetchone()
-            self.assertEqual(row[0], "true")
+            self.assertIsNotNone(await cursor.fetchone())
+
+            cursor = await db.execute("SELECT value FROM settings WHERE key = 'machine_id'")
+            self.assertTrue((await cursor.fetchone())[0])
+            cursor = await db.execute("SELECT value FROM settings WHERE key = 'machine_name'")
+            self.assertTrue((await cursor.fetchone())[0])
 
         rows = await self._rows()
         self.assertEqual(rows[0]["is_file"], 0)
         self.assertEqual(rows[1]["is_file"], 1)
+        self.assertTrue(rows[0]["uid"])
+        self.assertTrue(rows[1]["uid"])
+        self.assertNotEqual(rows[0]["uid"], rows[1]["uid"])
 
     async def test_nao_reclassifica_arquivo_apagado_no_proximo_startup(self):
         await database.init_db()
+        uid_before = (await self._rows())[1]["uid"]
         os.remove(self.file_path)
 
         await database.init_db()
@@ -135,6 +159,16 @@ class DatabaseMigrationTest(unittest.IsolatedAsyncioTestCase):
         rows = await self._rows()
         self.assertEqual(rows[0]["is_file"], 0)
         self.assertEqual(rows[1]["is_file"], 1)
+        self.assertEqual(rows[1]["uid"], uid_before)
+
+    async def test_uid_e_estavel_entre_startups(self):
+        await database.init_db()
+        first = [row["uid"] for row in await self._rows()]
+
+        await database.init_db()
+        second = [row["uid"] for row in await self._rows()]
+
+        self.assertEqual(first, second)
 
 
 if __name__ == "__main__":

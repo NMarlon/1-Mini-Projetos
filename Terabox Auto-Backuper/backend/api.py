@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import Optional, List
 
@@ -15,8 +16,19 @@ from backend.models import (
     SyncStatus, SyncRequest, Settings, SettingsUpdate,
     AuthStatus, AuthConnect, AuthConnectManual, BrowserProfile, HealthResponse,
     RestorePlanRequest, RestoreRequest, CsvImportRequest,
+    RemoteConfigSaveRequest, RemoteConfigImportRequest,
 )
 from backend import auth
+from backend.remote_config import (
+    RemoteConfigConflict,
+    RemoteConfigEmpty,
+    RemoteConfigError,
+    RemoteConfigInvalid,
+    RemoteConfigNotAuthenticated,
+    normalize_config_path,
+    remote_config_manager,
+)
+from backend.config import DEFAULT_REMOTE_CONFIG_PATH
 from backend.sync_engine import sync_engine
 from backend.file_monitor import FileMonitor
 from backend.scheduler import SyncScheduler
@@ -152,15 +164,17 @@ async def create_mapping(body: MappingCreate):
     is_file = os.path.isfile(local_path)
     mid = await database.execute(
         """INSERT INTO mappings
-           (name, local_path, remote_path, include_subfolders, encrypt, enabled,
-            is_file, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (body.name.strip() or os.path.basename(local_path.rstrip("\\/")), local_path, remote_path,
+           (uid, name, local_path, remote_path, include_subfolders, encrypt,
+            enabled, is_file, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (str(uuid.uuid4()),
+         body.name.strip() or os.path.basename(local_path.rstrip("\\/")), local_path, remote_path,
          int(bool(body.include_subfolders) and not is_file),
          int(body.encrypt), int(body.enabled), int(is_file), now, now),
     )
     row = await database.fetch_one("SELECT * FROM mappings WHERE id = ?", (mid,))
     await _reload_file_monitor()
+    remote_config_manager.request_save("mapping_created")
     return _mapping_model(row)
 
 
@@ -188,6 +202,7 @@ async def bulk_enable_mappings(body: MappingBulkEnabled):
         (int(body.enabled), now, *body.ids),
     )
     await _reload_file_monitor()
+    remote_config_manager.request_save("mappings_enabled")
 
     rows = await database.fetch_all("SELECT * FROM mappings ORDER BY id")
     return {
@@ -238,6 +253,7 @@ async def update_mapping(mapping_id: int, body: MappingUpdate):
 
     row = await database.fetch_one("SELECT * FROM mappings WHERE id = ?", (mapping_id,))
     await _reload_file_monitor()
+    remote_config_manager.request_save("mapping_updated")
     return _mapping_model(row)
 
 
@@ -247,6 +263,7 @@ async def delete_mapping(mapping_id: int):
     await database.execute("DELETE FROM files WHERE mapping_id = ?", (mapping_id,))
     await database.execute("DELETE FROM mappings WHERE id = ?", (mapping_id,))
     await _reload_file_monitor()
+    remote_config_manager.request_save("mapping_deleted")
     return {"status": "ok"}
 
 
@@ -297,10 +314,11 @@ async def import_mappings_csv(body: CsvImportRequest):
         now = datetime.now().isoformat()
         mid = await database.execute(
             """INSERT INTO mappings
-               (name, local_path, remote_path, include_subfolders, encrypt, enabled,
-                is_file, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (uid, name, local_path, remote_path, include_subfolders, encrypt,
+                enabled, is_file, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                str(uuid.uuid4()),
                 name,
                 entry.source,
                 entry.destination,
@@ -317,6 +335,7 @@ async def import_mappings_csv(body: CsvImportRequest):
 
     if created:
         await _reload_file_monitor()
+        remote_config_manager.request_save("mappings_imported")
 
     return {
         "dry_run": body.dry_run,
@@ -696,6 +715,85 @@ async def restore_download(body: RestoreRequest):
         await client.close()
 
 
+# ── Configuração remota de mapeamentos ──
+
+def _remote_config_http_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, RemoteConfigNotAuthenticated):
+        return HTTPException(status_code=401, detail=str(exc))
+    if isinstance(exc, RemoteConfigError):
+        return HTTPException(status_code=409, detail=str(exc))
+    return HTTPException(
+        status_code=500,
+        detail=f"Falha na configuração remota: {exc}",
+    )
+
+
+@router.get("/remote-config")
+async def remote_config_status(check_remote: bool = False):
+    """Status do cadastro remoto. ``check_remote=true`` consulta o Terabox."""
+    return await remote_config_manager.status(check_remote=check_remote)
+
+
+@router.post("/remote-config/save")
+async def remote_config_save(body: Optional[RemoteConfigSaveRequest] = None):
+    """Salva agora, mesclando com o arquivo remoto existente."""
+    try:
+        return await remote_config_manager.save_now(
+            force=bool(body and body.force),
+            reason="manual",
+        )
+    except Exception as exc:
+        raise _remote_config_http_error(exc) from exc
+
+
+@router.post("/remote-config/import/plan")
+async def remote_config_import_plan():
+    """Baixa a configuração remota e monta a revisão de importação."""
+    try:
+        return await remote_config_manager.import_plan()
+    except Exception as exc:
+        raise _remote_config_http_error(exc) from exc
+
+
+@router.post("/remote-config/import")
+async def remote_config_import(body: RemoteConfigImportRequest):
+    """Importa somente os mapeamentos confirmados na revisão."""
+    try:
+        result = await remote_config_manager.apply_import(
+            body.config_hash,
+            [item.model_dump() for item in body.mappings],
+        )
+    except Exception as exc:
+        raise _remote_config_http_error(exc) from exc
+
+    if body.adopt_path and result.get("config_path"):
+        try:
+            discovered = normalize_config_path(result["config_path"])
+        except RemoteConfigError:
+            discovered = None
+        current = (
+            await database.get_setting("remote_config_path")
+            or DEFAULT_REMOTE_CONFIG_PATH
+        )
+        if discovered and discovered != current:
+            await database.set_setting("remote_config_path", discovered)
+            result["adopted_path"] = discovered
+
+    await _reload_file_monitor()
+
+    if body.mappings and (result.get("created") or result.get("updated")):
+        remote_config_manager.request_save("remote_config_imported")
+        try:
+            saved = await remote_config_manager.save_now(
+                reason="remote_config_imported"
+            )
+            result["remote_config_saved"] = bool(saved.get("saved"))
+        except Exception as exc:
+            result["remote_config_save_error"] = str(exc)
+
+    return result
+
+
 # ── Settings ──
 
 @router.get("/settings", response_model=Settings)
@@ -709,9 +807,14 @@ async def get_settings():
         "autostart",
         "browser_preference",
         "restore_confirm_overwrite",
+        "machine_name",
+        "remote_config_enabled",
+        "remote_config_path",
+        "remote_config_auto_save",
     ):
         val = await database.get_setting(key)
         data[key] = val
+    machine = await database.get_machine_identity()
     return Settings(
         sync_interval_minutes=int(data.get("sync_interval_minutes", 30)),
         auto_sync=data.get("auto_sync", "true") == "true",
@@ -722,6 +825,16 @@ async def get_settings():
         encryption_key=data.get("encryption_key"),
         restore_confirm_overwrite=(
             data.get("restore_confirm_overwrite", "true") == "true"
+        ),
+        machine_name=data.get("machine_name") or machine["machine_name"],
+        remote_config_enabled=(
+            data.get("remote_config_enabled", "true") == "true"
+        ),
+        remote_config_path=(
+            data.get("remote_config_path") or DEFAULT_REMOTE_CONFIG_PATH
+        ),
+        remote_config_auto_save=(
+            data.get("remote_config_auto_save", "true") == "true"
         ),
     )
 
@@ -757,6 +870,40 @@ async def update_settings(body: SettingsUpdate):
             "true" if body.restore_confirm_overwrite else "false",
         )
 
+    remote_config_changed = False
+    if body.machine_name is not None:
+        machine_name = " ".join(body.machine_name.split())[:80].strip()
+        if not machine_name:
+            raise HTTPException(
+                status_code=400,
+                detail="O nome deste computador não pode ficar vazio.",
+            )
+        await database.set_setting("machine_name", machine_name)
+        remote_config_changed = True
+    if body.remote_config_enabled is not None:
+        await database.set_setting(
+            "remote_config_enabled",
+            "true" if body.remote_config_enabled else "false",
+        )
+        remote_config_changed = True
+    if body.remote_config_path is not None:
+        try:
+            remote_path = normalize_config_path(body.remote_config_path)
+        except RemoteConfigError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        await database.set_setting("remote_config_path", remote_path)
+        remote_config_changed = True
+    if body.remote_config_auto_save is not None:
+        await database.set_setting(
+            "remote_config_auto_save",
+            "true" if body.remote_config_auto_save else "false",
+        )
+
+    if remote_config_changed:
+        enabled = await database.get_setting("remote_config_enabled")
+        if enabled != "false":
+            remote_config_manager.request_save("settings_changed")
+
     # Atualizar scheduler se necessário
     if body.sync_interval_minutes is not None:
         await sync_scheduler.update_interval(body.sync_interval_minutes)
@@ -778,6 +925,35 @@ async def pick_folder():
         "$f.ShowNewFolderButton = $true;"
         "$r = $f.ShowDialog();"
         "if ($r -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }"
+    )
+
+    def _run_powershell() -> str:
+        exe = _shutil.which("powershell") or "powershell"
+        try:
+            out = run_hidden(
+                [exe, "-NoProfile", "-STA", "-Command", ps_script],
+                capture_output=True, text=True, timeout=300,
+            )
+            return (out.stdout or "").strip()
+        except Exception:
+            return ""
+
+    path = await asyncio.to_thread(_run_powershell)
+    return {"path": path}
+
+
+@router.get("/system/pick-file")
+async def pick_file():
+    """Abre o seletor de arquivos nativo do Windows."""
+    import shutil as _shutil
+
+    ps_script = (
+        "Add-Type -AssemblyName System.Windows.Forms;"
+        "$f = New-Object System.Windows.Forms.OpenFileDialog;"
+        "$f.Title = 'Selecione o arquivo';"
+        "$f.Filter = 'Todos os arquivos (*.*)|*.*';"
+        "$r = $f.ShowDialog();"
+        "if ($r -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.FileName }"
     )
 
     def _run_powershell() -> str:

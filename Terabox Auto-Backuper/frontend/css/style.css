@@ -405,9 +405,282 @@ footer {
     font-size: 0.8rem;
 }
 
+/* ── Configuração remota ── */
+
+.remote-config-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: #3a2d13;
+    border-bottom: 2px solid #d9a441;
+    padding: 12px 24px;
+}
+
+.remote-config-banner[hidden] {
+    display: none;
+}
+
+.remote-config-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.9rem;
+}
+
+.remote-config-banner-text strong {
+    color: #f0c36d;
+}
+
+.remote-config-banner-text span {
+    color: #d8c9a8;
+    font-size: 0.82rem;
+}
+
+.remote-config-banner-actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.remote-config-banner-actions button {
+    margin-top: 0;
+}
+
+.remote-config-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.remote-config-status {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    background: #0f3460;
+    color: #c9d3e6;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.remote-config-status.has-error {
+    border-color: #d32f2f;
+    color: #ff8a80;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.68);
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-content {
+    width: min(1000px, 100%);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 10px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #0f3460;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #e94560;
+}
+
+.modal-close {
+    margin: 0;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #0f3460;
+    font-size: 1rem;
+}
+
+.remote-import-summary {
+    padding: 12px 16px;
+    border-bottom: 1px solid #0f3460;
+    color: #c9d3e6;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.remote-rebase {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding: 12px 16px;
+    border-bottom: 1px solid #0f3460;
+}
+
+.remote-rebase label {
+    flex: 1 1 260px;
+    margin: 0;
+}
+
+.remote-rebase button {
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+.modal .selection-toolbar {
+    padding: 0 16px;
+    margin: 12px 0 0;
+}
+
+.remote-import-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px;
+}
+
+.remote-import-row {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #0f3460;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+}
+
+.remote-import-row.is-blocked {
+    border-color: #d32f2f;
+    opacity: 0.82;
+}
+
+.remote-import-check {
+    flex: 0 0 auto;
+    margin: 6px 0 0;
+    cursor: pointer;
+}
+
+.remote-import-check input {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.remote-import-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.remote-import-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.remote-import-badge {
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #533483;
+    color: #fff;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.remote-import-badge.new {
+    background: #1b5e20;
+}
+
+.remote-import-badge.existing {
+    background: #37474f;
+}
+
+.remote-import-badge.conflict {
+    background: #b71c1c;
+}
+
+.remote-import-remote,
+.remote-import-existing,
+.remote-import-other {
+    margin-top: 4px;
+    color: #9aa7bd;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.remote-import-warning {
+    margin-top: 4px;
+    color: #d9a441;
+    font-size: 0.8rem;
+}
+
+.remote-import-error {
+    margin-top: 4px;
+    color: #ff8a80;
+    font-size: 0.8rem;
+}
+
+.remote-import-path-row {
+    margin-top: 8px;
+}
+
+.remote-import-path-row input {
+    margin-top: 0;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #0f3460;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
     header { flex-direction: column; gap: 12px; }
     nav { flex-wrap: wrap; justify-content: center; }
+
+    .remote-config-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 16px;
+    }
+
+    .modal {
+        padding: 8px;
+    }
+
+    .remote-rebase {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
     .tree-folder-row,
     .tree-file {

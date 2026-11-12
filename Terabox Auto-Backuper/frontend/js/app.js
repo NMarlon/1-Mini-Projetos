@@ -17,6 +17,14 @@ let restoreSaveTimer = null;
 let restoreDirNodes = new Map();
 let restoreConfirmOverwrite = true;
 
+// Configuração remota de mapeamentos
+const REMOTE_BANNER_DISMISS_KEY = 'terabox_remote_config_dismissed_hash';
+let remoteConfigStatus = null;
+let remoteImportPlan = null;
+let remoteImportSelected = new Set();
+let remoteConfigCheckInFlight = false;
+let remoteConfigAuthWasReady = false;
+
 // ── Navegação por abas ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -45,11 +53,16 @@ async function checkAuth() {
             statusEl.textContent = `✅ Conectado via ${data.browser} (${data.cookies_found} cookies)`;
             btnConnect.style.display = 'none';
             btnDisconnect.style.display = 'inline-block';
+            if (!remoteConfigAuthWasReady) {
+                remoteConfigAuthWasReady = true;
+                checkRemoteConfig(true);
+            }
         } else {
             const err = data.error ? ` — ${data.error}` : '';
             statusEl.textContent = '❌ Não conectado ao Terabox' + err;
             btnConnect.style.display = 'inline-block';
             btnDisconnect.style.display = 'none';
+            remoteConfigAuthWasReady = false;
         }
     } catch (e) {
         document.getElementById('auth-status').textContent = '⚠️ Erro ao verificar auth';
@@ -183,7 +196,520 @@ async function connectManual() {
 
 async function disconnectAuth() {
     await fetch(API + '/auth/disconnect', { method: 'POST' });
+    remoteConfigAuthWasReady = false;
+    remoteConfigStatus = null;
+    hideRemoteConfigBanner();
     checkAuth();
+}
+
+// ── Configuração remota de mapeamentos ──
+
+function getDismissedRemoteConfigHash() {
+    try {
+        return localStorage.getItem(REMOTE_BANNER_DISMISS_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function setDismissedRemoteConfigHash(hash) {
+    try {
+        localStorage.setItem(REMOTE_BANNER_DISMISS_KEY, hash || '');
+    } catch (e) {
+        // localStorage indisponível: o banner pode reaparecer
+    }
+}
+
+function hideRemoteConfigBanner() {
+    const banner = document.getElementById('remote-config-banner');
+    if (banner) banner.hidden = true;
+}
+
+function dismissRemoteConfigBanner() {
+    const remote = (remoteConfigStatus && remoteConfigStatus.remote) || {};
+    setDismissedRemoteConfigHash(remote.config_hash || '');
+    hideRemoteConfigBanner();
+}
+
+function showRemoteConfigBanner(status) {
+    const banner = document.getElementById('remote-config-banner');
+    const detail = document.getElementById('remote-config-banner-detail');
+    if (!banner || !detail) return;
+    const remote = status.remote || {};
+    const summary = remote.import_summary || {};
+    const parts = [];
+    if (summary.new) parts.push(`${summary.new} novo(s)`);
+    if (summary.conflicts) parts.push(`${summary.conflicts} conflito(s)`);
+    const source = remote.source === 'shortcut'
+        ? 'encontrada pelo atalho da raiz'
+        : 'encontrada no caminho configurado';
+    detail.textContent =
+        `${parts.join(' e ') || 'Novos mapeamentos'} em ` +
+        `${remote.mappings_total || 0} mapeamento(s), ${source}. ` +
+        'Revise antes de importar para este computador.';
+    banner.hidden = false;
+}
+
+async function checkRemoteConfig(showBanner = false) {
+    if (remoteConfigCheckInFlight) return;
+    remoteConfigCheckInFlight = true;
+    try {
+        const res = await fetch(API + '/remote-config?check_remote=true');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        remoteConfigStatus = data;
+        renderRemoteConfigStatus(data);
+
+        const remote = data.remote || {};
+        const dismissed = getDismissedRemoteConfigHash();
+        const canShow = Boolean(
+            showBanner &&
+            data.enabled &&
+            remote.exists &&
+            remote.needs_import &&
+            remote.config_hash &&
+            remote.config_hash !== dismissed
+        );
+        if (canShow) showRemoteConfigBanner(data);
+        else hideRemoteConfigBanner();
+    } catch (e) {
+        const el = document.getElementById('remote-config-status');
+        if (el) {
+            el.textContent = '⚠️ Não foi possível verificar a configuração remota: ' + e.message;
+            el.classList.add('has-error');
+        }
+        hideRemoteConfigBanner();
+    } finally {
+        remoteConfigCheckInFlight = false;
+    }
+}
+
+function renderRemoteConfigStatus(data) {
+    const el = document.getElementById('remote-config-status');
+    if (!el) return;
+    const lines = [];
+    if (!data.enabled) {
+        lines.push('⏸️ Configuração remota desativada. Nada será salvo no Terabox.');
+    } else {
+        lines.push(`Computador: ${data.machine_name || '(sem nome)'}`);
+        lines.push(`Arquivo: ${data.path || ''}`);
+        lines.push(`Atalho fixo: ${data.shortcut_path || ''}`);
+
+        const remote = data.remote || {};
+        if (!remote.checked) {
+            lines.push('ℹ️ Conecte ao Terabox para verificar o arquivo remoto.');
+        } else if (remote.error) {
+            lines.push('⚠️ ' + remote.error);
+        } else if (!remote.exists) {
+            lines.push('ℹ️ Nenhum arquivo remoto encontrado ainda. Ele será criado no próximo salvamento.');
+        } else {
+            const source = remote.source === 'shortcut'
+                ? 'atalho da raiz'
+                : 'caminho configurado';
+            lines.push(`✅ Arquivo encontrado (${source}): ${remote.path || ''}`);
+            const summary = remote.import_summary;
+            if (summary) {
+                lines.push(
+                    `Mapeamentos no arquivo: ${remote.mappings_total || 0}. ` +
+                    `Neste PC: ${summary.new || 0} novo(s), ` +
+                    `${summary.existing || 0} existente(s), ` +
+                    `${summary.conflicts || 0} conflito(s).`
+                );
+            }
+            if (remote.needs_import) {
+                lines.push('📥 Use "Revisar importação" para escolher os caminhos deste computador.');
+            }
+        }
+
+        if (data.last_saved_at) {
+            lines.push('Último salvamento: ' + data.last_saved_at);
+        }
+        if (data.last_error) {
+            lines.push('⚠️ Último erro: ' + data.last_error);
+        }
+        if (data.dirty) {
+            lines.push('⏳ Alterações aguardando salvamento...');
+        }
+    }
+    el.textContent = lines.join('\n');
+    el.classList.toggle(
+        'has-error',
+        Boolean(data.last_error || (data.remote && data.remote.error))
+    );
+}
+
+async function saveRemoteConfigNow(force = false) {
+    const el = document.getElementById('remote-config-status');
+    if (el) {
+        el.textContent = force
+            ? '⏳ Substituindo a configuração remota...'
+            : '⏳ Salvando configuração no Terabox...';
+        el.classList.remove('has-error');
+    }
+    try {
+        const res = await fetch(API + '/remote-config/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force })
+        });
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (e) {
+            data = {};
+        }
+        if (!res.ok) {
+            if (!force && res.status === 409) {
+                const detail = typeof data.detail === 'string'
+                    ? data.detail
+                    : 'A configuração remota precisa de confirmação.';
+                if (confirm(detail + '\n\nDeseja substituir mesmo assim?')) {
+                    return saveRemoteConfigNow(true);
+                }
+                if (el) el.textContent = 'Salvamento cancelado.';
+                return;
+            }
+            throw new Error(restoreErrorText(data.detail, `HTTP ${res.status}`));
+        }
+        if (data.skipped) {
+            if (el) el.textContent = 'Configuração remota desativada.';
+        } else if (data.changed) {
+            if (el) el.textContent = '✅ Configuração salva no Terabox.';
+        } else {
+            if (el) el.textContent = '✅ A configuração já estava atualizada.';
+        }
+        await checkRemoteConfig(false);
+    } catch (e) {
+        if (el) {
+            el.textContent = '⚠️ ' + e.message;
+            el.classList.add('has-error');
+        }
+    }
+}
+
+function findRemoteImportInput(uid) {
+    return Array.from(document.querySelectorAll('.remote-import-path'))
+        .find(element => element.dataset.uid === uid) || null;
+}
+
+function findRemoteImportRow(uid) {
+    if (!remoteImportPlan) return null;
+    return (remoteImportPlan.mappings || []).find(row => row.uid === uid) || null;
+}
+
+async function openRemoteConfigImport() {
+    const modal = document.getElementById('remote-config-modal');
+    const list = document.getElementById('remote-import-list');
+    const summary = document.getElementById('remote-import-summary');
+    if (!modal || !list) return;
+
+    modal.hidden = false;
+    list.innerHTML = '<p class="restore-loading">Baixando configuração do Terabox...</p>';
+    if (summary) summary.textContent = '';
+
+    try {
+        const res = await fetch(API + '/remote-config/import/plan', {
+            method: 'POST'
+        });
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (e) {
+            data = {};
+        }
+        if (!res.ok) {
+            throw new Error(restoreErrorText(data.detail, `HTTP ${res.status}`));
+        }
+        if (data.error) throw new Error(data.error);
+        if (!data.exists) {
+            closeRemoteConfigModal();
+            alert(
+                'Nenhuma configuração foi encontrada no Terabox.\n\n' +
+                'Salve os mapeamentos deste computador primeiro ou confira o ' +
+                'caminho configurado.'
+            );
+            return;
+        }
+        if (!Array.isArray(data.mappings) || data.mappings.length === 0) {
+            closeRemoteConfigModal();
+            alert('O arquivo de configuração remota não contém mapeamentos.');
+            return;
+        }
+        remoteImportPlan = data;
+        remoteImportSelected = RemoteConfigUI.defaultSelection(data.mappings);
+        renderRemoteImportPlan();
+    } catch (e) {
+        closeRemoteConfigModal();
+        alert('Erro ao carregar a configuração remota: ' + e.message);
+    }
+}
+
+function closeRemoteConfigModal() {
+    const modal = document.getElementById('remote-config-modal');
+    if (modal) modal.hidden = true;
+}
+
+function renderRemoteImportPlan() {
+    const list = document.getElementById('remote-import-list');
+    const summaryEl = document.getElementById('remote-import-summary');
+    if (!list || !remoteImportPlan) return;
+
+    const summary = remoteImportPlan.summary || {};
+    if (summaryEl) {
+        const source = remoteImportPlan.source === 'shortcut'
+            ? 'atalho da raiz'
+            : 'caminho configurado';
+        summaryEl.textContent =
+            `Arquivo: ${remoteImportPlan.path || ''} (${source})\n` +
+            `${summary.new || 0} novo(s), ${summary.existing || 0} já existente(s), ` +
+            `${summary.conflicts || 0} conflito(s). ` +
+            'Revise os caminhos e marque o que deseja importar.';
+    }
+
+    list.innerHTML = '';
+    for (const row of remoteImportPlan.mappings || []) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'remote-import-row' + (row.blocked ? ' is-blocked' : '');
+        rowEl.dataset.uid = row.uid;
+
+        const checked = remoteImportSelected.has(row.uid);
+        const typeIcon = row.is_file ? '📄' : '📁';
+        const status = RemoteConfigUI.statusLabel(row);
+        const otherMachines = (row.other_machines || []).map(machine =>
+            `${escapeHtml(machine.machine_name)}: ${escapeHtml(machine.local_path)}`
+        ).join('<br>');
+        const warnings = (row.warnings || [])
+            .map(warning => `<div class="remote-import-warning">⚠️ ${escapeHtml(warning)}</div>`)
+            .join('');
+        const conflicts = (row.conflicts || [])
+            .map(conflict => `<div class="remote-import-error">⛔ ${escapeHtml(conflict)}</div>`)
+            .join('');
+        const pathError = row.path_error
+            ? `<div class="remote-import-error remote-import-path-error">⛔ ${escapeHtml(row.path_error)}</div>`
+            : '';
+        const existingInfo = row.status === 'existing' && row.current_local_path
+            ? `<div class="remote-import-existing">Já existe neste PC: ${escapeHtml(row.current_local_path)}</div>`
+            : '';
+
+        rowEl.innerHTML = `
+            <label class="remote-import-check" title="Importar/atualizar este mapeamento">
+                <input type="checkbox" class="remote-import-checkbox"
+                    data-uid="${escapeAttr(row.uid)}" ${checked ? 'checked' : ''}
+                    ${row.blocked ? 'disabled' : ''}>
+            </label>
+            <div class="remote-import-body">
+                <div class="remote-import-title">
+                    <strong>${typeIcon} ${escapeHtml(row.name)}</strong>
+                    <span class="remote-import-badge ${escapeHtml(row.status)}">${escapeHtml(status)}</span>
+                </div>
+                <div class="remote-import-remote">${escapeHtml(row.remote_path)}</div>
+                ${existingInfo}
+                ${otherMachines ? `<div class="remote-import-other">Também usado em:<br>${otherMachines}</div>` : ''}
+                ${conflicts}${warnings}${pathError}
+                <div class="input-row remote-import-path-row">
+                    <input type="text" class="remote-import-path"
+                        data-uid="${escapeAttr(row.uid)}"
+                        value="${escapeAttr(row.local_path || '')}"
+                        placeholder="C:\\...">
+                    <button type="button" class="btn-browse remote-import-pick"
+                        data-uid="${escapeAttr(row.uid)}"
+                        data-is-file="${row.is_file ? 'true' : 'false'}">
+                        ${row.is_file ? '📄 Selecionar...' : '📁 Selecionar...'}
+                    </button>
+                </div>
+            </div>
+        `;
+        list.appendChild(rowEl);
+    }
+    updateRemoteImportCount();
+}
+
+function updateRemoteImportCount() {
+    const el = document.getElementById('remote-import-count');
+    const confirmButton = document.getElementById('remote-import-confirm');
+    if (!el) return;
+    const rows = remoteImportPlan ? remoteImportPlan.mappings : [];
+    const summary = RemoteConfigUI.selectionSummary(rows, remoteImportSelected);
+    el.textContent =
+        `${summary.selected} de ${summary.total} selecionado(s) • ` +
+        `${summary.new} novo(s) • ${summary.existing} existente(s) • ` +
+        `${summary.conflicts} conflito(s)`;
+    if (confirmButton) confirmButton.disabled = summary.selected === 0;
+}
+
+function setAllRemoteImport(checked) {
+    if (!remoteImportPlan) return;
+    for (const row of remoteImportPlan.mappings || []) {
+        if (row.blocked) continue;
+        if (checked) remoteImportSelected.add(row.uid);
+        else remoteImportSelected.delete(row.uid);
+    }
+    document.querySelectorAll('.remote-import-checkbox').forEach(checkbox => {
+        checkbox.checked = remoteImportSelected.has(checkbox.dataset.uid);
+    });
+    updateRemoteImportCount();
+}
+
+function applyRemoteRebase() {
+    if (!remoteImportPlan) return;
+    const oldPrefix = document.getElementById('remote-rebase-old').value.trim();
+    const newPrefix = document.getElementById('remote-rebase-new').value.trim();
+    if (!oldPrefix || !newPrefix) {
+        alert('Informe o prefixo antigo e o novo prefixo.');
+        return;
+    }
+    const before = new Map(
+        (remoteImportPlan.mappings || []).map(row => [row.uid, row.local_path])
+    );
+    remoteImportPlan.mappings = RemoteConfigUI.rebaseRows(
+        remoteImportPlan.mappings,
+        oldPrefix,
+        newPrefix,
+        remoteImportSelected
+    );
+    let changed = 0;
+    for (const row of remoteImportPlan.mappings) {
+        if (before.get(row.uid) === row.local_path) continue;
+        changed++;
+        row.path_error = null;
+        const input = findRemoteImportInput(row.uid);
+        if (input) input.value = row.local_path;
+        const rowEl = input && input.closest('.remote-import-row');
+        if (rowEl) {
+            const errorEl = rowEl.querySelector('.remote-import-path-error');
+            if (errorEl) errorEl.remove();
+        }
+    }
+    if (!changed) {
+        alert('Nenhum caminho selecionado usa esse prefixo.');
+    }
+}
+
+async function pickRemoteImportPath(uid, isFile) {
+    const endpoint = isFile ? '/system/pick-file' : '/system/pick-folder';
+    try {
+        const res = await fetch(API + endpoint);
+        const data = await res.json();
+        if (!data.path) return;
+        const row = findRemoteImportRow(uid);
+        const input = findRemoteImportInput(uid);
+        if (row) {
+            row.local_path = data.path;
+            row.path_error = null;
+        }
+        if (input) {
+            input.value = data.path;
+            const rowEl = input.closest('.remote-import-row');
+            if (rowEl) {
+                const errorEl = rowEl.querySelector('.remote-import-path-error');
+                if (errorEl) errorEl.remove();
+            }
+        }
+    } catch (e) {
+        alert('Não foi possível abrir o seletor: ' + e.message);
+    }
+}
+
+async function confirmRemoteImport() {
+    if (!remoteImportPlan) return;
+    const selectedRows = (remoteImportPlan.mappings || [])
+        .filter(row => remoteImportSelected.has(row.uid));
+    if (selectedRows.length === 0) {
+        alert('Selecione ao menos um mapeamento para importar.');
+        return;
+    }
+
+    const mappings = [];
+    for (const row of selectedRows) {
+        const input = findRemoteImportInput(row.uid);
+        const localPath = (input ? input.value : row.local_path || '').trim();
+        const hint = RemoteConfigUI.validateLocalPathHint(row, localPath);
+        if (hint) {
+            alert(`${row.name}: ${hint}`);
+            if (input) input.focus();
+            return;
+        }
+        mappings.push({ uid: row.uid, local_path: localPath });
+    }
+
+    const confirmed = confirm(
+        `Importar ${mappings.length} mapeamento(s) para este computador?\n\n` +
+        'Os mapeamentos já existentes serão atualizados e os novos serão ' +
+        'criados. Nenhum arquivo será restaurado agora; isso apenas prepara a ' +
+        'aba Restaurar.'
+    );
+    if (!confirmed) return;
+
+    const button = document.getElementById('remote-import-confirm');
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Importando...';
+    }
+    try {
+        const res = await fetch(API + '/remote-config/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                config_hash: remoteImportPlan.config_hash || '',
+                mappings,
+                adopt_path: true
+            })
+        });
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (e) {
+            data = {};
+        }
+        if (!res.ok) {
+            const detail = restoreErrorText(data.detail, `HTTP ${res.status}`);
+            if (res.status === 409) {
+                alert(
+                    'A configuração remota mudou ou precisa de atenção:\n\n' +
+                    detail +
+                    '\n\nRecarregue a revisão e tente novamente.'
+                );
+                await openRemoteConfigImport();
+                return;
+            }
+            throw new Error(detail);
+        }
+
+        const created = (data.created || []).length;
+        const updated = (data.updated || []).length;
+        const skipped = (data.skipped || []).length;
+        const errors = data.errors || [];
+        let message =
+            'Importação concluída.\n\n' +
+            `Criados: ${created} • Atualizados: ${updated} • ` +
+            `Ignorados: ${skipped} • Erros: ${errors.length}`;
+        if (errors.length) {
+            message += '\n\n' + errors.slice(0, 10)
+                .map(error => `${error.uid}: ${error.error}`)
+                .join('\n');
+            if (errors.length > 10) {
+                message += `\n... e mais ${errors.length - 10}.`;
+            }
+        }
+        if (data.remote_config_save_error) {
+            message += '\n\n⚠️ A importação funcionou, mas o arquivo remoto ' +
+                'não pôde ser atualizado: ' + data.remote_config_save_error;
+        }
+        alert(message);
+        remoteImportPlan = null;
+        remoteImportSelected = new Set();
+        closeRemoteConfigModal();
+        await loadMappings();
+        await loadSettings();
+        await checkRemoteConfig(false);
+    } catch (e) {
+        alert('Erro ao importar a configuração: ' + e.message);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Importar selecionados';
+        }
+    }
 }
 
 // ── Mappings ──
@@ -1223,6 +1749,13 @@ async function loadSettings() {
         document.getElementById('s-concurrent').value = data.max_concurrent_uploads;
         document.getElementById('s-browser').value = data.browser_preference;
         document.getElementById('s-autostart').checked = data.autostart;
+        document.getElementById('s-machine-name').value = data.machine_name || '';
+        document.getElementById('s-remote-enabled').checked =
+            data.remote_config_enabled !== false;
+        document.getElementById('s-remote-path').value =
+            data.remote_config_path || '';
+        document.getElementById('s-remote-autosave').checked =
+            data.remote_config_auto_save !== false;
         restoreConfirmOverwrite = data.restore_confirm_overwrite !== false;
         document.getElementById('s-restore-confirm').checked = restoreConfirmOverwrite;
         updateRestoreMode();
@@ -1240,7 +1773,11 @@ async function saveSettings(e) {
         max_concurrent_uploads: parseInt(document.getElementById('s-concurrent').value),
         browser_preference: document.getElementById('s-browser').value,
         autostart: document.getElementById('s-autostart').checked,
-        restore_confirm_overwrite: document.getElementById('s-restore-confirm').checked
+        restore_confirm_overwrite: document.getElementById('s-restore-confirm').checked,
+        machine_name: document.getElementById('s-machine-name').value,
+        remote_config_enabled: document.getElementById('s-remote-enabled').checked,
+        remote_config_path: document.getElementById('s-remote-path').value,
+        remote_config_auto_save: document.getElementById('s-remote-autosave').checked
     };
     try {
         const res = await fetch(API + '/settings', {
@@ -1252,6 +1789,7 @@ async function saveSettings(e) {
             restoreConfirmOverwrite =
                 document.getElementById('s-restore-confirm').checked;
             updateRestoreMode();
+            checkRemoteConfig(false);
             alert('Configurações salvas!');
         }
     } catch (e) {
@@ -1286,6 +1824,15 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function escapeAttr(text) {
+    return String(text == null ? '' : text)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -1301,6 +1848,59 @@ document.addEventListener('DOMContentLoaded', () => {
         manifestList.addEventListener('click', onRestoreTreeClick);
         manifestList.addEventListener('change', onRestoreTreeChange);
     }
+
+    const remoteImportList = document.getElementById('remote-import-list');
+    if (remoteImportList) {
+        remoteImportList.addEventListener('click', event => {
+            const target = event.target;
+            if (target.classList.contains('remote-import-pick')) {
+                pickRemoteImportPath(
+                    target.dataset.uid,
+                    target.dataset.isFile === 'true'
+                );
+            }
+        });
+        remoteImportList.addEventListener('change', event => {
+            const target = event.target;
+            if (target.classList.contains('remote-import-checkbox')) {
+                if (target.checked) remoteImportSelected.add(target.dataset.uid);
+                else remoteImportSelected.delete(target.dataset.uid);
+                updateRemoteImportCount();
+            }
+            if (target.classList.contains('remote-import-path')) {
+                const row = findRemoteImportRow(target.dataset.uid);
+                if (row) {
+                    row.local_path = target.value;
+                    row.path_error = null;
+                }
+                const rowEl = target.closest('.remote-import-row');
+                if (rowEl) {
+                    const errorEl = rowEl.querySelector('.remote-import-path-error');
+                    if (errorEl) errorEl.remove();
+                }
+            }
+        });
+        remoteImportList.addEventListener('input', event => {
+            const target = event.target;
+            if (!target.classList.contains('remote-import-path')) return;
+            const row = findRemoteImportRow(target.dataset.uid);
+            if (row) {
+                row.local_path = target.value;
+                row.path_error = null;
+            }
+        });
+    }
+
+    const remoteModal = document.getElementById('remote-config-modal');
+    if (remoteModal) {
+        remoteModal.addEventListener('click', event => {
+            if (event.target === remoteModal) closeRemoteConfigModal();
+        });
+    }
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeRemoteConfigModal();
+    });
+
     window.addEventListener('beforeunload', saveRestoreSelectionNow);
 
     updateRestoreMode();

@@ -34,6 +34,12 @@ LARGE_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024  # 2GB
 # jsToken
 JSTOKEN_TTL_SECONDS = 300  # 5 minutos
 
+# Configuração remota de mapeamentos
+DEFAULT_REMOTE_CONFIG_PATH = (
+    "/config-terabox-auto-backup/terabox-auto-backup.json"
+)
+REMOTE_CONFIG_SHORTCUT_PATH = "/_terabox_autobackup_config.json"
+
 # Temp
 TEMP_DIR = PROJECT_DIR / "temp"
 
