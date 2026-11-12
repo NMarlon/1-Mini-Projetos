@@ -18,7 +18,8 @@ python app.py
 
 - Configuração de múltiplos mapeamentos (pasta/arquivo local → pasta remota no Terabox)
 - Checkbox **Sincronizar** por mapeamento; o que estiver desmarcado não entra no backup manual nem no Auto-sync
-- Importação de lista colada no formato `origem; destino` (uma por linha)
+- Importação de lista colada no formato `origem; destino` (uma por linha), com terceiro campo opcional `pasta`/`arquivo`
+- Caminhos locais ainda inexistentes são aceitos: pastas são criadas e arquivos únicos criam só a pasta-pai
 - Opção de incluir/excluir subpastas por mapeamento
 - **Prévia (dry-run)** antes de sincronizar: mostra o que será enviado, substituído ou ignorado
 - Sync automático em background (watchdog + scheduler), respeitando a opção "Sync automático"
@@ -51,6 +52,12 @@ C:\Users\marlo\Projetos; /Backup/Projetos
 
 - A origem pode ser uma pasta ou um arquivo.
 - O destino é sempre uma pasta no Terabox.
+- A origem pode ainda não existir. Nesse caso, informe o tipo no terceiro campo:
+  `C:\Saves\Meu Mundo; /Backup/Saves; pasta` ou
+  `C:\Saves\Meu Mundo\level.dat; /Backup/Saves; arquivo`.
+  Sem o terceiro campo, o app assume pasta.
+- Pastas são criadas na importação. Arquivo único cria somente a pasta-pai e
+  nunca um arquivo vazio.
 - Linhas em branco e linhas começando com `#` são ignoradas.
 - O app valida, mostra quantos mapeamentos serão criados e pede confirmação.
 

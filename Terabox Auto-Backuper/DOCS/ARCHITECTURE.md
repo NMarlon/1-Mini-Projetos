@@ -172,11 +172,29 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 - **Debounce watchdog**: 2s após último evento de filesystem
 - **Sync automático**: scheduler e watchdog só disparam se `auto_sync=true`
 
+## Caminhos locais que ainda não existem
+
+- Cadastro, edição, importação CSV e importação da configuração remota aceitam
+  caminho local inexistente.
+- O tipo é decidido nesta ordem: `is_file` explícito → filesystem → pasta.
+- Pasta: a pasta é criada no cadastro/importação.
+- Arquivo único: somente a pasta-pai é criada; o arquivo nunca é criado vazio.
+- Rejeições: caminho relativo, raiz de unidade, ancestral que já é arquivo e
+  conflito entre o tipo pedido e o que existe no disco.
+- CSV aceita terceiro campo opcional `pasta`/`arquivo`
+  (`folder`/`file` também valem).
+- Sync de arquivo único inexistente não é erro: o mapeamento continua válido
+  para a restauração. Pasta inexistente continua sendo erro/aviso.
+- O helper central é `backend/local_paths.py`.
+
 ## Watchdog (file_monitor.py)
 
 - Usa `watchdog.observers.Observer` com `FileSystemEventHandler`
 - Monitora cada pasta mapeada; para mapeamento de arquivo único, vigia a pasta pai
-- Eventos: created, modified, moved → dispara sync (debounce de 2s)
+- Caminho inexistente: vigia o ancestral existente mais próximo; quando a
+  pasta/arquivo aparece, o monitor é recarregado e passa a vigiar o alvo real
+- Eventos: created, modified, moved e eventos de diretório → dispara sync
+  (debounce de 2s)
 - O handler roda na thread do watchdog; a task é criada no event loop principal
   via `loop.call_soon_threadsafe` (evita `RuntimeError: no current event loop`)
 - Só dispara se `auto_sync=true`

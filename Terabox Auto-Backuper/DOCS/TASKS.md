@@ -223,6 +223,21 @@
 - **Teste**: 90 testes Python e 19 Node; validação real criando o arquivo no Terabox e relendo; simulação de PC novo em banco temporário
 - **Depende de**: T25
 
+### T27. Aceitar e criar caminhos locais inexistentes ✅
+- **Status**: Concluída (2026-11-12)
+- **Descrição**: Um PC novo não conseguia importar mapeamentos cuja pasta/arquivo ainda não existia. O cadastro e a importação exigiam que a origem já estivesse no disco.
+- **Solução**:
+  - `backend/local_paths.py` centraliza validação, detecção de tipo e criação segura
+  - Pasta inexistente é criada no cadastro/importação; arquivo único cria apenas a pasta-pai e nunca um arquivo vazio
+  - `is_file` opcional em `POST/PUT /api/mappings`; sem ele, detecta pelo filesystem e assume pasta
+  - CSV aceita terceiro campo `pasta`/`arquivo` e devolve avisos no `dry_run`
+  - Importação da configuração remota cria os caminhos no `apply_import`
+  - Sync ignora arquivo único inexistente sem erro; pasta ausente continua aviso
+  - Watchdog vigia o ancestral existente mais próximo e recarrega quando o caminho aparece
+  - Frontend ganhou seletor de tipo e botão de arquivo
+- **Teste**: 103 testes Python (helper, CSV, file monitor, importação remota) e 19 Node
+- **Depende de**: T26
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

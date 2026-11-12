@@ -37,12 +37,28 @@ class CsvImportTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(len(entries), 1)
 
-    def test_reports_origem_inexistente(self):
+    def test_aceita_origem_inexistente_como_pasta(self):
         text = f"{self.root / 'nao_existe'}; /Backup/Pasta"
+        entries, errors = parse_mapping_csv(text)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(entries), 1)
+        self.assertFalse(entries[0].source_is_file)
+        self.assertTrue(entries[0].warnings)
+
+    def test_terceiro_campo_informa_arquivo(self):
+        alvo = self.root / "save" / "level.dat"
+        text = f"{alvo}; /Backup/Saves; arquivo"
+        entries, errors = parse_mapping_csv(text)
+        self.assertEqual(errors, [])
+        self.assertTrue(entries[0].source_is_file)
+        self.assertIn("arquivo", " ".join(entries[0].warnings).lower())
+
+    def test_terceiro_campo_invalido(self):
+        text = f"{self.root / 'x'}; /Backup/Pasta; pastilha"
         entries, errors = parse_mapping_csv(text)
         self.assertEqual(entries, [])
         self.assertEqual(len(errors), 1)
-        self.assertIn("não encontrada", errors[0]["error"])
+        self.assertIn("tipo inválido", errors[0]["error"])
 
     def test_reports_destino_raiz(self):
         text = f"{self.folder}; /"

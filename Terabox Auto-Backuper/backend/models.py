@@ -14,6 +14,7 @@ class MappingCreate(BaseModel):
     include_subfolders: bool = True
     encrypt: bool = False
     enabled: bool = True
+    is_file: Optional[bool] = None
 
 class MappingUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,6 +23,7 @@ class MappingUpdate(BaseModel):
     include_subfolders: Optional[bool] = None
     encrypt: Optional[bool] = None
     enabled: Optional[bool] = None
+    is_file: Optional[bool] = None
 
 class Mapping(BaseModel):
     id: int
@@ -182,4 +184,4 @@ class RemoteConfigImportRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.3.3"
+    version: str = "0.3.4"

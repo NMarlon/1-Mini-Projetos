@@ -237,6 +237,25 @@
 
 ---
 
+### [2026-11-12] PC novo não importava mapeamentos com pasta/arquivo inexistente
+
+**Contexto**: Importar a configuração remota em outro PC, antes de os arquivos existirem naquele disco.
+
+**Erro**: A importação recusava a origem com "Origem não encontrada" e o mapeamento não era criado.
+
+**Causa**: Cadastro, CSV e configuração remota validavam `os.path.exists(local_path)` e tratavam a ausência como erro. Em um PC novo, o caminho local é justamente o destino que será criado/recebido depois.
+
+**Solução**:
+- `backend/local_paths.py` valida caminho absoluto, raiz de unidade, ancestral que é arquivo e conflito de tipo.
+- Pasta inexistente é criada; arquivo único cria somente a pasta-pai (nunca arquivo vazio).
+- `is_file` fica explícito no banco; sem ele, detecta pelo filesystem e assume pasta quando não existe.
+- Sync de arquivo único inexistente continua válido; pasta ausente ainda gera aviso.
+- Watchdog vigia o ancestral existente mais próximo e recarrega quando o caminho aparece.
+
+**Aprendizado**: Origem inexistente não é necessariamente erro de configuração — no Restaurar, ela é o destino esperado. O tipo (`is_file`) precisa ser persistido para não depender de o arquivo existir.
+
+---
+
 ### [2026-11-09] Chrome com múltiplos perfis — cookies da conta errada
 **Contexto**: O app pegava o primeiro perfil do Chrome que tinha cookie `ndus` (perfil do pai do usuário), enviando arquivos para a conta errada
 **Erro**: Conta conectada era "Wanderson Viana" em vez de "Marlon Viana"

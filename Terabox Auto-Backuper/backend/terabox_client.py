@@ -606,17 +606,55 @@ class TeraboxClient:
 
     @staticmethod
     def collect_local_entries(
-        local_path: str, include_subfolders: bool = True
+        local_path: str,
+        include_subfolders: bool = True,
+        is_file: Optional[bool] = None,
     ) -> Tuple[List[LocalEntry], List[str], List[dict]]:
         """Varre uma pasta (ou arquivo) local.
 
         Retorna ``(arquivos, diretorios_relativos, erros)``. Erros de
-        permissão não são mais engolidos silenciosamente.
+        permissão não são mais engolidos silenciosamente. Quando ``is_file``
+        é informado, um arquivo único ainda não criado não é erro: ele será
+        criado na restauração ou pelo usuário.
         """
         local_path = normalize_local(local_path)
         files: List[LocalEntry] = []
         dirs: List[str] = []
         errors: List[dict] = []
+        type_hint = None if is_file is None else bool(is_file)
+
+        if type_hint is True:
+            if os.path.isdir(local_path):
+                errors.append(
+                    {
+                        "file": local_path,
+                        "error": "existe uma pasta no lugar do arquivo único",
+                    }
+                )
+                return files, dirs, errors
+            if not os.path.isfile(local_path):
+                # Ainda não existe: o mapeamento continua válido.
+                return files, dirs, errors
+        elif type_hint is False:
+            if os.path.isfile(local_path):
+                errors.append(
+                    {
+                        "file": local_path,
+                        "error": "existe um arquivo no lugar da pasta",
+                    }
+                )
+                return files, dirs, errors
+            if not os.path.isdir(local_path):
+                errors.append(
+                    {
+                        "file": local_path,
+                        "error": "origem não existe ou não é pasta/arquivo",
+                    }
+                )
+                return files, dirs, errors
+        elif not os.path.isfile(local_path) and not os.path.isdir(local_path):
+            errors.append({"file": local_path, "error": "origem não existe ou não é pasta/arquivo"})
+            return files, dirs, errors
 
         if os.path.isfile(local_path):
             try:
@@ -631,10 +669,6 @@ class TeraboxClient:
                 )
             except OSError as exc:
                 errors.append({"file": local_path, "error": str(exc)})
-            return files, dirs, errors
-
-        if not os.path.isdir(local_path):
-            errors.append({"file": local_path, "error": "origem não existe ou não é pasta/arquivo"})
             return files, dirs, errors
 
         if not include_subfolders:

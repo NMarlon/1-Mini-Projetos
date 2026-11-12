@@ -57,9 +57,10 @@ async def lifespan(app: FastAPI):
         if auto == "true":
             await sync_engine.start_sync()
 
-    mappings = await database.fetch_all("SELECT local_path FROM mappings WHERE enabled = 1")
-    paths = [m["local_path"] for m in mappings]
-    file_monitor.start(paths, monitor_sync, debounce_seconds=2.0)
+    mappings = await database.fetch_all(
+        "SELECT local_path, is_file FROM mappings WHERE enabled = 1"
+    )
+    file_monitor.start(mappings, monitor_sync, debounce_seconds=2.0)
 
     # Ativar autostart se configurado
     from backend import windows_startup

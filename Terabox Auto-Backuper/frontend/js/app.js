@@ -819,13 +819,15 @@ async function setAllMappings(enabled) {
 
 async function createMapping(e) {
     e.preventDefault();
+    const kind = document.getElementById('m-kind').value;
     const body = {
         name: document.getElementById('m-name').value,
         local_path: document.getElementById('m-local').value,
         remote_path: document.getElementById('m-remote').value,
         include_subfolders: document.getElementById('m-subfolders').checked,
         encrypt: document.getElementById('m-encrypt').checked,
-        enabled: true
+        enabled: true,
+        is_file: kind === 'file' ? true : (kind === 'folder' ? false : null)
     };
     try {
         const res = await fetch(API + '/mappings', {
@@ -835,6 +837,9 @@ async function createMapping(e) {
         });
         if (res.ok) {
             document.getElementById('form-mapping').reset();
+            const kind = document.getElementById('m-kind');
+            if (kind) kind.value = '';
+            updateMappingKind();
             loadMappings();
         } else {
             const err = await res.json();
@@ -884,6 +889,12 @@ async function importCsv() {
         msg += `⚠️ Erros: ${errors.length}`;
         if (errors.length) {
             msg += '\n\n' + errors.slice(0, 20).map(e => `Linha ${e.line}: ${e.error}`).join('\n');
+        }
+        const warnings = (data.parsed || []).flatMap(i =>
+            (i.warnings || []).map(w => `Linha ${i.line}: ${w}`)
+        );
+        if (warnings.length) {
+            msg += '\n\nAvisos:\n' + warnings.slice(0, 20).join('\n');
         }
         if (would.length) {
             msg += '\n\n' + would.slice(0, 30).map(i => `${i.local_path} → ${i.remote_path}`).join('\n');
@@ -1843,20 +1854,37 @@ async function saveSettings(e) {
     }
 }
 
-// ── Seletor de pastas ──
-async function pickFolder(inputId) {
+// ── Seletor de pastas e arquivos ──
+function updateMappingKind() {
+    const kind = document.getElementById('m-kind').value;
+    const subfolders = document.getElementById('m-subfolders');
+    if (!subfolders) return;
+    if (kind === 'file') {
+        subfolders.checked = false;
+        subfolders.disabled = true;
+    } else {
+        subfolders.disabled = false;
+    }
+}
+
+async function pickMappingSource() {
+    const kind = document.getElementById('m-kind').value;
+    await pickFolder('m-local', kind === 'file' ? 'pick-file' : 'pick-folder');
+}
+
+async function pickFolder(inputId, endpoint = 'pick-folder') {
     const input = document.getElementById(inputId);
     const oldValue = input.value;
-    input.placeholder = 'Abrindo seletor de pastas...';
+    input.placeholder = 'Abrindo seletor...';
     input.disabled = true;
     try {
-        const res = await fetch(API + '/system/pick-folder');
+        const res = await fetch(API + '/system/' + endpoint);
         const data = await res.json();
         if (data.path) {
             input.value = data.path;
         }
     } catch (e) {
-        alert('Não foi possível abrir o seletor de pastas: ' + e.message);
+        alert('Não foi possível abrir o seletor: ' + e.message);
     } finally {
         input.disabled = false;
         input.placeholder = oldValue ? '' : 'C:\\minha\\pasta';

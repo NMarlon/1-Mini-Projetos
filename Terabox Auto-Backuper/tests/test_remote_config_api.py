@@ -192,6 +192,70 @@ class RemoteConfigServiceTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RemoteConfigConflict):
             await self.manager.apply_import("hash-errado", [])
 
+    async def test_apply_import_cria_pasta_local_inexistente(self):
+        folder = os.path.join(self._tmp.name, "Nova", "Sub")
+        config = make_config(
+            [
+                make_entry(
+                    "u1",
+                    "/Backup/Nova",
+                    {"outra-maquina": folder},
+                )
+            ]
+        )
+
+        async def fake_load_remote(preferred_path=None):
+            return {
+                "exists": True,
+                "path": "/config/backup.json",
+                "source": "configured",
+                "config": config,
+                "error": None,
+                "hash": config_hash(config, ignore_volatile=True),
+            }
+
+        self.manager.load_remote = fake_load_remote
+        result = await self.manager.apply_import(
+            config_hash(config, ignore_volatile=True),
+            [{"uid": "u1", "local_path": folder}],
+        )
+
+        self.assertEqual(len(result["created"]), 1)
+        self.assertTrue(os.path.isdir(folder))
+
+    async def test_apply_import_de_arquivo_cria_so_pasta_pai(self):
+        target = os.path.join(self._tmp.name, "Saves", "level.dat")
+        config = make_config(
+            [
+                make_entry(
+                    "u1",
+                    "/Backup/level.dat",
+                    {"outra-maquina": target},
+                    is_file=True,
+                )
+            ]
+        )
+
+        async def fake_load_remote(preferred_path=None):
+            return {
+                "exists": True,
+                "path": "/config/backup.json",
+                "source": "configured",
+                "config": config,
+                "error": None,
+                "hash": config_hash(config, ignore_volatile=True),
+            }
+
+        self.manager.load_remote = fake_load_remote
+        result = await self.manager.apply_import(
+            config_hash(config, ignore_volatile=True),
+            [{"uid": "u1", "local_path": target}],
+        )
+
+        self.assertEqual(len(result["created"]), 1)
+        self.assertTrue(os.path.isdir(os.path.dirname(target)))
+        self.assertFalse(os.path.exists(target))
+
     async def test_apply_import_de_arquivo_unico_aceita_arquivo_inexistente(self):
         target = os.path.join(self._tmp.name, "docs", "contrato.pdf")
         os.makedirs(os.path.dirname(target))

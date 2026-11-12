@@ -35,8 +35,8 @@ from backend.scheduler import SyncScheduler
 from backend import windows_startup
 from backend.process_utils import run_hidden
 from backend.csv_import import parse_mapping_csv
+from backend.local_paths import LocalPathError, validate_local_mapping_path
 from backend.paths import (
-    normalize_local,
     normalize_remote,
     sanitize_remote_path,
 )
@@ -146,12 +146,17 @@ async def list_mappings():
 
 @router.post("/mappings", response_model=Mapping)
 async def create_mapping(body: MappingCreate):
-    local_path = normalize_local(body.local_path)
+    try:
+        path_info = validate_local_mapping_path(
+            body.local_path, body.is_file
+        )
+    except LocalPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    local_path = path_info.path
     remote_path = sanitize_remote_path(normalize_remote(body.remote_path))
     if remote_path == "/":
         raise HTTPException(status_code=400, detail="O destino remoto não pode ser a raiz do Terabox.")
-    if not os.path.exists(local_path):
-        raise HTTPException(status_code=400, detail=f"Origem não encontrada: {local_path}")
 
     # Verificar duplicado (sem diferenciar maiúsculas/minúsculas)
     existing = await database.fetch_one(
@@ -159,9 +164,31 @@ async def create_mapping(body: MappingCreate):
         (local_path, remote_path),
     )
     if existing:
+        if (
+            body.is_file is not None
+            and bool(existing.get("is_file")) != path_info.is_file
+        ):
+            kind = "arquivo" if existing.get("is_file") else "pasta"
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Já existe um mapeamento deste caminho como "
+                    f"{kind}. Edite o mapeamento existente em vez de criar "
+                    "outro."
+                ),
+            )
         return _mapping_model(existing)
+
+    # Só cria a pasta depois de todas as validações e da checagem de duplicado.
+    try:
+        path_info = validate_local_mapping_path(
+            local_path, path_info.is_file, create=True
+        )
+    except LocalPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    is_file = path_info.is_file
     now = datetime.now().isoformat()
-    is_file = os.path.isfile(local_path)
     mid = await database.execute(
         """INSERT INTO mappings
            (uid, name, local_path, remote_path, include_subfolders, encrypt,
@@ -218,14 +245,41 @@ async def update_mapping(mapping_id: int, body: MappingUpdate):
     if not existing:
         raise HTTPException(status_code=404, detail="Mapeamento não encontrado")
     updates = {}
+    path_changed = False
+    type_changed = False
+    target_is_file = bool(existing.get("is_file"))
+
     if body.name is not None:
         updates["name"] = body.name
     if body.local_path is not None:
-        local_path = normalize_local(body.local_path)
-        if not os.path.exists(local_path):
-            raise HTTPException(status_code=400, detail=f"Origem não encontrada: {local_path}")
-        updates["local_path"] = local_path
-        updates["is_file"] = int(os.path.isfile(local_path))
+        try:
+            path_info = validate_local_mapping_path(
+                body.local_path,
+                body.is_file,
+                fallback_is_file=(
+                    bool(existing.get("is_file"))
+                    if body.is_file is None
+                    else None
+                ),
+            )
+        except LocalPathError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        target_is_file = path_info.is_file
+        type_changed = bool(existing.get("is_file")) != target_is_file
+        path_changed = True
+        updates["local_path"] = path_info.path
+        updates["is_file"] = int(target_is_file)
+    elif body.is_file is not None:
+        try:
+            path_info = validate_local_mapping_path(
+                existing.get("local_path") or "", body.is_file
+            )
+        except LocalPathError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        target_is_file = path_info.is_file
+        type_changed = bool(existing.get("is_file")) != target_is_file
+        updates["is_file"] = int(target_is_file)
+
     if body.remote_path is not None:
         remote_path = sanitize_remote_path(normalize_remote(body.remote_path))
         if remote_path == "/":
@@ -234,9 +288,21 @@ async def update_mapping(mapping_id: int, body: MappingUpdate):
     if body.include_subfolders is not None:
         updates["include_subfolders"] = int(body.include_subfolders)
     # Um mapeamento de arquivo único não tem subpastas
-    final_local = updates.get("local_path", existing.get("local_path"))
-    if final_local and os.path.isfile(final_local):
+    if target_is_file:
         updates["include_subfolders"] = 0
+    elif type_changed and body.include_subfolders is None:
+        updates["include_subfolders"] = 1
+
+    if path_changed or type_changed:
+        try:
+            validate_local_mapping_path(
+                updates.get("local_path", existing.get("local_path")),
+                target_is_file,
+                create=True,
+            )
+        except LocalPathError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     if body.encrypt is not None:
         updates["encrypt"] = int(body.encrypt)
     if body.enabled is not None:
@@ -290,6 +356,7 @@ async def import_mappings_csv(body: CsvImportRequest):
             "local_path": entry.source,
             "remote_path": entry.destination,
             "is_file": entry.source_is_file,
+            "warnings": list(getattr(entry, "warnings", []) or []),
         }
         parsed.append(item)
 
@@ -311,6 +378,14 @@ async def import_mappings_csv(body: CsvImportRequest):
             would_create.append(item)
             continue
 
+        try:
+            path_info = validate_local_mapping_path(
+                entry.source, entry.source_is_file, create=True
+            )
+        except LocalPathError as exc:
+            errors.append({"line": entry.line, "error": str(exc)})
+            continue
+
         now = datetime.now().isoformat()
         mid = await database.execute(
             """INSERT INTO mappings
@@ -320,12 +395,12 @@ async def import_mappings_csv(body: CsvImportRequest):
             (
                 str(uuid.uuid4()),
                 name,
-                entry.source,
+                path_info.path,
                 entry.destination,
-                int(body.include_subfolders and not entry.source_is_file),
+                int(body.include_subfolders and not path_info.is_file),
                 int(body.encrypt),
                 int(body.enabled),
-                int(entry.source_is_file),
+                int(path_info.is_file),
                 now,
                 now,
             ),
@@ -350,13 +425,14 @@ async def import_mappings_csv(body: CsvImportRequest):
 async def _reload_file_monitor():
     """Recarrega o file monitor com os mapeamentos atuais."""
     try:
-        mappings = await database.fetch_all("SELECT local_path FROM mappings WHERE enabled = 1")
-        paths = [m["local_path"] for m in mappings]
+        mappings = await database.fetch_all(
+            "SELECT local_path, is_file FROM mappings WHERE enabled = 1"
+        )
         async def _cb():
             auto = await database.get_setting("auto_sync")
             if auto == "true":
                 await sync_engine.start_sync()
-        file_monitor.start(paths, _cb, debounce_seconds=2.0)
+        file_monitor.start(mappings, _cb, debounce_seconds=2.0)
     except Exception:
         pass
 

@@ -214,6 +214,7 @@ class SyncEngine:
                 TeraboxClient.collect_local_entries,
                 mapping["local_path"],
                 bool(mapping.get("include_subfolders", 1)),
+                mapping.get("is_file"),
             )
             for err in scan_errors:
                 plan.errors.append(

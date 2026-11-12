@@ -23,7 +23,11 @@ Lista todos os mapeamentos.
 
 ### POST /api/mappings
 Cria novo mapeamento. A origem pode ser pasta ou arquivo único.
-- **Body**: `{ "name": "Documentos", "local_path": "C:/docs", "remote_path": "/backup/docs", "include_subfolders": true, "encrypt": false, "enabled": true }`
+- **Body**: `{ "name": "Documentos", "local_path": "C:/docs", "remote_path": "/backup/docs", "include_subfolders": true, "encrypt": false, "enabled": true, "is_file": null }`
+- `is_file` é opcional: `true` = arquivo único, `false` = pasta, `null` =
+  detectar pelo filesystem (se não existir, assume pasta).
+- A origem pode não existir. Pasta é criada na hora; arquivo único cria apenas
+  a pasta-pai e nunca um arquivo vazio.
 - O `remote_path` é normalizado e sanitizado (emoji vira hash); a resposta mostra o caminho final.
 
 ### PUT /api/mappings/{id}
@@ -57,6 +61,11 @@ Importa uma lista colada no formato `origem; destino`, uma por linha.
 - `dry_run=true` apenas valida e mostra o que seria criado.
 - Aceita `;`, tabulação ou vírgula (com aspas). Linhas `#` são comentários.
 - A origem pode ser pasta ou arquivo; o destino é sempre uma pasta remota.
+- A origem pode não existir ainda. Terceiro campo opcional:
+  `C:\Saves\Meu Mundo; /Backup/Saves; pasta` ou
+  `C:\Saves\Meu Mundo\level.dat; /Backup/Saves; arquivo`.
+  Sem o terceiro campo, detecta pelo filesystem e assume pasta se não existir.
+- `warnings` em `parsed` avisa quando uma pasta/pasta-pai será criada.
 
 ## Sync
 
@@ -307,7 +316,7 @@ configuração remota para mapeamentos de arquivo único.
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.3" }`
+Health check. `{ "status": "ok", "version": "0.3.4" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

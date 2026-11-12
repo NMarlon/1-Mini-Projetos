@@ -31,6 +31,10 @@ from backend.config import (
     REMOTE_CONFIG_SHORTCUT_PATH,
     TEMP_DIR,
 )
+from backend.local_paths import (
+    LocalPathError,
+    validate_local_mapping_path,
+)
 from backend.paths import (
     normalize_remote,
     remote_parent,
@@ -419,72 +423,19 @@ def _validate_local_path(local_path: str, is_file: bool) -> Tuple[str, List[str]
     """Valida o caminho local escolhido para um mapeamento importado.
 
     Para arquivo único, o arquivo pode não existir: ele é o resultado da
-    restauração. A pasta pai pode ser criada depois. Para pasta, o diretório
-    também pode não existir ainda.
+    restauração. A pasta pai pode ser criada na importação. Para pasta, o
+    diretório também pode não existir ainda e será criado na importação.
     """
     raw = str(local_path or "").strip().strip('"')
-    if not raw:
-        raise RemoteConfigInvalid("Escolha um caminho local para este mapeamento.")
     if len(raw) > MAX_LOCAL_PATH_LENGTH:
         raise RemoteConfigInvalid("O caminho local é muito longo.")
 
-    expanded = os.path.expandvars(os.path.expanduser(raw))
-    if not os.path.isabs(expanded):
-        raise RemoteConfigInvalid(
-            "Informe um caminho local absoluto (ex.: C:\\Pasta ou "
-            "D:\\Pasta\\arquivo.txt)."
-        )
+    try:
+        path_info = validate_local_mapping_path(raw, is_file)
+    except LocalPathError as exc:
+        raise RemoteConfigInvalid(str(exc)) from exc
 
-    normalized = os.path.abspath(expanded)
-    drive, tail = os.path.splitdrive(normalized)
-    if not tail or tail.strip("\\/") == "":
-        raise RemoteConfigInvalid(
-            "A raiz de uma unidade não pode ser usada como mapeamento."
-        )
-
-    warnings: List[str] = []
-
-    def ensure_existing_ancestors_are_dirs(start: str):
-        current = start
-        while current and current != os.path.dirname(current):
-            if os.path.exists(current):
-                if not os.path.isdir(current):
-                    raise RemoteConfigInvalid(
-                        f"O caminho pai é um arquivo: {current}."
-                    )
-                return
-            current = os.path.dirname(current)
-
-    if is_file:
-        if raw.endswith(("\\", "/")):
-            raise RemoteConfigInvalid(
-                "Um mapeamento de arquivo único não pode terminar com barra. "
-                "Informe o arquivo completo."
-            )
-        if os.path.isdir(normalized):
-            raise RemoteConfigInvalid(
-                f"Já existe uma pasta neste caminho: {normalized}. "
-                "Escolha o arquivo, não a pasta."
-            )
-        parent = os.path.dirname(normalized)
-        ensure_existing_ancestors_are_dirs(parent)
-        if not os.path.exists(parent):
-            warnings.append(
-                "A pasta pai ainda não existe; ela será criada na restauração."
-            )
-    else:
-        if os.path.exists(normalized) and not os.path.isdir(normalized):
-            raise RemoteConfigInvalid(
-                f"Já existe um arquivo neste caminho: {normalized}. "
-                "Escolha uma pasta."
-            )
-        ensure_existing_ancestors_are_dirs(os.path.dirname(normalized))
-        if not os.path.exists(normalized):
-            warnings.append(
-                "A pasta ainda não existe; ela será criada na restauração."
-            )
-
-    return normalized, warnings
+    return path_info.path, list(path_info.warnings)
 
 
 def _local_fingerprint(remote_path: str, is_file: bool) -> Tuple[str, bool]:
@@ -1517,7 +1468,24 @@ class RemoteConfigManager:
         errors = list(operations["errors"])
         now = _now_iso()
 
+        # Cria as pastas/pasta-pai dos itens selecionados, inclusive os que já
+        # estão iguais no banco mas cujo caminho local foi apagado.
+        for item in operations["skipped"]:
+            try:
+                validate_local_mapping_path(
+                    item["local_path"], item["is_file"], create=True
+                )
+            except LocalPathError as exc:
+                errors.append({"uid": item["uid"], "error": str(exc)})
+
         for item in operations["create"]:
+            try:
+                validate_local_mapping_path(
+                    item["local_path"], item["is_file"], create=True
+                )
+            except LocalPathError as exc:
+                errors.append({"uid": item["uid"], "error": str(exc)})
+                continue
             try:
                 mapping_id = await database.execute(
                     """INSERT INTO mappings
@@ -1545,6 +1513,13 @@ class RemoteConfigManager:
                 errors.append({"uid": item["uid"], "error": str(exc)})
 
         for item in operations["update"]:
+            try:
+                validate_local_mapping_path(
+                    item["local_path"], item["is_file"], create=True
+                )
+            except LocalPathError as exc:
+                errors.append({"uid": item["uid"], "error": str(exc)})
+                continue
             try:
                 await database.execute(
                     """UPDATE mappings

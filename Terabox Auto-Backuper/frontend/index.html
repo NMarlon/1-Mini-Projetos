@@ -69,8 +69,19 @@
                     <label>Pasta ou arquivo local:</label>
                     <div class="input-row">
                         <input type="text" id="m-local" required placeholder="C:\minha\pasta ou C:\minha\pasta\arquivo.pdf">
-                        <button type="button" class="btn-browse" onclick="pickFolder('m-local')">📁 Selecionar...</button>
+                        <button type="button" class="btn-browse" onclick="pickMappingSource()">📁 Selecionar...</button>
                     </div>
+                    <label>Tipo do caminho local:
+                        <select id="m-kind" onchange="updateMappingKind()">
+                            <option value="">Detectar automaticamente</option>
+                            <option value="folder">Pasta</option>
+                            <option value="file">Arquivo único</option>
+                        </select>
+                    </label>
+                    <p class="help-text">
+                        O caminho pode ainda não existir: pastas são criadas no cadastro e
+                        arquivos únicos têm somente a pasta-pai criada.
+                    </p>
                     <label>Pasta remota (Terabox): <input type="text" id="m-remote" required placeholder="/backup/pasta"></label>
                     <label><input type="checkbox" id="m-subfolders" checked> Incluir subpastas</label>
                     <label><input type="checkbox" id="m-encrypt"> Criptografar arquivos</label>
@@ -84,9 +95,11 @@
                     Cole uma linha por item, no formato
                     <code>C:\Pasta\Arquivo; /Backup/Pasta</code>.
                     A origem pode ser pasta ou arquivo; o destino é sempre uma pasta no Terabox.
+                    Se o caminho ainda não existe, acrescente um terceiro campo
+                    <code>pasta</code> ou <code>arquivo</code> (sem ele, assume pasta).
                     Linhas em branco e linhas começando com <code>#</code> são ignoradas.
                 </p>
-                <textarea id="csv-input" rows="8" placeholder="C:\Users\marlo\Documentos; /Backup/Documentos&#10;C:\Users\marlo\Fotos\foto.jpg; /Backup/Fotos"></textarea>
+                <textarea id="csv-input" rows="8" placeholder="C:\Users\marlo\Documentos; /Backup/Documentos&#10;C:\Users\marlo\Fotos\foto.jpg; /Backup/Fotos&#10;C:\Saves\Meu Mundo; /Backup/Saves; pasta&#10;C:\Saves\Meu Mundo\level.dat; /Backup/Saves; arquivo"></textarea>
                 <label><input type="checkbox" id="csv-subfolders" checked> Incluir subpastas</label>
                 <button onclick="importCsv()">📋 Validar e importar lista</button>
                 <div id="csv-result"></div>
@@ -241,7 +254,7 @@
     </div>
 
     <footer>
-        <small>Terabox Auto-Backuper v0.3.3</small>
+        <small>Terabox Auto-Backuper v0.3.4</small>
     </footer>
 
     <script src="/static/js/remote_config.js"></script>

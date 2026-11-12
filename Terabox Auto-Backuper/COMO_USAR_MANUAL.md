@@ -118,7 +118,12 @@ Se nenhum perfil mostrar ✅, faça login no Terabox nesse perfil primeiro.
    C:\Users\Marlon\Documentos; /Backup/Documentos
    C:\Users\Marlon\Fotos; /Backup/Fotos
    C:\Users\Marlon\arquivo.pdf; /Backup/Arquivos
+   C:\Saves\Meu Mundo; /Backup/Saves; pasta
+   C:\Saves\Meu Mundo\level.dat; /Backup/Saves; arquivo
    ```
+   A origem pode ainda não existir. Nesse caso, use o terceiro campo opcional
+   `pasta` ou `arquivo`; sem ele, o app assume pasta. Pastas são criadas na
+   importação e arquivos únicos criam somente a pasta-pai.
 2. Clique em **"Validar e importar lista"**
 3. O app mostra quantos serão criados, quantos já existem e os erros por linha
 4. Confirme para criar os mapeamentos

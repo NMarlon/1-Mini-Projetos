@@ -4,17 +4,22 @@ Formato aceito (uma linha por mapeamento)::
 
     C:\\Minha Pasta; /Backup/Minha Pasta
     C:\\Users\\marlo\\Documentos\\arquivo.pdf; /Backup/Documentos
+    C:\\Saves\\Meu Mundo; /Backup/Saves; pasta
+    C:\\Saves\\Meu Mundo\\level.dat; /Backup/Saves; arquivo
 
-A origem pode ser uma pasta ou um arquivo. O destino é sempre uma pasta
-remota. Também aceitamos tabulação e vírgula (com aspas) como separadores.
+O terceiro campo é opcional e serve para informar o tipo quando o caminho
+ainda não existe. Sem ele, o app detecta pelo filesystem; se não existir,
+assume pasta. A origem pode ser uma pasta ou um arquivo. O destino é sempre
+uma pasta remota. Também aceitamos tabulação e vírgula (com aspas) como
+separadores.
 """
 
 import csv
-import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple
 
-from backend.paths import normalize_local, normalize_remote, sanitize_remote_path
+from backend.local_paths import LocalPathError, validate_local_mapping_path
+from backend.paths import normalize_remote, sanitize_remote_path
 
 
 @dataclass
@@ -23,10 +28,11 @@ class CsvEntry:
     source: str
     destination: str
     source_is_file: bool
+    warnings: List[str] = field(default_factory=list)
 
 
 def _split_fields(line: str) -> Tuple[List[str], str]:
-    """Divide uma linha em campos, devolvendo (campos, erro)."""
+    """Divide uma linha em até três campos, devolvendo (campos, erro)."""
     # Permite origem entre aspas quando o caminho contém ';'
     if line[:1] in ('"', "'"):
         try:
@@ -34,17 +40,17 @@ def _split_fields(line: str) -> Tuple[List[str], str]:
         except Exception as exc:
             return [], f"CSV inválido: {exc}"
         if len(row) >= 2:
-            return [part.strip() for part in row], ""
+            return [part.strip() for part in row[:3]], ""
     if ";" in line:
-        return [part.strip() for part in line.split(";", 1)], ""
+        return [part.strip() for part in line.split(";", 2)], ""
     if "\t" in line:
-        return [part.strip() for part in line.split("\t", 1)], ""
+        return [part.strip() for part in line.split("\t", 2)], ""
     if "," in line:
         try:
             row = next(csv.reader([line], delimiter=","))
         except Exception as exc:
             return [], f"CSV inválido: {exc}"
-        return [part.strip() for part in row], ""
+        return [part.strip() for part in row[:3]], ""
     return [], "use 'origem; destino' (ponto e vírgula)"
 
 
@@ -55,11 +61,27 @@ def _unquote(value: str) -> str:
     return value
 
 
+def _parse_type(value: str) -> Tuple[bool | None, str]:
+    """Converte o terceiro campo em tipo explícito.
+
+    Retorna ``(is_file, erro)``. ``None`` significa detectar automaticamente.
+    """
+    text = _unquote(value).strip().lower()
+    if not text or text in {"auto", "detectar", "detect"}:
+        return None, ""
+    if text in {"arquivo", "file", "f"}:
+        return True, ""
+    if text in {"pasta", "folder", "d"}:
+        return False, ""
+    return None, "tipo inválido: use 'pasta' ou 'arquivo'"
+
+
 def parse_mapping_csv(text: str, limit: int = 2000) -> Tuple[List[CsvEntry], List[dict]]:
     """Converte o texto colado em entradas de mapeamento.
 
     Retorna ``(entradas, erros)``. Linhas vazias e comentários com ``#`` são
-    ignorados. Caminhos inexistentes são reportados como erro.
+    ignorados. Caminhos inexistentes são aceitos; o tipo é inferido ou
+    informado no terceiro campo.
     """
     entries: List[CsvEntry] = []
     errors: List[dict] = []
@@ -101,19 +123,27 @@ def parse_mapping_csv(text: str, limit: int = 2000) -> Tuple[List[CsvEntry], Lis
             errors.append({"line": line_no, "error": "destino vazio"})
             continue
 
-        source = normalize_local(source_raw)
+        requested_is_file = None
+        if len(fields) >= 3:
+            requested_is_file, type_error = _parse_type(fields[2])
+            if type_error:
+                errors.append({"line": line_no, "error": type_error})
+                continue
+
+        try:
+            path_info = validate_local_mapping_path(
+                source_raw, requested_is_file
+            )
+        except LocalPathError as exc:
+            errors.append({"line": line_no, "error": str(exc)})
+            continue
+
         destination = sanitize_remote_path(normalize_remote(dest_raw))
         if destination == "/":
             errors.append({"line": line_no, "error": "o destino não pode ser a raiz do Terabox"})
             continue
-        if not os.path.exists(source):
-            errors.append({"line": line_no, "error": f"origem não encontrada: {source}"})
-            continue
-        if not (os.path.isfile(source) or os.path.isdir(source)):
-            errors.append({"line": line_no, "error": f"origem não é arquivo nem pasta: {source}"})
-            continue
 
-        key = (source.lower(), destination.lower())
+        key = (path_info.path.lower(), destination.lower())
         if key in seen:
             errors.append({"line": line_no, "error": "mapeamento duplicado na lista"})
             continue
@@ -122,9 +152,10 @@ def parse_mapping_csv(text: str, limit: int = 2000) -> Tuple[List[CsvEntry], Lis
         entries.append(
             CsvEntry(
                 line=line_no,
-                source=source,
+                source=path_info.path,
                 destination=destination,
-                source_is_file=os.path.isfile(source),
+                source_is_file=path_info.is_file,
+                warnings=path_info.warnings,
             )
         )
 
