@@ -28,10 +28,11 @@ python app.py
 - **Seleção de restauração persistente**: os checkboxes da aba Restaurar são lembrados ao recarregar o manifesto e ao reiniciar o app
 - **Restaurar nas pastas originais**: cada arquivo volta para o `local_path` do mapeamento, mesclando pastas e substituindo arquivos existentes
 - **Aviso de sobrescrita configurável**: pergunta antes de substituir (padrão) ou substitui direto, com relatório final
+- **Configuração remota**: salva os mapeamentos e o caminho local de cada PC em um JSON no Terabox, com atalho fixo na raiz e importação assistida em PC novo
 - Autenticação automática via perfil do navegador (Chrome/Edge/Firefox/Dia)
 - Notificações toast do Windows
 - Criptografia opcional por mapeamento (upload e restore corrigidos)
-- Processo reverso também funciona em outro PC, casando os mapeamentos pelo caminho remoto/nome
+- Processo reverso também funciona em outro PC, casando os mapeamentos por `uid`, caminho remoto/nome
 - Autostart com o Windows
 
 > O sync é um **backup unidirecional**: local → Terabox. O app não apaga
@@ -84,11 +85,41 @@ Na aba **Restaurar**, depois de carregar o manifesto:
   **⚠️ backup desativado**, mas ainda podem ser restaurados manualmente.
 - A seleção é local ao navegador/perfil; ela não é enviada ao Terabox.
 
+## Configuração remota e PC novo
+
+Em **Configurações → Configuração no Terabox** o app mantém um arquivo JSON
+(por padrão `/config-terabox-auto-backup/terabox-auto-backup.json`) com:
+
+- o `uid` estável de cada mapeamento;
+- o caminho remoto, o tipo (pasta/arquivo) e as opções;
+- o caminho local usado por **cada computador** (nunca cookies, tokens ou a
+  chave de criptografia).
+
+O app mescla o arquivo antes de gravar: cada PC altera apenas a sua própria
+entrada, sem apagar os caminhos dos outros. Também cria o atalho fixo
+`/_terabox_autobackup_config.json` na raiz do Terabox para localizar o arquivo
+mesmo se a pasta ou o nome forem alterados.
+
+Em um PC novo:
+
+1. Conecte ao Terabox. Se houver configuração remota, aparece um banner
+   **Configuração encontrada no Terabox**.
+2. Clique em **Revisar importação** e confira cada mapeamento.
+3. Escolha o caminho local de cada linha; use o **rebase de prefixo** para
+   trocar `C:\Users\...` por `D:\...` em lote.
+4. Marque o que deseja importar e confirme. Nada é importado silenciosamente.
+5. Depois, use **Restaurar** para baixar os arquivos nas pastas escolhidas.
+
+Mapeamentos de arquivo único podem apontar para um arquivo que ainda não
+existe; basta que a pasta pai exista ou possa ser criada. O Restaurar cria o
+arquivo. Configuração remota vazia ou inválida não é sobrescrita sem
+confirmação.
+
 ## Testes
 
 ```bash
 python -m unittest discover -s tests -v
-node --test tests/test_restore_tree.cjs
+node --test tests/test_restore_tree.cjs tests/test_remote_config.cjs
 ```
 
 ## Documentação

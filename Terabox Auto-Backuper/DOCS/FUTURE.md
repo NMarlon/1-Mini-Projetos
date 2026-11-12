@@ -32,6 +32,16 @@
   manifesto reconstruído prefere o nome natural. Corrigir na raiz exigiria
   anexar hash a nomes que perdem o ponto inicial, mas isso mudaria caminhos já
   enviados (ex.: `.obsidian` → `obsidian`).
+- **Arquivo antigo ao mudar o caminho da configuração**: ao trocar
+  `remote_config_path`, o app cria o novo arquivo e atualiza o atalho, mas não
+  apaga o antigo automaticamente. A limpeza manual evita apagar por engano um
+  arquivo que outro PC ainda esteja usando.
+- **Merge remoto sem transação entre PCs**: se dois computadores salvarem a
+  configuração exatamente ao mesmo tempo, o último upload pode perder a
+  alteração do outro. O app baixa e mescla antes de gravar, mas o Terabox não
+  oferece uma escrita condicional/transacional. Para uso single-user é
+  suficiente; uma evolução possível é detectar o hash remoto imediatamente
+  antes do upload e mesclar novamente em caso de mudança.
 
 ## Ideias de Implementação Futura
 

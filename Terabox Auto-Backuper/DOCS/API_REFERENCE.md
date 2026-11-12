@@ -136,6 +136,7 @@ Prévia da restauração. Não baixa arquivos nem cria/altera nada no disco.
     {
       "remote_path": "/remote/path1",
       "mapping_id": 25,
+      "mapping_uid": "6f1c2b7e-...",
       "mapping_name": "saves",
       "local_path": "C:\\...\\saves\\0.msav",
       "local_rel_path": "0.msav",
@@ -182,6 +183,99 @@ Inicia a restauração seletiva nas **pastas originais** dos mapeamentos.
 }
 ```
 
+## Configuração remota de mapeamentos
+
+### GET /api/remote-config
+Status do cadastro remoto.
+- **Query**: `?check_remote=true` também consulta o Terabox.
+- **Response** (resumo):
+```json
+{
+  "enabled": true,
+  "auto_save": true,
+  "path": "/config-terabox-auto-backup/terabox-auto-backup.json",
+  "shortcut_path": "/_terabox_autobackup_config.json",
+  "machine_id": "...",
+  "machine_name": "Marlon-PC",
+  "mapping_count": 18,
+  "last_saved_at": "2026-11-12T12:00:00",
+  "last_error": null,
+  "remote": {
+    "checked": true,
+    "exists": true,
+    "path": "/config-terabox-auto-backup/terabox-auto-backup.json",
+    "source": "configured",
+    "error": null,
+    "mappings_total": 18,
+    "needs_import": false,
+    "import_summary": { "new": 0, "existing": 18, "conflicts": 0 }
+  }
+}
+```
+- `source` pode ser `configured` (caminho salvo) ou `shortcut` (atalho da raiz).
+
+### POST /api/remote-config/save
+Baixa, mescla e grava o arquivo remoto agora.
+- **Body**: `{ "force": false }`
+- `force=true` é necessário para substituir uma configuração remota inválida ou
+  uma lista local vazia sobre uma configuração não vazia.
+- Retorna `409` quando a gravação exige confirmação; `401` sem autenticação.
+- **Response**: `{ "saved": true, "changed": true, "path": "...", "config_hash": "...", "mappings": 18, "shortcut_written": true }`
+
+### POST /api/remote-config/import/plan
+Baixa a configuração remota e monta a revisão de importação para este PC.
+- Não altera o banco nem o disco.
+- **Response**:
+```json
+{
+  "exists": true,
+  "path": "/config-terabox-auto-backup/terabox-auto-backup.json",
+  "source": "configured",
+  "config_hash": "...",
+  "summary": { "total": 18, "new": 18, "existing": 0, "conflicts": 0 },
+  "mappings": [
+    {
+      "uid": "...",
+      "name": "Fotos",
+      "remote_path": "/Backup/Fotos",
+      "is_file": false,
+      "status": "new",
+      "local_path": "C:\\Users\\Marlon\\Fotos",
+      "current_local_path": null,
+      "path_error": null,
+      "warnings": [],
+      "other_machines": [
+        { "machine_name": "PC-antigo", "local_path": "C:\\Users\\Marlon\\Fotos" }
+      ],
+      "selected": true,
+      "blocked": false
+    }
+  ]
+}
+```
+- `status`: `new`, `existing` ou `conflict`.
+- `path_error` indica que o caminho sugerido precisa ser corrigido.
+- `needs_update` indica que um mapeamento existente difere do arquivo remoto.
+
+### POST /api/remote-config/import
+Importa somente as linhas confirmadas na revisão.
+- **Body**:
+```json
+{
+  "config_hash": "hash-devolvido-pelo-plano",
+  "mappings": [
+    { "uid": "...", "local_path": "D:\\Fotos" }
+  ],
+  "adopt_path": true
+}
+```
+- `config_hash` evita importar uma revisão desatualizada; se o arquivo mudou,
+  retorna `409`.
+- `adopt_path=true` adota o caminho descoberto pelo atalho nas configurações.
+- Retorna `created`, `updated`, `skipped`, `errors` e, quando possível,
+  `remote_config_saved`.
+- Nada é importado sem esta chamada explícita.
+
 ## Configurações
 
 ### GET /api/settings
@@ -189,16 +283,31 @@ Retorna configurações globais.
 
 ### PUT /api/settings
 Atualiza configurações.
-- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "autostart": false, "restore_confirm_overwrite": true }`
+- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "autostart": false, "restore_confirm_overwrite": true, "machine_name": "Marlon-PC", "remote_config_enabled": true, "remote_config_path": "/config-terabox-auto-backup/terabox-auto-backup.json", "remote_config_auto_save": true }`
 - `auto_sync=false` remove o job do scheduler **e** impede o watchdog de
   disparar sync por alteração de arquivo.
 - `restore_confirm_overwrite` controla se o Restaurar pergunta antes de
   substituir arquivos existentes. Padrão: `true`.
+- `machine_name` é o nome amigável deste PC no arquivo remoto.
+- `remote_config_path` precisa terminar em `.json` e não pode ser a raiz.
+- `remote_config_auto_save=false` mantém o botão **Salvar agora**, mas desliga
+  o salvamento após alterações e no fim do sync.
+
+## Sistema
+
+### GET /api/system/pick-folder
+Abre o seletor nativo de pastas do Windows.
+- **Response**: `{ "path": "C:\\..." }` (vazio se cancelado)
+
+### GET /api/system/pick-file
+Abre o seletor nativo de arquivos do Windows. É usado na revisão da
+configuração remota para mapeamentos de arquivo único.
+- **Response**: `{ "path": "C:\\...\\arquivo.ext" }` (vazio se cancelado)
 
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.2" }`
+Health check. `{ "status": "ok", "version": "0.3.3" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

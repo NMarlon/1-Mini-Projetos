@@ -67,6 +67,22 @@ async def lifespan(app: FastAPI):
     if autostart == "true":
         windows_startup.enable()
 
+    # Primeiro salvamento do cadastro remoto (ou atualização do atalho) sem
+    # bloquear a abertura da interface. Só roda se já houver autenticação.
+    try:
+        from backend.remote_config import remote_config_manager
+        mapping_count = await database.fetch_one(
+            "SELECT COUNT(*) AS total FROM mappings"
+        )
+        if (
+            await auth.get_cached_auth()
+            and mapping_count
+            and int(mapping_count["total"]) > 0
+        ):
+            remote_config_manager.request_save("startup", delay=3.0)
+    except Exception:
+        pass
+
     yield
 
     # Shutdown

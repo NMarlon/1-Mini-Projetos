@@ -351,6 +351,32 @@ class RemoteConfigImportPlanTest(unittest.TestCase):
         self.assertTrue(row["blocked"])
         self.assertFalse(row["selected"])
 
+    def test_ancestral_arquivo_bloqueia_pasta_e_arquivo(self):
+        blocker = os.path.join(self.root, "bloqueador")
+        with open(blocker, "w", encoding="utf-8") as fh:
+            fh.write("sou um arquivo")
+
+        for is_file, target in (
+            (False, os.path.join(blocker, "sub")),
+            (True, os.path.join(blocker, "sub", "arquivo.txt")),
+        ):
+            with self.subTest(is_file=is_file):
+                config = config_for(
+                    [
+                        entry(
+                            "u1",
+                            "Item",
+                            "/Backup/Item" if is_file else "/Backup/Pasta",
+                            is_file=is_file,
+                            local_paths={"m1": target},
+                        )
+                    ]
+                )
+                plan = build_import_plan(config, [], "m2")
+                row = plan["mappings"][0]
+                self.assertIsNotNone(row["path_error"])
+                self.assertFalse(row["selected"])
+
     def test_criptografia_sem_chave_gera_aviso(self):
         config = config_for(
             [

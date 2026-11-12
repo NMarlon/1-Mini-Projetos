@@ -443,6 +443,18 @@ def _validate_local_path(local_path: str, is_file: bool) -> Tuple[str, List[str]
         )
 
     warnings: List[str] = []
+
+    def ensure_existing_ancestors_are_dirs(start: str):
+        current = start
+        while current and current != os.path.dirname(current):
+            if os.path.exists(current):
+                if not os.path.isdir(current):
+                    raise RemoteConfigInvalid(
+                        f"O caminho pai é um arquivo: {current}."
+                    )
+                return
+            current = os.path.dirname(current)
+
     if is_file:
         if raw.endswith(("\\", "/")):
             raise RemoteConfigInvalid(
@@ -455,10 +467,7 @@ def _validate_local_path(local_path: str, is_file: bool) -> Tuple[str, List[str]
                 "Escolha o arquivo, não a pasta."
             )
         parent = os.path.dirname(normalized)
-        if os.path.exists(parent) and not os.path.isdir(parent):
-            raise RemoteConfigInvalid(
-                f"O caminho pai é um arquivo: {parent}."
-            )
+        ensure_existing_ancestors_are_dirs(parent)
         if not os.path.exists(parent):
             warnings.append(
                 "A pasta pai ainda não existe; ela será criada na restauração."
@@ -469,6 +478,7 @@ def _validate_local_path(local_path: str, is_file: bool) -> Tuple[str, List[str]
                 f"Já existe um arquivo neste caminho: {normalized}. "
                 "Escolha uma pasta."
             )
+        ensure_existing_ancestors_are_dirs(os.path.dirname(normalized))
         if not os.path.exists(normalized):
             warnings.append(
                 "A pasta ainda não existe; ela será criada na restauração."
@@ -983,6 +993,8 @@ class RemoteConfigManager:
                         pass
                     continue
                 break
+        if isinstance(last_error, TeraboxAuthError):
+            raise last_error
         return {
             "exists": False,
             "path": remote_path,
@@ -1064,6 +1076,10 @@ class RemoteConfigManager:
                 found["source"] = "shortcut"
                 return found
             return loaded
+        except TeraboxAuthError as exc:
+            raise RemoteConfigNotAuthenticated(
+                "A autenticação do Terabox expirou. Reconecte e tente novamente."
+            ) from exc
         finally:
             await client.close()
 
@@ -1305,6 +1321,18 @@ class RemoteConfigManager:
                     "mappings": len(config.get("mappings") or []),
                     "updated_at": config.get("updated_at"),
                 }
+            except TeraboxAuthError as exc:
+                self._last_error = str(exc)
+                try:
+                    await database.set_setting(
+                        "remote_config_last_error", str(exc)[:500]
+                    )
+                except Exception:
+                    pass
+                raise RemoteConfigNotAuthenticated(
+                    "A autenticação do Terabox expirou. Reconecte e tente "
+                    "novamente."
+                ) from exc
             except Exception as exc:
                 self._last_error = str(exc)
                 try:
@@ -1560,7 +1588,7 @@ class RemoteConfigManager:
 
 # Importações tardias evitam um ciclo entre api/database/auth e este módulo.
 from backend import auth, database  # noqa: E402
-from backend.terabox_client import TeraboxClient  # noqa: E402
+from backend.terabox_client import TeraboxAuthError, TeraboxClient  # noqa: E402
 
 
 remote_config_manager = RemoteConfigManager()

@@ -49,11 +49,15 @@
             totalSize: 0,
             allFiles: null,
             mappingId: null,
+            mappingUid: null,
             isMapping: false
         };
     }
 
     function getMappingKey(file) {
+        if (file.mapping_uid) {
+            return 'mapping-uid:' + file.mapping_uid;
+        }
         if (file.mapping_id !== undefined && file.mapping_id !== null) {
             return 'mapping:' + file.mapping_id;
         }
@@ -81,6 +85,7 @@
                 mapping = createDirNode(getMappingName(file), mKey, 1, rootNode);
                 mapping.isMapping = true;
                 mapping.mappingId = file.mapping_id;
+                mapping.mappingUid = file.mapping_uid || null;
                 rootNode.dirs.set(mKey, mapping);
             }
 
@@ -116,6 +121,7 @@
                 size: Number(file.size) || 0,
                 encrypted: Boolean(file.encrypted),
                 mappingId: file.mapping_id,
+                mappingUid: file.mapping_uid || null,
                 mappingName: file.mapping_name,
                 parent: node,
                 depth: node.depth + 1

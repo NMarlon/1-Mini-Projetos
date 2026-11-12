@@ -205,6 +205,24 @@
 - **Teste**: 59 testes Python e 10 testes Node; plano real com 5.282 arquivos e 18 mapeamentos: 5.281 `replace`, 1 `create`, 0 erros; migração testada em banco temporário e em cópia do banco real
 - **Depende de**: T21, T24
 
+### T26. Configuração remota de mapeamentos para PC novo ✅
+- **Status**: Concluída (2026-11-12)
+- **Descrição**: Um PC novo sem banco local não sabia para onde cada pasta remota deveria voltar. Era preciso recriar os mapeamentos manualmente.
+- **Solução**:
+  - `mappings.uid` estável com migração e índice único
+  - `backend/remote_config.py` com schema, validação, merge por máquina, hash e plano de importação puros
+  - Arquivo padrão `/config-terabox-auto-backup/terabox-auto-backup.json` e atalho fixo `/_terabox_autobackup_config.json`
+  - `local_paths` por `machine_id`; cada PC grava só a sua entrada
+  - Auto-save com debounce, no fim do sync e botão **Salvar agora**
+  - Proteção contra config remota vazia/inválida e contra apagar o caminho de outros PCs
+  - Banner de descoberta e diálogo de revisão com seleção por linha, rebase de prefixo e avisos
+  - Importação explícita com `config_hash`, detecção por `uid`/fingerprint e adoção do caminho descoberto pelo atalho
+  - Manifesto inclui `mapping_uid`/`mapping_remote_path`; Restaurar prioriza o `uid`
+  - Arquivo único pode apontar para arquivo inexistente; pasta no lugar do arquivo é rejeitada
+  - `remote_config.js` com helpers puros de rebase/seleção
+- **Teste**: 90 testes Python e 19 Node; validação real criando o arquivo no Terabox e relendo; simulação de PC novo em banco temporário
+- **Depende de**: T25
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

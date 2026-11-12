@@ -17,6 +17,7 @@ Criar um aplicativo local (Windows) com interface web aberta no navegador, que:
 6. Notificações toast do Windows ao concluir/falhar sync
 7. Criptografia opcional por mapeamento (Fernet)
 8. Botão "Restaurar": lê manifesto no Terabox e permite download seletivo para um novo PC
+9. Arquivo de configuração remota no Terabox: cadastro dos mapeamentos e do caminho local de cada PC, com importação assistida em PC novo
 
 ## 2. Regras Obrigatórias (LEIA ANTES DE QUALQUER COISA)
 
@@ -46,6 +47,7 @@ Terabox Auto-Backuper/
 │   ├── models.py             # Pydantic + tabelas
 │   ├── terabox_client.py     # Cliente Terabox (list/upload/download/precreate/create)
 │   ├── auth.py               # rookie-cookies + jsToken scraping/refresh
+│   ├── remote_config.py      # Arquivo remoto de mapeamentos + importação por PC
 │   ├── restore.py            # Destino original, plano e conflitos do Restaurar
 │   ├── sync_engine.py        # Motor de sync (plano, execução, manifesto v2)
 │   ├── sync_plan.py          # Decisão pura de dedup (upload/replace/skip)
@@ -59,6 +61,7 @@ Terabox Auto-Backuper/
 │   ├── index.html
 │   ├── css/style.css
 │   ├── js/app.js
+│   ├── js/remote_config.js   # Rebase/seleção pura da importação remota
 │   └── js/restore_tree.js    # Árvore/seleção pura da aba Restaurar
 ├── DOCS/                     # Toda documentação
 ├── data/                     # SQLite DB, logs (gitignored)
@@ -110,8 +113,11 @@ pip install -r requirements.txt
 # Rodar o app
 python app.py
 
-# Rodar testes
-python -m pytest tests/
+# Rodar testes Python (unittest)
+python -m unittest discover -s tests -v
+
+# Rodar testes dos helpers JS
+node --test tests/test_restore_tree.cjs tests/test_remote_config.cjs
 
 # Git: commit ao final de cada tarefa
 git add -A && git commit -m "feat: descrição da tarefa"

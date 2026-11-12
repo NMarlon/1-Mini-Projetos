@@ -63,6 +63,12 @@ async function checkAuth() {
             btnConnect.style.display = 'inline-block';
             btnDisconnect.style.display = 'none';
             remoteConfigAuthWasReady = false;
+            const remoteStatus = document.getElementById('remote-config-status');
+            if (remoteStatus && !remoteConfigStatus) {
+                remoteStatus.textContent =
+                    'Conecte ao Terabox para verificar a configuração remota.';
+                remoteStatus.classList.remove('has-error');
+            }
         }
     } catch (e) {
         document.getElementById('auth-status').textContent = '⚠️ Erro ao verificar auth';
@@ -613,7 +619,7 @@ async function pickRemoteImportPath(uid, isFile) {
 async function confirmRemoteImport() {
     if (!remoteImportPlan) return;
     const selectedRows = (remoteImportPlan.mappings || [])
-        .filter(row => remoteImportSelected.has(row.uid));
+        .filter(row => remoteImportSelected.has(row.uid) && !row.blocked);
     if (selectedRows.length === 0) {
         alert('Selecione ao menos um mapeamento para importar.');
         return;
@@ -1120,10 +1126,18 @@ function refreshRestoreSelectionUI() {
     updateRestoreCount();
 }
 
-function isMappingDisabled(mappingId) {
-    const mapping = mappingsCache.find(
-        m => Number(m.id) === Number(mappingId)
-    );
+function isMappingDisabled(mappingId, mappingUid = null) {
+    let mapping = null;
+    if (mappingUid) {
+        mapping = mappingsCache.find(
+            m => String(m.uid || '') === String(mappingUid)
+        ) || null;
+    }
+    if (!mapping) {
+        mapping = mappingsCache.find(
+            m => Number(m.id) === Number(mappingId)
+        ) || null;
+    }
     return mapping ? !mapping.enabled : false;
 }
 
@@ -1151,7 +1165,14 @@ function mappingMatchesRestore(mapping, mappingName, remotePath) {
     return underRemote || sameName;
 }
 
-function getRestoreMapping(mappingId, mappingName, remotePath) {
+function getRestoreMapping(mappingId, mappingName, remotePath, mappingUid = null) {
+    if (mappingUid) {
+        const byUid = mappingsCache.find(
+            m => String(m.uid || '') === String(mappingUid)
+        );
+        if (byUid) return byUid;
+    }
+
     const byId = mappingsCache.find(
         m => Number(m.id) === Number(mappingId)
     );
@@ -1183,7 +1204,12 @@ function getRestoreMapping(mappingId, mappingName, remotePath) {
 function getRestoreNodeMapping(node) {
     const file = node.allFiles && node.allFiles[0];
     if (!file) return null;
-    return getRestoreMapping(node.mappingId, file.mappingName, file.remotePath);
+    return getRestoreMapping(
+        node.mappingId,
+        file.mappingName,
+        file.remotePath,
+        node.mappingUid || file.mappingUid
+    );
 }
 
 function updateRestoreMode() {
@@ -1213,7 +1239,7 @@ function renderRestoreDir(node) {
     const row = document.createElement('div');
     row.className = 'tree-folder-row';
     row.style.setProperty('--depth', String(Math.max(0, node.depth - 1)));
-    if (node.isMapping && isMappingDisabled(node.mappingId)) {
+    if (node.isMapping && isMappingDisabled(node.mappingId, node.mappingUid)) {
         row.classList.add('restore-disabled-backup');
     }
 
@@ -1247,7 +1273,7 @@ function renderRestoreDir(node) {
     name.title = node.isMapping ? `Mapeamento: ${node.name}` : node.key;
     row.appendChild(name);
 
-    if (node.isMapping && isMappingDisabled(node.mappingId)) {
+    if (node.isMapping && isMappingDisabled(node.mappingId, node.mappingUid)) {
         const warning = document.createElement('span');
         warning.className = 'tree-badge-warning';
         warning.textContent = '⚠️ backup desativado';
@@ -1302,7 +1328,9 @@ function renderRestoreDir(node) {
 function renderRestoreFile(file) {
     const label = document.createElement('label');
     label.className = 'tree-file' +
-        (isMappingDisabled(file.mappingId) ? ' restore-disabled-backup' : '');
+        (isMappingDisabled(file.mappingId, file.mappingUid)
+            ? ' restore-disabled-backup'
+            : '');
     label.style.setProperty('--depth', String(Math.max(0, file.depth - 1)));
     label.title = file.relPath;
 
@@ -1330,7 +1358,7 @@ function renderRestoreFile(file) {
         label.appendChild(encrypted);
     }
 
-    if (isMappingDisabled(file.mappingId)) {
+    if (isMappingDisabled(file.mappingId, file.mappingUid)) {
         const warning = document.createElement('span');
         warning.className = 'tree-badge-warning';
         warning.textContent = '⚠️';
@@ -1786,11 +1814,29 @@ async function saveSettings(e) {
             body: JSON.stringify(body)
         });
         if (res.ok) {
+            const saved = await res.json().catch(() => ({}));
+            if (saved.remote_config_path) {
+                document.getElementById('s-remote-path').value =
+                    saved.remote_config_path;
+            }
+            if (saved.machine_name) {
+                document.getElementById('s-machine-name').value =
+                    saved.machine_name;
+            }
             restoreConfirmOverwrite =
                 document.getElementById('s-restore-confirm').checked;
             updateRestoreMode();
             checkRemoteConfig(false);
             alert('Configurações salvas!');
+        } else {
+            let detail = `HTTP ${res.status}`;
+            try {
+                const error = await res.json();
+                detail = restoreErrorText(error.detail, detail);
+            } catch (e) {
+                // resposta sem JSON
+            }
+            alert('Erro ao salvar configurações: ' + detail);
         }
     } catch (e) {
         alert('Erro: ' + e.message);
@@ -1887,6 +1933,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row) {
                 row.local_path = target.value;
                 row.path_error = null;
+            }
+            const rowEl = target.closest('.remote-import-row');
+            if (rowEl) {
+                const errorEl = rowEl.querySelector('.remote-import-path-error');
+                if (errorEl) errorEl.remove();
             }
         });
     }

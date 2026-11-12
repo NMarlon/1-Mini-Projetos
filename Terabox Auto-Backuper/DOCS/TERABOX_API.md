@@ -74,6 +74,25 @@ Verifica se é VIP.
 Obtém link de download de um arquivo.
 - (endpoint a ser pesquisado durante implementação de T12)
 
+## Arquivos de Configuração e Atalho
+
+O cadastro remoto usa os mesmos endpoints de listagem, upload e download:
+
+- `GET /api/list` no diretório pai para descobrir/verificar o arquivo;
+- `POST /api/precreate` + upload via curl + `POST /api/create` com `rtype=3`
+  para gravar o JSON;
+- `GET /api/filemetas` para baixar e validar o conteúdo.
+
+Caminho padrão:
+`/config-terabox-auto-backup/terabox-auto-backup.json`.
+
+Atalho fixo na raiz:
+`/_terabox_autobackup_config.json` (JSON pequeno com `config_path`).
+
+Se o caminho configurado for uma pasta, o app **não** tenta substituí-la.
+Se o arquivo já existir, o fluxo de `precreate` pode indicar conflito; nesse
+caso o app remove apenas aquele arquivo de configuração e recria.
+
 ## Notas Importantes
 
 1. **jsToken** expira em ~5 minutos. O app renova antes (240s) e em erro de

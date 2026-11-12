@@ -27,9 +27,9 @@ Aplicativo local com servidor FastAPI em `localhost:8765` e interface web (SPA v
 │  │  - auth.py (rookie-cookies + jsToken scraping)       │   │
 │  │  - terabox_client.py (list/upload/download/...)       │   │
 │  │  - sync_engine.py (fila, retry, rate-limit, dedup)    │   │
+│  │  - remote_config.py (cadastro remoto por PC)          │   │
 │  │  - file_monitor.py (watchdog)                        │   │
 │  │  - scheduler.py (APScheduler)                        │   │
-│  │  - manifest.py (manifesto de sync)                   │   │
 │  │  - notifications.py (toast Windows)                  │   │
 │  │  - windows_startup.py (autostart)                    │   │
 │  └──────────────────────┬───────────────────────────────┘   │
@@ -208,7 +208,9 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
       "md5": "md5-do-plaintext",
       "remote_md5": "md5-do-arquivo-remoto",
       "mapping_id": 1,
+      "mapping_uid": "6f1c2b7e-...",
       "mapping_name": "Documentos",
+      "mapping_remote_path": "/backup/Documentos",
       "synced_at": "2026-11-09T20:46:41",
       "encrypted": false
     }
@@ -218,6 +220,39 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 ```
 - `local_rel_path` preserva o nome original (com emoji/acentos) para o Restaurar
 - `remote_path` é o caminho sanitizado realmente usado no Terabox
+- `mapping_uid`, `mapping_remote_path` e `mapping_id` identificam o mapeamento;
+  o Restaurar prioriza o `uid` e mantém os campos antigos como fallback
+
+## Configuração Remota de Mapeamentos
+
+O manifesto guarda **arquivos**. A configuração remota guarda o **cadastro de
+mapeamentos** e permite que um PC novo (sem banco local) saiba para onde cada
+pasta remota deve voltar.
+
+- Caminho padrão: `/config-terabox-auto-backup/terabox-auto-backup.json`
+- Atalho fixo na raiz: `/_terabox_autobackup_config.json`
+- Descoberta: caminho configurado/default → atalho fixo → nada encontrado
+- Cada mapeamento tem `uid` (UUID imutável no banco), `remote_path`, `is_file`,
+  flags (`enabled`, `include_subfolders`, `encrypted`) e `local_paths`
+- `local_paths` é um mapa `machine_id → caminho local`; cada PC grava só a sua
+  entrada e o merge preserva as demais
+- `machine_id` é gerado uma vez por instalação; `machine_name` é o hostname
+  (editável) e serve apenas para exibição
+- Nunca são gravados cookies, tokens, senhas ou a chave Fernet
+- O arquivo remoto é baixado, validado e mesclado antes de cada gravação
+- Auto-save com debounce após alterações de mapeamento, no fim do sync, na
+  abertura do app (quando já autenticado) e pelo botão **Salvar agora**
+- Uma lista local vazia não sobrescreve uma configuração remota não vazia sem
+  confirmação; JSON inválido também exige confirmação
+- Excluir um mapeamento remove apenas o vínculo daquela máquina; a entrada só
+  desaparece quando nenhum outro PC a usa
+- No PC novo, um banner mostra a configuração encontrada e abre uma revisão.
+  A importação é sempre explícita, com escolha de caminho por linha, rebase de
+  prefixo em lote, detecção de mapeamento existente por `uid`/fingerprint e
+  aviso de criptografia sem chave
+- Mapeamento de arquivo único pode apontar para um arquivo inexistente; a
+  pasta pai pode ser criada na restauração. Se existir uma pasta no lugar do
+  arquivo, a importação rejeita o caminho
 
 ## Processo Reverso (Restaurar)
 
@@ -250,8 +285,8 @@ Regras:
 - `mapping.is_file` é persistido no banco para diferenciar arquivo único de
   pasta mesmo quando o arquivo original foi apagado.
 - O mapeamento é resolvido por `mapping_id` validado contra o caminho remoto ou
-  nome; se o ID não servir (outro PC), usa o prefixo remoto mais longo e, por
-  último, o nome único. Nunca usa apenas o ID.
+  nome; se o ID não servir (outro PC), usa o `mapping_uid` estável, depois o
+  prefixo remoto mais longo e, por último, o nome único. Nunca usa apenas o ID.
 - Pastas existentes são mescladas. Nada é apagado.
 - Arquivo no mesmo caminho vira `replace`; pasta no lugar de arquivo (ou
   vice-versa) vira erro.

@@ -183,6 +183,23 @@ test('selecionar todos, inverter e coletar caminhos', () => {
     });
 });
 
+test('agrupa por mapping_uid e expõe o uid no nó', () => {
+    const root = RestoreTree.buildRestoreTree([{
+        mapping_id: 99,
+        mapping_uid: 'uid-estavel',
+        mapping_name: 'saves',
+        local_rel_path: '0.msav',
+        remote_path: '/r/saves/0.msav',
+        size: 10
+    }]);
+
+    const mapping = root.dirs.get('mapping-uid:uid-estavel');
+    assert.ok(mapping);
+    assert.equal(mapping.mappingUid, 'uid-estavel');
+    assert.equal(mapping.mappingId, 99);
+    assert.equal(mapping.files[0].mappingUid, 'uid-estavel');
+});
+
 test('normaliza barras do Windows e nomes sem mapping_id', () => {
     const root = RestoreTree.buildRestoreTree([{
         mapping_name: 'sem id',
