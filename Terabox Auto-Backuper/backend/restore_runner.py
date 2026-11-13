@@ -300,6 +300,10 @@ async def execute_restore(
 
     if progress is not None:
         progress["files_done"] = len(results) - len(invalid_targets)
+        # ``summary["failed"]`` inclui os arquivos inválidos do plano. O status
+        # ao vivo usa o mesmo número no fim para a UI não mostrar "0 falhas"
+        # quando houve alvos inválidos.
+        progress["files_failed"] = summary["failed"]
         progress["summary"] = summary
         progress["finished_at"] = datetime.now().isoformat()
         progress["elapsed_seconds"] = _elapsed_seconds(progress)
