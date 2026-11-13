@@ -75,6 +75,17 @@ test('defaultSelection seleciona apenas novos liberados', () => {
     assert.deepEqual(Array.from(selected), ['a']);
 });
 
+test('selectAllUids pula conflitos e linhas com erro de caminho', () => {
+    const selected = RemoteConfigUI.selectAllUids([
+        { uid: 'a', blocked: false, path_error: null },
+        { uid: 'b', blocked: true, path_error: null },
+        { uid: 'c', blocked: false, path_error: 'caminho inválido' },
+        { uid: 'd', blocked: false, path_error: null }
+    ]);
+
+    assert.deepEqual(Array.from(selected), ['a', 'd']);
+});
+
 test('selectionSummary conta novos, existentes e problemas', () => {
     const summary = RemoteConfigUI.selectionSummary(
         [

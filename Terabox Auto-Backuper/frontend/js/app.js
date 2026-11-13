@@ -17,6 +17,14 @@ let restoreSaveTimer = null;
 let restoreDirNodes = new Map();
 let restoreConfirmOverwrite = true;
 
+// Polling em 0,3s apenas enquanto sync/restauração estiverem rodando.
+const JOB_POLL_INTERVAL_MS = 300;
+let syncPollTimer = null;
+let syncPollBusy = false;
+let restorePollTimer = null;
+let restorePollBusy = false;
+let lastRestoreStatus = null;
+
 // Configuração remota de mapeamentos
 const REMOTE_BANNER_DISMISS_KEY = 'terabox_remote_config_dismissed_hash';
 let remoteConfigStatus = null;
@@ -545,10 +553,11 @@ function updateRemoteImportCount() {
 
 function setAllRemoteImport(checked) {
     if (!remoteImportPlan) return;
-    for (const row of remoteImportPlan.mappings || []) {
-        if (row.blocked) continue;
-        if (checked) remoteImportSelected.add(row.uid);
-        else remoteImportSelected.delete(row.uid);
+    const rows = remoteImportPlan.mappings || [];
+    if (checked) {
+        remoteImportSelected = RemoteConfigUI.selectAllUids(rows);
+    } else {
+        remoteImportSelected.clear();
     }
     document.querySelectorAll('.remote-import-checkbox').forEach(checkbox => {
         checkbox.checked = remoteImportSelected.has(checkbox.dataset.uid);
@@ -685,16 +694,29 @@ async function confirmRemoteImport() {
         const updated = (data.updated || []).length;
         const skipped = (data.skipped || []).length;
         const errors = data.errors || [];
+        const warnings = data.warnings || [];
         let message =
             'Importação concluída.\n\n' +
             `Criados: ${created} • Atualizados: ${updated} • ` +
             `Ignorados: ${skipped} • Erros: ${errors.length}`;
+        if (warnings.length) {
+            message += ` • Avisos: ${warnings.length}`;
+        }
         if (errors.length) {
-            message += '\n\n' + errors.slice(0, 10)
+            message += '\n\nErros:\n' + errors.slice(0, 10)
                 .map(error => `${error.uid}: ${error.error}`)
                 .join('\n');
             if (errors.length > 10) {
                 message += `\n... e mais ${errors.length - 10}.`;
+            }
+        }
+        if (warnings.length) {
+            message += '\n\n⚠️ Avisos (mapeamento importado mesmo assim):\n' +
+                warnings.slice(0, 10)
+                    .map(warning => `${warning.uid}: ${warning.warning}`)
+                    .join('\n');
+            if (warnings.length > 10) {
+                message += `\n... e mais ${warnings.length - 10}.`;
             }
         }
         if (data.remote_config_save_error) {
@@ -1011,39 +1033,102 @@ async function stopSync() {
     alert('Sync parado.');
 }
 
-async function pollSyncStatus() {
-    const interval = setInterval(async () => {
+function syncPhaseLabel(phase) {
+    switch (phase) {
+        case 'preparing': return 'Preparando (lendo pastas e comparando)';
+        case 'directories': return 'Criando pastas no Terabox';
+        case 'uploading': return 'Enviando arquivos';
+        case 'manifest': return 'Atualizando manifesto';
+        case 'completed': return 'Concluído';
+        case 'cancelled': return 'Cancelado';
+        case 'failed': return 'Falhou';
+        default: return 'Aguardando';
+    }
+}
+
+function renderSyncStatus(data) {
+    const box = document.getElementById('sync-status');
+    if (!box) return;
+
+    const processed = Number.isFinite(data.files_processed)
+        ? data.files_processed
+        : (data.files_uploaded || 0) + (data.files_skipped || 0) +
+          (data.files_failed || 0);
+    const total = data.files_total || 0;
+    const running = !!data.running;
+    const label = syncPhaseLabel(data.phase);
+
+    const wrap = document.getElementById('sync-progress-wrap');
+    const bar = document.getElementById('sync-progress-bar');
+    const progressText = document.getElementById('sync-progress-text');
+    if (wrap) wrap.hidden = !running && data.phase === 'idle';
+    if (bar) {
+        const percent = total > 0
+            ? Math.min(100, (processed / total) * 100)
+            : (running ? 4 : 100);
+        bar.style.width = percent + '%';
+    }
+    if (progressText) {
+        const lines = [
+            `${running ? '⏳' : '✅'} ${label}` +
+            (total > 0 ? ` • ${processed}/${total} processo(s)` : '')
+        ];
+        if (data.current_mapping) lines.push(`📁 ${data.current_mapping}`);
+        if (data.current_file) lines.push(`📄 ${data.current_file}`);
+        progressText.textContent = lines.join('\n');
+    }
+
+    let msg = '';
+    if (running) {
+        msg = `${label}... ${processed}/${total} processados\n`;
+        msg += `  ✅ Enviados: ${data.files_uploaded}\n`;
+        msg += `  ⏭️ Ignorados: ${data.files_skipped}\n`;
+        msg += `  ❌ Falhas: ${data.files_failed}\n`;
+        if (data.current_mapping) msg += `  📁 Mapeamento: ${data.current_mapping}\n`;
+        if (data.current_file) msg += `  📄 Atual: ${data.current_file}`;
+    } else {
+        msg = data.error ? `❌ Sync com erro: ${data.error}\n` : `✅ Sync concluído!\n`;
+        msg += `  📊 Total: ${data.files_total} arquivos\n`;
+        msg += `  ✅ Enviados: ${data.files_uploaded}\n`;
+        msg += `  ⏭️ Ignorados: ${data.files_skipped}\n`;
+        msg += `  ❌ Falhas: ${data.files_failed}`;
+    }
+    if ((data.errors || []).length) {
+        msg += '\n\n⚠️ Detalhes das falhas:\n' + data.errors.slice(0, 30).map(e =>
+            `${e.file || ''}: ${e.error}`).join('\n');
+    }
+    box.textContent = msg;
+}
+
+function stopSyncPolling() {
+    if (syncPollTimer) {
+        clearInterval(syncPollTimer);
+        syncPollTimer = null;
+    }
+}
+
+function pollSyncStatus() {
+    stopSyncPolling();
+    const tick = async () => {
+        if (syncPollBusy) return;
+        syncPollBusy = true;
         try {
             const res = await fetch(API + '/sync/status');
+            if (!res.ok) return;
             const data = await res.json();
-            const box = document.getElementById('sync-status');
-            let msg = '';
-            if (data.running) {
-                msg = `⏳ Sincronizando... ${data.files_uploaded + data.files_skipped + data.files_failed}/${data.files_total} processados\n`;
-                msg += `  ✅ Enviados: ${data.files_uploaded}\n`;
-                msg += `  ⏭️ Ignorados: ${data.files_skipped}\n`;
-                msg += `  ❌ Falhas: ${data.files_failed}\n`;
-                if (data.current_file) msg += `  📄 Atual: ${data.current_file}`;
-            } else {
-                msg = data.error ? `❌ Sync com erro: ${data.error}\n` : `✅ Sync concluído!\n`;
-                msg += `  📊 Total: ${data.files_total} arquivos\n`;
-                msg += `  ✅ Enviados: ${data.files_uploaded}\n`;
-                msg += `  ⏭️ Ignorados: ${data.files_skipped}\n`;
-                msg += `  ❌ Falhas: ${data.files_failed}`;
-            }
-            if ((data.errors || []).length) {
-                msg += '\n\n⚠️ Detalhes das falhas:\n' + data.errors.slice(0, 30).map(e =>
-                    `${e.file || ''}: ${e.error}`).join('\n');
-            }
-            box.textContent = msg;
+            renderSyncStatus(data);
             if (!data.running) {
-                clearInterval(interval);
+                stopSyncPolling();
                 loadSyncHistory();
             }
         } catch (e) {
             // Mantém o polling; erro transitório de rede não deve parar a UI
+        } finally {
+            syncPollBusy = false;
         }
-    }, 1000);
+    };
+    tick();
+    syncPollTimer = setInterval(tick, JOB_POLL_INTERVAL_MS);
 }
 
 async function loadSyncHistory() {
@@ -1561,8 +1646,8 @@ function updateRestorePlanSummary(summary, conflicts, errors) {
     el.classList.toggle('has-errors', errors > 0);
 }
 
-async function requestRestoreDownload(files, allowOverwrite) {
-    const res = await fetch(API + '/restore/download', {
+async function requestRestoreStart(files, allowOverwrite) {
+    const res = await fetch(API + '/restore/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1588,6 +1673,143 @@ async function requestRestoreDownload(files, allowOverwrite) {
         throw err;
     }
     return payload || {};
+}
+
+function restorePhaseLabel(phase) {
+    switch (phase) {
+        case 'preparing': return 'Preparando restauração';
+        case 'downloading': return 'Restaurando';
+        case 'cancelling': return 'Cancelando';
+        case 'finished': return 'Restauração concluída';
+        case 'cancelled': return 'Restauração cancelada';
+        case 'failed': return 'Restauração falhou';
+        default: return 'Restauração';
+    }
+}
+
+function setRestoreRunning(running) {
+    const startBtn = document.getElementById('restore-start-btn');
+    if (startBtn) {
+        startBtn.disabled = running;
+        startBtn.textContent = running
+            ? '⏳ Restaurando...'
+            : '⬇️ Restaurar Selecionados';
+    }
+    const stopBtn = document.getElementById('restore-stop-btn');
+    if (stopBtn) stopBtn.hidden = !running;
+}
+
+function renderRestoreProgress(data) {
+    const wrap = document.getElementById('restore-progress-wrap');
+    const bar = document.getElementById('restore-progress-bar');
+    const text = document.getElementById('restore-progress-text');
+    const stopBtn = document.getElementById('restore-stop-btn');
+    if (!wrap) return;
+
+    const running = !!data.running;
+    wrap.hidden = false;
+    if (stopBtn) stopBtn.hidden = !running;
+
+    const total = data.files_total || 0;
+    const done = data.files_done || 0;
+    if (bar) {
+        const percent = total > 0
+            ? Math.min(100, (done / total) * 100)
+            : (running ? 4 : 100);
+        bar.style.width = percent + '%';
+    }
+    if (!text) return;
+
+    const lines = [
+        `${running ? '⏳' : '✅'} ${restorePhaseLabel(data.phase)}` +
+        (total > 0 ? ` • ${done}/${total} arquivo(s)` : '')
+    ];
+    const elapsed = Number(data.elapsed_seconds || 0);
+    if (elapsed > 0) lines[0] += ` • ${formatDuration(elapsed)}`;
+    lines.push(
+        `✅ Criados: ${data.files_created || 0} • ` +
+        `♻️ Substituídos: ${data.files_replaced || 0} • ` +
+        `❌ Falhas: ${data.files_failed || 0}`
+    );
+    if (data.current_mapping) lines.push(`📁 ${data.current_mapping}`);
+    if (data.current_file) lines.push(`📄 ${data.current_file}`);
+    if (data.error) lines.push(`❌ ${data.error}`);
+    text.textContent = lines.join('\n');
+}
+
+function stopRestorePolling() {
+    if (restorePollTimer) {
+        clearInterval(restorePollTimer);
+        restorePollTimer = null;
+    }
+}
+
+function pollRestoreUntilDone() {
+    return new Promise(resolve => {
+        stopRestorePolling();
+        const tick = async () => {
+            if (restorePollBusy) return;
+            restorePollBusy = true;
+            try {
+                const res = await fetch(API + '/restore/status');
+                if (!res.ok) return;
+                const data = await res.json();
+                lastRestoreStatus = data;
+                renderRestoreProgress(data);
+                if (!data.running) {
+                    stopRestorePolling();
+                    resolve(data);
+                }
+            } catch (e) {
+                // Mantém o polling; erro transitório de rede não deve parar a UI
+            } finally {
+                restorePollBusy = false;
+            }
+        };
+        tick();
+        restorePollTimer = setInterval(tick, JOB_POLL_INTERVAL_MS);
+    });
+}
+
+async function stopRestore() {
+    if (!confirm(
+        'Parar a restauração em andamento?\n\n' +
+        'Os arquivos já baixados serão mantidos.'
+    )) return;
+    try {
+        await fetch(API + '/restore/stop', { method: 'POST' });
+        const text = document.getElementById('restore-progress-text');
+        if (text) text.textContent = '⏳ Cancelando restauração...';
+    } catch (e) {
+        alert('Não foi possível pedir o cancelamento: ' + e.message);
+    }
+}
+
+function restoreReportText(data) {
+    const summary = data.summary || {};
+    const cancelled = data.phase === 'cancelled' || summary.cancelled;
+    let msg = cancelled
+        ? 'Restauração cancelada.\n\n'
+        : 'Restauração concluída.\n\n';
+    msg +=
+        `Restaurados: ${summary.restored ?? data.files_done ?? 0}` +
+        ` • Criados: ${summary.created ?? data.files_created ?? 0}` +
+        ` • Substituídos: ${summary.replaced ?? data.files_replaced ?? 0}` +
+        ` • Falhas: ${summary.failed ?? data.files_failed ?? 0}`;
+    if (summary.invalid) {
+        msg += ` • Ignorados por erro: ${summary.invalid}`;
+    }
+
+    const errors = data.errors || [];
+    if (errors.length) {
+        msg += '\n\nFalhas:\n' + errors.slice(0, 20).map(error =>
+            `${error.remote_path || ''}: ${error.error || 'erro desconhecido'}`
+        ).join('\n');
+        if (errors.length > 20 || data.errors_truncated) {
+            msg += '\n... e mais.';
+        }
+    }
+    return msg;
 }
 
 async function startRestore() {
@@ -1708,72 +1930,21 @@ async function startRestore() {
 
     const validFiles = valid.map(target => target.remote_path);
     const allowOverwrite = conflicts.length > 0;
-    const startBtn = document.getElementById('restore-start-btn');
-    if (startBtn) {
-        startBtn.disabled = true;
-        startBtn.textContent = '⏳ Restaurando...';
-    }
+    setRestoreRunning(true);
 
     try {
-        let data;
-        try {
-            data = await requestRestoreDownload(validFiles, allowOverwrite);
-        } catch (e) {
-            if (e.status === 409 && e.detail && Array.isArray(e.detail.conflicts)) {
-                const newConflicts = e.detail.conflicts;
-                const examples = newConflicts.slice(0, 10)
-                    .map(target => target.local_path || target.remote_path)
-                    .join('\n');
-                const shouldReplace = !restoreConfirmOverwrite || confirm(
-                    `${newConflicts.length.toLocaleString('pt-BR')} arquivo(s) ` +
-                    'passaram a existir e serão substituídos:\n\n' +
-                    examples +
-                    '\n\nSubstituir mesmo assim?'
-                );
-                if (!shouldReplace) return;
-                data = await requestRestoreDownload(validFiles, true);
-            } else {
-                throw e;
-            }
+        await requestRestoreStart(validFiles, allowOverwrite);
+        const status = await pollRestoreUntilDone();
+        if (status.phase === 'failed') {
+            alert('Erro ao restaurar: ' + (status.error || 'erro desconhecido'));
+            return;
         }
-
-        const results = Array.isArray(data.results) ? data.results : [];
-        const resultSummary = data.summary || {};
-        const replaced = results.filter(result => result.success && result.overwritten);
-        const failures = results.filter(result => !result.success);
-
-        let msg = 'Restauração concluída.\n\n' +
-            `Restaurados: ${resultSummary.restored ?? results.filter(result => result.success).length}` +
-            ` • Criados: ${resultSummary.created ?? 0}` +
-            ` • Substituídos: ${resultSummary.replaced ?? replaced.length}` +
-            ` • Falhas: ${resultSummary.failed ?? failures.length}`;
-
-        if (replaced.length) {
-            msg += '\n\nSubstituídos:\n' + replaced.slice(0, 20)
-                .map(result => result.local_path || result.remote_path)
-                .join('\n');
-            if (replaced.length > 20) {
-                msg += `\n... e mais ${replaced.length - 20}.`;
-            }
-        }
-
-        if (failures.length) {
-            msg += '\n\nFalhas:\n' + failures.slice(0, 20).map(result =>
-                `${result.remote_path}: ${result.error || 'erro desconhecido'}`
-            ).join('\n');
-            if (failures.length > 20) {
-                msg += `\n... e mais ${failures.length - 20}.`;
-            }
-        }
-
-        alert(msg);
+        alert(restoreReportText(status));
     } catch (e) {
         alert('Erro ao restaurar: ' + e.message);
     } finally {
-        if (startBtn) {
-            startBtn.disabled = false;
-            startBtn.textContent = '⬇️ Restaurar Selecionados';
-        }
+        setRestoreRunning(false);
+        stopRestorePolling();
     }
 }
 
@@ -1915,6 +2086,48 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function formatDuration(seconds) {
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) {
+        return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// ── Retomada de operações em andamento após recarregar a página ──
+async function resumeRunningOperations() {
+    try {
+        const res = await fetch(API + '/sync/status');
+        if (res.ok) {
+            const data = await res.json();
+            renderSyncStatus(data);
+            if (data.running) pollSyncStatus();
+        }
+    } catch (e) {
+        // sem status do sync no carregamento
+    }
+
+    try {
+        const res = await fetch(API + '/restore/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.running) return;
+        setRestoreRunning(true);
+        const status = await pollRestoreUntilDone();
+        setRestoreRunning(false);
+        if (status.phase === 'failed') {
+            alert('Erro ao restaurar: ' + (status.error || 'erro desconhecido'));
+        } else {
+            alert(restoreReportText(status));
+        }
+    } catch (e) {
+        // sem status da restauração no carregamento
+    }
+}
+
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
     const manifestList = document.getElementById('manifest-list');
@@ -1987,4 +2200,5 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMappings();
     loadSyncHistory();
     loadSettings();
+    resumeRunningOperations();
 });

@@ -80,6 +80,22 @@
         return selected;
     }
 
+    /**
+     * Uids que podem ser marcados por "Selecionar todos".
+     *
+     * Linhas bloqueadas por conflito e linhas com erro de caminho ficam de
+     * fora: importá-las só geraria erro no servidor.
+     */
+    function selectAllUids(rows) {
+        const selected = new Set();
+        for (const row of Array.isArray(rows) ? rows : []) {
+            if (!row || !row.uid) continue;
+            if (row.blocked || row.path_error) continue;
+            selected.add(row.uid);
+        }
+        return selected;
+    }
+
     function selectionSummary(rows, selectedUids) {
         const selected = selectedUids instanceof Set
             ? selectedUids
@@ -129,6 +145,7 @@
         rebasePath: rebasePath,
         rebaseRows: rebaseRows,
         defaultSelection: defaultSelection,
+        selectAllUids: selectAllUids,
         selectionSummary: selectionSummary,
         validateLocalPathHint: validateLocalPathHint,
         statusLabel: statusLabel

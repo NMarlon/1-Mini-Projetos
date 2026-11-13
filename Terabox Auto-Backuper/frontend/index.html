@@ -125,6 +125,12 @@
         <!-- Aba Status -->
         <section id="tab-status" class="tab">
             <h2>Status do Sync</h2>
+            <div id="sync-progress-wrap" class="progress-wrap" hidden>
+                <div class="progress-track">
+                    <div id="sync-progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="sync-progress-text" class="progress-text"></div>
+            </div>
             <div id="sync-status" class="status-box"></div>
             <h3>Histórico</h3>
             <div id="sync-history"></div>
@@ -153,6 +159,14 @@
             <div id="manifest-list" class="manifest-list"></div>
             <div id="restore-actions" style="display:none">
                 <div id="restore-plan-summary" class="restore-plan-summary" hidden></div>
+                <div id="restore-progress-wrap" class="progress-wrap" hidden>
+                    <div class="progress-track">
+                        <div id="restore-progress-bar" class="progress-bar"></div>
+                    </div>
+                    <div id="restore-progress-text" class="progress-text"></div>
+                    <button id="restore-stop-btn" type="button" class="btn-danger"
+                        onclick="stopRestore()" hidden>⏹ Parar restauração</button>
+                </div>
                 <button id="restore-start-btn" class="btn-primary" onclick="startRestore()">⬇️ Restaurar Selecionados</button>
             </div>
         </section>
