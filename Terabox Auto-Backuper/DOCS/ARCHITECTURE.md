@@ -168,11 +168,42 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
   transitórios (timeout, 5xx, curl, rate limit)
 - **Token**: renovação automática antes dos 5 minutos e em erro de autenticação
 - **Deduplicação**: caminho exato + tamanho + MD5; cache no banco evita reler
-  arquivos cujo tamanho/mtime não mudaram
+  arquivos cujo tamanho/mtime não mudaram. Em upload multipart, o Terabox
+  devolve o MD5 do JSON compacto da lista de blocos; esse valor é guardado em
+  `files.remote_md5` e usado para reconhecer o arquivo como idêntico
 - **Verificação**: obrigatória em substituições; arquivos novos confiam no MD5
   retornado pelo upload (evita uma listagem extra por arquivo no 1º backup)
 - **Debounce watchdog**: 2s após último evento de filesystem
 - **Sync automático**: scheduler e watchdog só disparam se `auto_sync=true`
+
+## Upload em Blocos, Progresso e Cancelamento
+
+- Arquivos acima de **100 MB** são enviados em blocos de 100 MB quando a opção
+  **Enviar arquivos grandes em blocos (lotes)** está ligada (padrão).
+- Cada bloco tem retry próprio; se a API recusar, o arquivo inteiro é repetido.
+- O `curl` roda como subprocesso assíncrono cancelável. `stop_sync` mata todos
+  os `curl` ativos, aguarda a task e finaliza o run como `cancelled`.
+- `start_sync` levanta erro (HTTP 409) se já houver sync em andamento.
+- O `curl` usa `--connect-timeout`, `--speed-limit/--speed-time` e `--max-time`
+  calculado pelo tamanho do bloco, evitando upload parado por horas.
+- O status expõe `upload_bytes_done/total`, `upload_percent`,
+  `upload_speed_bps`, `upload_eta_seconds`, `upload_chunk`,
+  `upload_chunks_total` e `upload_attempt`.
+- O Restaurar usa o mesmo conceito para download: `download_bytes_done/total`,
+  `download_percent` e `download_speed_bps`.
+
+## Erros Persistentes do Sync
+
+- Tabela `sync_run_errors`: `run_id`, `kind` (`file`, `plan`, `scan`, `folder`,
+  `manifest`, `config`), `mapping_id`, `mapping_name`, `path`, `error`,
+  `created_at`.
+- `sync_runs` mantém `errors_total` e `errors_truncated`; até 500 detalhes por
+  run são guardados.
+- `GET /api/sync/history/{run_id}/errors` devolve os detalhes; a UI mostra um
+  modal com caminho, mapeamento e motivo.
+- Falhas de transferência, erros de varredura (ex.: ACL do Steam), arquivos que
+  sumiram antes do upload e erros de manifesto/configuração aparecem separados
+  por `kind`.
 
 ## Caminhos locais que ainda não existem
 
@@ -328,16 +359,22 @@ pasta remota deve voltar.
 
 ## Progresso ao Vivo
 
-- Sync e Restaurar expõem `phase`, `started_at`, contadores e o item atual.
-- O frontend faz polling de **300ms** apenas enquanto a operação está rodando;
-  um único timer por operação é mantido (iniciar de novo não cria intervals
-  duplicados).
+- Sync e Restaurar expõem `phase`, `started_at`, `finished_at`, contadores, o
+  item atual e, no upload/download, bytes, percentual, velocidade e ETA.
+- A página mantém um **monitor único e permanente** do sync: 300 ms enquanto
+  roda e 1,5 s quando ocioso. Isso detecta sync iniciado pelo scheduler/watchdog
+  sem precisar de F5.
+- Aba oculta: o monitor desacelera para 5 s; ao voltar, atualiza na hora.
+- `GET /api/sync/status`, quando não há run em memória (após F5/reinício), usa o
+  último run do banco e seus erros, em vez de mostrar 0/0.
+- O histórico é atualizado sozinho quando um run termina.
+- A aba ativa é persistida em `localStorage` (`terabox_active_tab_v1`).
 - Fases do sync: `preparing` → `directories` → `uploading` → `manifest` →
-  `completed` / `failed` / `cancelled`.
+  `completed` / `failed` / `cancelled` (com `cancelling` durante a parada).
 - Fases do restore: `preparing` → `downloading` → `finished` / `cancelled` /
   `failed` (com `cancelling` enquanto o pedido de parada é processado).
-- Ao recarregar a página, `resumeRunningOperations()` detecta operações em
-  andamento e retoma o polling.
+- Ao recarregar a página, `resumeRunningOperations()` retoma o job de restore;
+  o monitor de sync já está sempre ativo.
 
 ## Resolução de Destino no Restaurar
 

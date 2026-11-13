@@ -93,17 +93,74 @@ Inicia sync manual.
 - Envie apenas os IDs marcados na UI. Sem `mapping_ids`, usa todos os
   mapeamentos com `enabled = 1` (mesma regra do Auto-sync).
 - **Response**: `{ "run_id": 42, "status": "started" }`
+- Retorna **409** se já existe um sync em andamento.
 
 ### POST /api/sync/stop
-Para sync em andamento. A parada é verificada entre arquivos e entre pastas.
+Para o sync em andamento.
+- Mata imediatamente os uploads `curl` ativos, aguarda a task e finaliza o run
+  como `cancelled`.
+- A parada também é verificada entre arquivos, pastas e blocos.
+- **Response**: `{ "status": "ok" }` quando o estado já foi liberado.
 
 ### GET /api/sync/status
-Status do sync atual.
-- **Response**: `{ "running": true, "run_id": 42, "files_total": 100, "files_uploaded": 45, "files_failed": 2, "files_skipped": 10, "current_file": "doc.pdf", "errors": [ { "file": "...", "error": "..." } ] }`
+Status do sync atual. Após F5/reinício, quando não há run em memória, devolve o
+último run persistido.
+- **Response**:
+```json
+{
+  "running": true,
+  "run_id": 42,
+  "phase": "uploading",
+  "started_at": "2026-11-13T00:00:00",
+  "finished_at": null,
+  "files_total": 100,
+  "files_uploaded": 45,
+  "files_failed": 2,
+  "files_skipped": 10,
+  "files_processed": 57,
+  "current_file": "Ditto.db",
+  "current_mapping": "Ditto",
+  "upload_bytes_done": 412000000,
+  "upload_bytes_total": 882000000,
+  "upload_speed_bps": 3500000,
+  "upload_eta_seconds": 134,
+  "upload_percent": 46.7,
+  "upload_chunk": 5,
+  "upload_chunks_total": 9,
+  "upload_attempt": 1,
+  "last_progress_at": "2026-11-13T00:05:12",
+  "errors_total": 2,
+  "errors_truncated": false,
+  "errors": [ { "file": "...", "error": "...", "kind": "file" } ]
+}
+```
+- `phase`: `idle`, `preparing`, `directories`, `uploading`, `cancelling`,
+  `manifest`, `completed`, `cancelled` ou `failed`.
 
 ### GET /api/sync/history
-Histórico de sync runs.
+Histórico de sync runs. Inclui `errors_total` e `errors_truncated`.
 - **Query**: `?limit=20&offset=0`
+
+### GET /api/sync/history/{run_id}/errors
+Detalhes persistentes das falhas de um run.
+- **Query**: `?limit=500` (máximo 1000)
+- **Response**:
+```json
+[
+  {
+    "id": 1,
+    "run_id": 42,
+    "kind": "file",
+    "mapping_id": 7,
+    "mapping_name": "Ditto",
+    "path": "C:\\...\\Ditto.db",
+    "error": "upload do bloco 5/9 falhou (failed)",
+    "created_at": "2026-11-13T00:05:12"
+  }
+]
+```
+- `kind`: `file` (transferência), `plan` (arquivo inválido no plano),
+  `scan` (varredura), `folder` (criar pasta remota), `manifest` ou `config`.
 
 ### GET /api/sync/stream (SSE)
 Stream de eventos de sync em tempo real (Server-Sent Events).
@@ -193,6 +250,11 @@ Progresso do job de restauração. A UI consulta a cada **0,3s** enquanto
   "current_file": "C:\\...\\saves\\0.msav",
   "current_mapping": "saves",
   "current_remote_path": "/Backup/saves/0.msav",
+  "download_bytes_done": 41200000,
+  "download_bytes_total": 100000000,
+  "download_speed_bps": 5200000,
+  "download_percent": 41.2,
+  "last_progress_at": "2026-11-12T21:30:12",
   "cancel_requested": false,
   "error": null,
   "errors": [],
@@ -360,7 +422,9 @@ Retorna configurações globais.
 
 ### PUT /api/settings
 Atualiza configurações.
-- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "autostart": false, "restore_confirm_overwrite": true, "machine_name": "Marlon-PC", "remote_config_enabled": true, "remote_config_path": "/config-terabox-auto-backup/terabox-auto-backup.json", "remote_config_auto_save": true }`
+- **Body**: `{ "sync_interval_minutes": 30, "auto_sync": true, "notifications": true, "max_concurrent_uploads": 3, "upload_chunked": true, "autostart": false, "restore_confirm_overwrite": true, "machine_name": "Marlon-PC", "remote_config_enabled": true, "remote_config_path": "/config-terabox-auto-backup/terabox-auto-backup.json", "remote_config_auto_save": true }`
+- `upload_chunked` liga/desliga o envio de arquivos grandes em blocos de
+  100 MB. Padrão: `true`.
 - `auto_sync=false` remove o job do scheduler **e** impede o watchdog de
   disparar sync por alteração de arquivo.
 - `restore_confirm_overwrite` controla se o Restaurar pergunta antes de
@@ -384,7 +448,7 @@ configuração remota para mapeamentos de arquivo único.
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.5" }`
+Health check. `{ "status": "ok", "version": "0.3.6" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

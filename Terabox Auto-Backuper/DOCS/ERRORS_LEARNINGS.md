@@ -17,6 +17,60 @@
 
 ## Erros Registrados
 
+### [2026-11-13] Sync travado em arquivo grande e Parar não liberava o upload
+**Contexto**: Enviar `Ditto.db` (882 MB) e um ZIP de 364 MB.
+**Erro**: O sync ficou minutos em `Ditto.db` sem progresso; o botão Parar só
+marcava uma flag e o `curl` continuava rodando (até o `--max-time 1800`). Um
+novo sync não iniciava.
+**Causa**: O upload usava `subprocess.run` bloqueante em executor, sem
+progresso e sem forma de matar. A parada era verificada apenas entre arquivos.
+**Solução**:
+- `curl` virou subprocesso assíncrono cancelável; `stop_sync` mata todos os
+  uploads ativos e finaliza o run como `cancelled`.
+- `start_sync` retorna 409 se já houver sync.
+- Arquivos grandes são enviados em blocos de 100 MB com retry por bloco.
+- Progresso por bytes/percentual/velocidade/ETA e limites de stall no `curl`.
+**Aprendizado**: Operação bloqueante em executor não é cancelável. Para ter
+parada real, progresso e timeout, o processo precisa ser gerenciado
+assincronamente e exposto no status.
+
+---
+
+### [2026-11-13] Upload multipart era reenviado para sempre por MD5 diferente
+**Contexto**: ZIP de 364 MB enviado em 4 blocos.
+**Erro**: O arquivo aparecia como `replace` em todo sync seguinte, mesmo com
+tamanho e conteúdo iguais.
+**Causa**: Em upload multipart, o Terabox devolve como `md5` o hash do **JSON
+compacto da lista de MD5s dos blocos**, não o MD5 do arquivo. O plano comparava
+esse valor com o MD5 local e concluía que o conteúdo era diferente.
+**Solução**:
+- `composite_multipart_md5()` calcula o hash esperado (`json.dumps` com
+  separadores `(",", ":")`).
+- O valor é guardado em `files.remote_md5`; o plano compara `remote.md5` com
+  esse registro e também confere `files.md5`/tamanho locais antes de ignorar.
+**Aprendizado**: Cada API pode ter uma definição própria de “MD5”. Para
+multipart, validar o hash composto e persistir o valor remoto, sem confundi-lo
+com o hash do arquivo local.
+
+---
+
+### [2026-11-13] Página só atualizava com F5 e perdia o status ao recarregar
+**Contexto**: Sync automático pelo scheduler/watchdog.
+**Erro**: O painel não mostrava o sync iniciado fora da aba; após F5, o status
+em memória nascia zerado e a aba voltava para Configuração.
+**Causa**: O polling só começava em `startSync()` da própria página ou no load
+se um sync já estivesse rodando; ao terminar, o timer morria. A aba ativa não
+era persistida.
+**Solução**:
+- Monitor permanente: 300 ms rodando, 1,5 s ocioso, 5 s com aba oculta.
+- `/api/sync/status` cai para o último run do banco após F5/reinício.
+- Histórico atualiza sozinho ao terminar; aba ativa em `localStorage`.
+**Aprendizado**: Estado exibido na UI deve vir do backend persistido, não de
+uma cópia em memória que nasce vazia. Polling precisa continuar ocioso para
+descobrir operações iniciadas por outros gatilhos.
+
+---
+
 ### [2026-11-12] Manifesto global era truncado pelo subconjunto do PC que sincronizava
 **Contexto**: Restaurar um backup de 5.282 arquivos em um PC novo.
 **Erro**: O manifesto no Terabox era regravado a cada sync com apenas os

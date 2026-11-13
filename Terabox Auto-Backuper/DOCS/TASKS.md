@@ -270,6 +270,34 @@
   gravação real com 5.282 arquivos e 17 pastas; app reiniciado em 0.3.5
 - **Depende de**: T26, T27
 
+### T29. Upload em blocos, progresso, cancelamento real e falhas detalhadas ✅
+- **Status**: Concluída (2026-11-13) — versão 0.3.6
+- **Descrição**: O sync travava em arquivos grandes (ex.: `Ditto.db`, 882 MB),
+  o botão Parar não matava o `curl` em andamento, o progresso não mostrava
+  bytes/velocidade e o histórico não dizia quais arquivos/pastas falharam.
+- **Solução**:
+  - Upload via `asyncio.create_subprocess_exec` cancelável; `stop_sync` mata
+    todos os `curl` ativos e finaliza o run como `cancelled`
+  - `start_sync` retorna 409 se já houver sync; UI mostra o motivo
+  - Upload em blocos de 100 MB com opção **Enviar em blocos (lotes)** nas
+    Configurações; retry por bloco e fallback para o arquivo inteiro
+  - Progresso por arquivo: bytes, %, velocidade, ETA, bloco e tentativa
+  - `curl` com `--speed-limit/--speed-time`, `--connect-timeout` e `--max-time`
+    calculado pelo tamanho; watchdog de arquivo parado
+  - MD5 multipart do Terabox (JSON compacto dos blocos) é calculado e guardado
+    em `files.remote_md5`, evitando reenvio eterno de arquivos grandes
+  - Nova tabela `sync_run_errors` + `sync_runs.errors_total/errors_truncated`;
+    histórico ganhou “ver detalhes” com caminho, mapeamento e motivo
+  - Status do sync agora cai para o último run do banco após F5/reinício
+  - Monitor permanente da página: 300 ms rodando, 1,5 s idle, detecta
+    auto-sync sem F5 e atualiza o histórico ao terminar
+  - Aba ativa persistida em `localStorage`
+  - Restaurar também mostra progresso de download (bytes, %, velocidade)
+- **Teste**: 141 testes Python e 20 Node; ZIP de 364 MB enviado em 4 blocos
+  com progresso real; segundo sync do mesmo ZIP ignorado; UI validada no
+  navegador (status sem F5, aba persistida, modal de falhas)
+- **Depende de**: T28
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

@@ -44,6 +44,21 @@
   suficiente; uma evolução possível é detectar o hash remoto imediatamente
   antes do upload e mesclar novamente em caso de mudança.
 
+## Ideias Registradas (2026-11-13)
+
+- **Retomada de upload por bloco**: persistir uploadid e blocos concluídos para
+  continuar um arquivo grande após queda/reinício, sem reenviar tudo.
+- **SSE/WebSocket para a UI**: substituir o polling adaptativo por eventos,
+  mantendo o polling como fallback.
+- **Fila persistente de uploads**: sobreviver a reinício do app e permitir
+  pausar/retomar a fila.
+- **Notificação com lista de falhas**: além do toast, abrir o detalhe do run.
+- **Gráfico de velocidade**: histórico de throughput por arquivo/run.
+- **Janela de upload**: limitar sync pesado a horários configurados.
+- **Limpeza automática de erros antigos**: reter detalhes dos últimos N runs.
+- **Ignorar temporários adicionais**: `.db-journal`, `.partial`, `-wal`, `-shm`
+  para reduzir falsos erros de arquivos que somem durante a varredura.
+
 ## Ideias de Implementação Futura
 
 ### Alta Prioridade
