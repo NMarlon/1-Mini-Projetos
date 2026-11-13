@@ -28,8 +28,11 @@ python app.py
 - Nomes com emoji são sanitizados no Terabox; o Restaurar devolve o nome original
 - **Seleção de restauração persistente**: os checkboxes da aba Restaurar são lembrados ao recarregar o manifesto e ao reiniciar o app
 - **Restaurar nas pastas originais**: cada arquivo volta para o `local_path` do mapeamento, mesclando pastas e substituindo arquivos existentes
+- **Progresso ao vivo**: sync e Restaurar mostram fase, arquivo/pasta atual e contadores, atualizados a cada **0,3s**, com botão para parar a restauração
+- **Manifesto global multi-PC**: o manifesto é mesclado por mapeamento e nunca é truncado pelo subconjunto de um computador; rebuild disponível em `scripts/rebuild_manifest.py`
 - **Aviso de sobrescrita configurável**: pergunta antes de substituir (padrão) ou substitui direto, com relatório final
 - **Configuração remota**: salva os mapeamentos e o caminho local de cada PC em um JSON no Terabox, com atalho fixo na raiz e importação assistida em PC novo
+- **Importação protegida**: detecta caminho de outro perfil do Windows e rebaseia para o usuário atual; se a pasta não puder ser criada, o mapeamento é importado com aviso
 - Autenticação automática via perfil do navegador (Chrome/Edge/Firefox/Dia)
 - Notificações toast do Windows
 - Criptografia opcional por mapeamento (upload e restore corrigidos)
@@ -88,6 +91,10 @@ Na aba **Restaurar**, depois de carregar o manifesto:
   **“Perguntar antes de sobrescrever arquivos existentes”** vem ligada.
 - A seleção fica salva no navegador e é restaurada ao recarregar o manifesto,
   trocar de aba, recarregar a página ou reiniciar o app.
+- Durante a restauração, uma barra mostra o progresso a cada 0,3s, com o
+  arquivo e o mapeamento atuais; **Parar restauração** cancela entre arquivos.
+- Ao terminar, o relatório mostra criados, substituídos, falhas e ignora
+  arquivos inválidos sem interromper os demais.
 - Arquivos de mapeamentos desmarcados no backup aparecem com o aviso
   **⚠️ backup desativado**, mas ainda podem ser restaurados manualmente.
 - A seleção é local ao navegador/perfil; ela não é enviada ao Terabox.
@@ -114,8 +121,12 @@ Em um PC novo:
 2. Clique em **Revisar importação** e confira cada mapeamento.
 3. Escolha o caminho local de cada linha; use o **rebase de prefixo** para
    trocar `C:\Users\...` por `D:\...` em lote.
-4. Marque o que deseja importar e confirme. Nada é importado silenciosamente.
-5. Depois, use **Restaurar** para baixar os arquivos nas pastas escolhidas.
+4. Caminhos de outro usuário do Windows (ex.: `C:\Users\marlo` em um PC cujo
+   usuário é `Marlon`) são ajustados automaticamente para o perfil atual.
+5. Marque o que deseja importar e confirme. Nada é importado silenciosamente.
+   Se a pasta não puder ser criada, o mapeamento é importado mesmo assim e um
+   aviso aparece no relatório.
+6. Depois, use **Restaurar** para baixar os arquivos nas pastas escolhidas.
 
 Mapeamentos de arquivo único podem apontar para um arquivo que ainda não
 existe; basta que a pasta pai exista ou possa ser criada. O Restaurar cria o

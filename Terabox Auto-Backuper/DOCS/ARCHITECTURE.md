@@ -84,7 +84,8 @@ qualquer upload. A mesma lógica alimenta a prévia (dry-run).
       com backoff).
    c. Substituições são verificadas por listagem e MD5/tamanho após o upload.
    d. Renova o jsToken antes de expirar (TTL ~300s).
-5. Atualiza o manifesto v2 no Terabox, com apenas arquivos confirmados no remoto.
+5. Atualiza o manifesto global v2.1 no Terabox, mesclando as entradas deste
+   computador com as dos demais e preservando o que não pôde ser verificado.
 6. Notificação toast e atualização do `sync_run`.
 
 ## Regras do Terabox Aprendidas
@@ -126,11 +127,12 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 
 - **Sincronizar Agora** e **Prévia do Sync** enviam os IDs marcados;
 - **Auto-sync** (scheduler + watchdog) usa `enabled = 1`;
-- Desmarcar **não apaga** nada no Terabox; apenas impede novos envios e remove
-  os arquivos daquele mapeamento do manifesto no próximo sync;
-- Reativar volta a incluir o mapeamento no backup e no manifesto;
-- Se todos forem desmarcados, o próximo sync gera um manifesto vazio para que
-  o Restaurar não continue listando arquivos de mapeamentos desativados;
+- Desmarcar **não apaga** nada no Terabox e não remove o mapeamento do
+  manifesto: as entradas já confirmadas continuam disponíveis no Restaurar,
+  mas deixam de ser revalidadas enquanto o mapeamento estiver desativado;
+- Reativar volta a incluir o mapeamento no backup e a revalidar as entradas;
+- Mesmo com todos desmarcados, o manifesto global é preservado (nada de
+  manifesto vazio nem de apagar as entradas de outros computadores);
 - Os botões **Selecionar todos** / **Desmarcar todos** usam
   `PUT /api/mappings/bulk-enabled`, e o watchdog é recarregado.
 
@@ -210,14 +212,33 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
 ## Manifesto
 
 - Arquivo `_terabox_autobackup_manifest.json` na raiz do Terabox
-- Versão 2.0; upload com `rtype=3` (sobrescreve o anterior)
+- Versão 2.1; upload com `rtype=3` (sobrescreve o anterior)
+- **Global e multi-PC**: vários computadores podem sincronizar para o mesmo
+  backup. A gravação nunca substitui o arquivo inteiro por um subconjunto
+  local. `backend/manifest.py` mescla:
+  - entradas dos mapeamentos deste computador reconstruídas a partir do banco
+    local **e** confirmadas no remoto;
+  - entradas de mapeamentos de outros computadores, preservadas;
+  - entradas de mapeamentos desativados ou cuja listagem remota falhou,
+    preservadas em vez de removidas por um erro transitório.
+- A deduplicação é pelo `remote_path` normalizado (sem diferenciar
+  maiúsculas); cada entrada leva `manifest_machine_id`.
+- A leitura usa `download_manifest(strict=True)` antes de gravar: se o
+  manifesto existe mas o download/JSON falha, a gravação é abortada para não
+  perder as entradas de outros PCs.
+- `scripts/rebuild_manifest.py` reconstrói o manifesto a partir do banco local
+  e do remoto, com `--dry-run`. Rode-o com o app ocioso e sem outro PC
+  sincronizando.
 - Inclui apenas arquivos cuja existência remota foi confirmada
 - Estrutura:
 ```json
 {
-  "version": "2.0",
-  "generated_at": "2026-11-09T20:46:44",
-  "run_started_at": "2026-11-09T20:46:38",
+  "version": "2.1",
+  "generated_at": "2026-11-12T21:07:45",
+  "run_started_at": "2026-11-12T20:55:00",
+  "machine_id": "35d760c4-...",
+  "machine_name": "MarlonPC-Lenovo",
+  "updated_by": "MarlonPC-Lenovo (35d760c4-...)",
   "files": [
     {
       "local_rel_path": "00 - 📥 Inbox/nota 📝.txt",
@@ -230,7 +251,8 @@ estado é gravado em `mappings.enabled` e é a única fonte da verdade:
       "mapping_name": "Documentos",
       "mapping_remote_path": "/backup/Documentos",
       "synced_at": "2026-11-09T20:46:41",
-      "encrypted": false
+      "encrypted": false,
+      "manifest_machine_id": "35d760c4-..."
     }
   ],
   "directories": []
@@ -268,9 +290,19 @@ pasta remota deve voltar.
   A importação é sempre explícita, com escolha de caminho por linha, rebase de
   prefixo em lote, detecção de mapeamento existente por `uid`/fingerprint e
   aviso de criptografia sem chave
+- Caminhos sugeridos que apontam para o perfil de **outro usuário do Windows**
+  (ex.: `C:\Users\marlo` quando o usuário atual é `Marlon`) são detectados por
+  `detect_foreign_profile` e rebaseados para o perfil atual antes de validar.
+  Perfis compartilhados (`Public`, `Default`, `All Users`) não são rebaseados.
+- A criação da pasta/pasta-pai é melhor-esforço: se o Windows bloquear (ACL,
+  permissão, perfil de outro usuário), o mapeamento é importado mesmo assim e a
+  resposta traz um `warning` amigável. A proteção de `local_paths.py` impede
+  criar pastas em `C:\Users\<outro>` quando o destino ainda não existe.
 - Mapeamento de arquivo único pode apontar para um arquivo inexistente; a
   pasta pai pode ser criada na restauração. Se existir uma pasta no lugar do
   arquivo, a importação rejeita o caminho
+- **Selecionar todos** na revisão de importação ignora linhas bloqueadas por
+  conflito e linhas com erro de caminho; importá-las só geraria erro.
 
 ## Processo Reverso (Restaurar)
 
@@ -284,10 +316,28 @@ pasta remota deve voltar.
    destino de cada arquivo, se ele será criado ou substituído, e erros
 6. Se a configuração `restore_confirm_overwrite` estiver ligada, a UI pede
    confirmação antes de substituir arquivos existentes
-7. Backend baixa cada arquivo via dlink e grava no destino original
-8. Se criptografado, baixa o `.enc` para temp, descriptografa para um
+7. A UI inicia o job em background (`POST /api/restore/start`) e consulta
+   `GET /api/restore/status` a cada **0,3s**; `POST /api/restore/stop` pede
+   cancelamento entre arquivos. A rota antiga `/api/restore/download` continua
+   existindo para compatibilidade, mas é bloqueante
+8. Backend baixa cada arquivo via dlink e grava no destino original; o status
+   expõe fase, arquivo atual, mapeamento, contadores e erros
+9. Se criptografado, baixa o `.enc` para temp, descriptografa para um
    `.restore-part` na mesma pasta e faz `os.replace` atômico
-9. Resultado por arquivo (criado/substituído/erro) é devolvido à UI
+10. Resultado por arquivo (criado/substituído/erro) é devolvido no resumo final
+
+## Progresso ao Vivo
+
+- Sync e Restaurar expõem `phase`, `started_at`, contadores e o item atual.
+- O frontend faz polling de **300ms** apenas enquanto a operação está rodando;
+  um único timer por operação é mantido (iniciar de novo não cria intervals
+  duplicados).
+- Fases do sync: `preparing` → `directories` → `uploading` → `manifest` →
+  `completed` / `failed` / `cancelled`.
+- Fases do restore: `preparing` → `downloading` → `finished` / `cancelled` /
+  `failed` (com `cancelling` enquanto o pedido de parada é processado).
+- Ao recarregar a página, `resumeRunningOperations()` detecta operações em
+  andamento e retoma o polling.
 
 ## Resolução de Destino no Restaurar
 

@@ -13,7 +13,12 @@
 - **Exclusão local não remove remoto**: por segurança, o backup é
   unidirecional e não apaga o arquivo remoto quando o local some.
 - **Upload sequencial**: os uploads são feitos um por vez (a configuração de
-  concorrência limita chunks, mas não arquivos simultâneos).
+  concorrência limita chunks, mas não arquivos simultâneos). A versão **0.4.0**
+  está reservada para concorrência de uploads.
+- **Steam `userdata` bloqueado por ACL**: `C:\Program Files (x86)\Steam\userdata`
+  gera `WinError 5` em 269 arquivos. O sync continua nos demais mapeamentos; o
+  tratamento definitivo (permissão elevada ou exclusão do mapeamento) ficou
+  para depois.
 - **Fernet carrega o arquivo inteiro em memória**: arquivos muito grandes com
   criptografia ativa podem consumir RAM; o formato atual (Fernet) não é
   streaming. Para arquivos > 2GB, considerar desativar criptografia ou evoluir
@@ -21,10 +26,6 @@
 - **Seleção de restauração é local ao navegador**: fica no `localStorage` do
   perfil e não viaja para outro PC. Para levar a seleção junto com o manifesto,
   seria preciso salvar no banco e incluir um campo `selected` no manifesto.
-- **Manifesto vazio ao desmarcar tudo**: se todos os mapeamentos forem
-  desmarcados, o próximo sync grava um manifesto vazio. Os arquivos continuam
-  no Terabox, mas o Restaurar deixa de listá-los até um mapeamento ser
-  reativado e sincronizado.
 - **Colisão de nomes sanitizados**: nomes que só diferem por ponto inicial
   podem cair no mesmo caminho remoto. Exemplo real: `.kkrieger.md` e
   `kkrieger.md` viram `.../kkrieger.md`, porque a sanitização remove o ponto
@@ -46,6 +47,8 @@
 ## Ideias de Implementação Futura
 
 ### Alta Prioridade
+- **Concorrência de uploads (versão 0.4.0)**: enviar múltiplos arquivos em
+  paralelo, mantendo rate-limit e retry por arquivo
 - **Executável standalone**: Empacotar com PyInstaller para não exigir Python instalado
 - **Task Scheduler**: Rodar mesmo sem login do usuário (mais robusto que HKCU\Run)
 - **Dashboard de status**: Gráficos de uso, velocidade de upload, histórico visual

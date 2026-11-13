@@ -161,8 +161,59 @@ Prévia da restauração. Não baixa arquivos nem cria/altera nada no disco.
 }
 ```
 
+### POST /api/restore/start
+Inicia a restauração em background e devolve imediatamente.
+- **Body**: `{ "files": ["/remote/path1"], "allow_overwrite": true }`
+- O job baixa o manifesto, monta o plano e valida conflitos. Se
+  `allow_overwrite=false` e houver arquivo existente, o job termina em
+  `phase="failed"` com mensagem de confirmação.
+- Retorna `409` se já existir uma restauração em andamento e `400` se a lista
+  estiver vazia.
+- **Response**: `{ "status": "started", "job_id": "abc123", "files_total": 1 }`
+
+### GET /api/restore/status
+Progresso do job de restauração. A UI consulta a cada **0,3s** enquanto
+`running=true`.
+- **Response**:
+```json
+{
+  "running": true,
+  "job_id": "abc123",
+  "phase": "downloading",
+  "started_at": "2026-11-12T21:30:00",
+  "finished_at": null,
+  "elapsed_seconds": 12.4,
+  "files_total": 100,
+  "files_done": 37,
+  "files_created": 30,
+  "files_replaced": 7,
+  "files_failed": 0,
+  "files_invalid": 2,
+  "current_index": 38,
+  "current_file": "C:\\...\\saves\\0.msav",
+  "current_mapping": "saves",
+  "current_remote_path": "/Backup/saves/0.msav",
+  "cancel_requested": false,
+  "error": null,
+  "errors": [],
+  "errors_truncated": false,
+  "summary": null
+}
+```
+- Fases: `idle`, `preparing`, `downloading`, `cancelling`, `finished`,
+  `cancelled`, `failed`.
+- `errors` guarda até 200 falhas com `remote_path`, `local_path`,
+  `mapping_name` e `error`; `errors_truncated` indica que houve mais.
+- `summary` (`total`, `restored`, `created`, `replaced`, `failed`, `invalid`,
+  `cancelled`) só é preenchido ao terminar.
+
+### POST /api/restore/stop
+Pede o cancelamento entre arquivos. Arquivos já baixados são mantidos.
+- **Response**: `{ "status": "cancelling" }` ou `{ "status": "idle" }`.
+
 ### POST /api/restore/download
-Inicia a restauração seletiva nas **pastas originais** dos mapeamentos.
+Restauração seletiva **bloqueante**, mantida por compatibilidade. Prefira
+`/api/restore/start` + `/api/restore/status` para progresso ao vivo.
 - **Body**: `{ "files": ["/remote/path1"], "allow_overwrite": true }`
 - `files` deve conter apenas `remote_path` de arquivos; caminhos de pasta da
   árvore não são enviados.
@@ -250,9 +301,19 @@ Baixa a configuração remota e monta a revisão de importação para este PC.
       "is_file": false,
       "status": "new",
       "local_path": "C:\\Users\\Marlon\\Fotos",
+      "original_local_path": "C:\\Users\\marlo\\Fotos",
+      "rebase": {
+        "foreign_user": "marlo",
+        "current_user": "Marlon",
+        "foreign_root": "C:\\Users\\marlo",
+        "current_root": "C:\\Users\\Marlon",
+        "suggested_path": "C:\\Users\\Marlon\\Fotos"
+      },
       "current_local_path": null,
       "path_error": null,
-      "warnings": [],
+      "warnings": [
+        "O caminho sugerido usava o perfil do usuário 'marlo' de outro computador. Foi ajustado para o seu perfil 'Marlon': C:\\Users\\Marlon\\Fotos"
+      ],
       "other_machines": [
         { "machine_name": "PC-antigo", "local_path": "C:\\Users\\Marlon\\Fotos" }
       ],
@@ -265,6 +326,10 @@ Baixa a configuração remota e monta a revisão de importação para este PC.
 - `status`: `new`, `existing` ou `conflict`.
 - `path_error` indica que o caminho sugerido precisa ser corrigido.
 - `needs_update` indica que um mapeamento existente difere do arquivo remoto.
+- `original_local_path`/`rebase` aparecem quando o caminho sugerido vinha do
+  perfil de outro usuário do Windows e foi ajustado para o perfil atual.
+- “Selecionar todos” no frontend ignora linhas `blocked` e linhas com
+  `path_error`.
 
 ### POST /api/remote-config/import
 Importa somente as linhas confirmadas na revisão.
@@ -281,8 +346,11 @@ Importa somente as linhas confirmadas na revisão.
 - `config_hash` evita importar uma revisão desatualizada; se o arquivo mudou,
   retorna `409`.
 - `adopt_path=true` adota o caminho descoberto pelo atalho nas configurações.
-- Retorna `created`, `updated`, `skipped`, `errors` e, quando possível,
-  `remote_config_saved`.
+- Retorna `created`, `updated`, `skipped`, `errors`, `warnings` e, quando
+  possível, `remote_config_saved`.
+- `warnings` são avisos não fatais: normalmente “não foi possível criar a
+  pasta”, mas o mapeamento foi importado mesmo assim. Cada item tem
+  `{ "uid": "...", "warning": "..." }`.
 - Nada é importado sem esta chamada explícita.
 
 ## Configurações

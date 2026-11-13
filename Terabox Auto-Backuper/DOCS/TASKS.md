@@ -238,6 +238,38 @@
 - **Teste**: 103 testes Python (helper, CSV, file monitor, importação remota) e 19 Node
 - **Depende de**: T26
 
+### T28. Proteção da importação, manifesto global multi-PC e progresso ao vivo ✅
+- **Status**: Concluída (2026-11-12) — versão 0.3.5
+- **Descrição**: O manifesto era gravado como um subconjunto local do PC que
+  sincronizava, podendo apagar entradas de outros computadores. A importação
+  podia criar pastas no perfil de outro usuário do Windows e abortar o
+  mapeamento quando a criação falhava. Sync/Restaurar não tinham progresso
+  confiável em tempo real.
+- **Solução**:
+  - `backend/manifest.py` com `merge_manifest`, `download_manifest(strict)` e
+    `write_manifest`; manifesto v2.1 mesclado por `mapping_uid`/`remote_path`
+  - Entradas de outros PCs, de mapeamentos desativados e de snapshots que
+    falharam são preservadas; leitura estrita impede gravar manifesto truncado
+  - `scripts/rebuild_manifest.py` reconstrói o manifesto a partir do banco
+    local, com `--dry-run`
+  - `backend/restore_runner.py` executa o Restaurar com progresso por arquivo,
+    contadores e cancelamento
+  - Novos endpoints `POST /api/restore/start`, `GET /api/restore/status` e
+    `POST /api/restore/stop`; `/api/restore/download` mantido por compatibilidade
+  - `SyncStatus`/`RestoreStatus` ganharam `phase`, `started_at`,
+    `files_processed`/`files_done`, `current_file`, `current_mapping`,
+    `elapsed_seconds`, `errors` e `summary`
+  - `detect_foreign_profile` em `local_paths.py` detecta `C:\Users\<outro>` e
+    sugere o rebase para o perfil atual; a criação é bloqueada no perfil errado
+  - Importação remota aplica o rebase, retorna `warnings` e importa o
+    mapeamento mesmo quando a criação da pasta falha
+  - Frontend: polling de 300ms, barras de progresso, botão de parar restauração,
+    retomada após recarregar, “Selecionar todos” ignora linhas com erro de
+    caminho e relatório mostra avisos da importação
+- **Teste**: 122 testes Python e 20 Node; `rebuild_manifest.py --dry-run` e
+  gravação real com 5.282 arquivos e 17 pastas; app reiniciado em 0.3.5
+- **Depende de**: T26, T27
+
 ## Como proceder em cada tarefa
 
 1. Leia a tarefa e suas dependências

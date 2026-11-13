@@ -17,6 +17,69 @@
 
 ## Erros Registrados
 
+### [2026-11-12] Manifesto global era truncado pelo subconjunto do PC que sincronizava
+**Contexto**: Restaurar um backup de 5.282 arquivos em um PC novo.
+**Erro**: O manifesto no Terabox era regravado a cada sync com apenas os
+mapeamentos/arquivos confirmados naquela execução. Um PC com poucos mapeamentos
+ou um sync de teste podia apagar as entradas dos outros computadores. Se o
+download do manifesto existente falhasse, o código tratava como "inexistente" e
+gravava um manifesto só local.
+**Causa**: O manifesto era tratado como artefato de uma máquina, não como
+cadastro global. A leitura não distinguia "não existe" de "falhou ao ler".
+**Solução**:
+- `backend/manifest.py` concentra `merge_manifest` por `mapping_uid`/`remote_path`
+  e `download_manifest(strict=True)`.
+- Entradas de outros PCs, de mapeamentos desativados e de snapshots com falha
+  são preservadas.
+- Leitura estrita aborta a gravação quando o manifesto existe mas não pôde ser
+  baixado/parseado.
+- `scripts/rebuild_manifest.py` reconstrói o manifesto a partir do banco local.
+- Manifesto v2.1 inclui `machine_id`, `machine_name` e `updated_by`.
+**Aprendizado**: Arquivo compartilhado entre máquinas nunca deve ser
+sobrescrito com o estado local. A gravação precisa ser read-modify-write, e
+"falha de leitura" não pode ser confundida com "arquivo ausente".
+
+---
+
+### [2026-11-12] Importação criava pasta no perfil de outro usuário do Windows
+**Contexto**: Importar a configuração remota no PC novo.
+**Erro**: O caminho sugerido vinha de `C:\Users\marlo\...` (PC principal), mas o
+usuário do PC novo era `Marlon`. A importação validava/criava o caminho como
+veio e criava pastas no perfil errado (ou falhava com `WinError 5`). Além disso,
+uma falha ao criar a pasta abortava a importação do mapeamento.
+**Causa**: O rebase era manual (prefixo antigo → novo) e a criação da pasta era
+tratada como pré-requisito para importar. Não havia detecção automática de
+perfil de usuário do Windows.
+**Solução**:
+- `detect_foreign_profile` reconhece `...\Users\<outro>` e sugere o caminho no
+  perfil atual (`USERPROFILE`), ignorando `Public`/`Default`/`All Users`.
+- O plano de importação rebaseia sugestões de outros PCs e devolve
+  `original_local_path`, `rebase` e um aviso.
+- `validate_local_mapping_path(create=True)` recusa criar pasta em perfil
+  alheio quando o destino não existe.
+- `apply_import` trata a criação como melhor-esforço: importa o mapeamento e
+  devolve `warnings` em vez de `errors`.
+- “Selecionar todos” ignora linhas com erro de caminho.
+**Aprendizado**: Caminho de outro computador é sugestão, não verdade. Nunca
+criar diretórios fora do perfil do usuário atual e nunca impedir o cadastro por
+falha de criação de pasta.
+
+---
+
+### [2026-11-12] Steam `userdata` bloqueado por ACL (`WinError 5`) — adiado
+**Contexto**: Backup de `C:\Program Files (x86)\Steam\userdata` (269 arquivos).
+**Erro**: A varredura falhava com `PermissionError [WinError 5]` ao acessar
+arquivos/pastas do Steam.
+**Causa**: ACLs do Windows e arquivos em uso pelo cliente Steam; rodar o app
+como administrador não é desejado.
+**Solução**: O mapeamento continua cadastrado, mas os erros são registrados e
+o restante do sync segue. O tratamento definitivo (backup via cópia com
+permissão elevada ou exclusão do mapeamento) ficou para uma tarefa futura.
+**Aprendizado**: Um mapeamento com ACL bloqueada não deve derrubar o sync
+inteiro; isolar falhas por arquivo e reportar no status.
+
+---
+
 ### [2026-11-12] Restaurar pedia uma pasta de destino que já existia na configuração
 **Contexto**: Implementar a restauração em árvore para 5.282 arquivos.
 **Erro**: A aba Restaurar pedia uma "Pasta de destino" manual e o backend gravava em `destination/local_rel_path`, ignorando `mappings.local_path`. O usuário podia restaurar no lugar errado, ou sobrescrever arquivos sem aviso.

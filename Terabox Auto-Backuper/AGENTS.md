@@ -47,8 +47,10 @@ Terabox Auto-Backuper/
 │   ├── models.py             # Pydantic + tabelas
 │   ├── terabox_client.py     # Cliente Terabox (list/upload/download/precreate/create)
 │   ├── auth.py               # rookie-cookies + jsToken scraping/refresh
+│   ├── manifest.py           # Manifesto global v2.1 e mesclagem multi-PC
 │   ├── remote_config.py      # Arquivo remoto de mapeamentos + importação por PC
 │   ├── restore.py            # Destino original, plano e conflitos do Restaurar
+│   ├── restore_runner.py     # Execução do Restaurar com progresso/cancelamento
 │   ├── sync_engine.py        # Motor de sync (plano, execução, manifesto v2)
 │   ├── sync_plan.py          # Decisão pura de dedup (upload/replace/skip)
 │   ├── paths.py              # Normalização POSIX + sanitização de nomes remotos
@@ -66,7 +68,7 @@ Terabox Auto-Backuper/
 ├── DOCS/                     # Toda documentação
 ├── data/                     # SQLite DB, logs (gitignored)
 ├── tests/                    # Testes
-└── scripts/                  # Scripts auxiliares
+└── scripts/                  # Scripts auxiliares (rebuild_manifest.py etc.)
 ```
 
 ## 4. Mapa de Documentação (DOCS/)
