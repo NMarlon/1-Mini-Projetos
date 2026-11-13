@@ -200,6 +200,67 @@ button:hover { background: #533483; }
     margin-top: 10px;
 }
 
+.progress-track-thin {
+    height: 8px;
+    margin-top: 6px;
+}
+
+.file-progress {
+    margin-top: 8px;
+}
+
+.sync-history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #0f3460;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.sync-history-row:last-child {
+    border-bottom: none;
+}
+
+.sync-history-row .history-info {
+    flex: 1;
+    white-space: pre-wrap;
+}
+
+.sync-history-row .history-errors {
+    margin-top: 0;
+    white-space: nowrap;
+    background: #5a2a2a;
+    border: 1px solid #d32f2f;
+}
+
+.sync-errors-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sync-error-item {
+    background: #16213e;
+    border: 1px solid #5a2a2a;
+    border-left: 4px solid #d32f2f;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+}
+
+.sync-error-item .error-kind {
+    color: #ff8a80;
+    font-weight: bold;
+}
+
 .mapping-item {
     background: #0f3460;
     padding: 12px;

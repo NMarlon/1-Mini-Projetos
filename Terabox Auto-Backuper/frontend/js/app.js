@@ -17,10 +17,14 @@ let restoreSaveTimer = null;
 let restoreDirNodes = new Map();
 let restoreConfirmOverwrite = true;
 
-// Polling em 0,3s apenas enquanto sync/restauração estiverem rodando.
+// Polling em 0,3s enquanto sync/restauração estiverem rodando.
 const JOB_POLL_INTERVAL_MS = 300;
-let syncPollTimer = null;
-let syncPollBusy = false;
+const SYNC_IDLE_POLL_MS = 1500;
+const ACTIVE_TAB_KEY = 'terabox_active_tab_v1';
+let syncMonitorTimer = null;
+let syncMonitorBusy = false;
+let syncMonitorLastRunning = false;
+let syncMonitorFinishedRunId = null;
 let restorePollTimer = null;
 let restorePollBusy = false;
 let lastRestoreStatus = null;
@@ -33,14 +37,26 @@ let remoteImportSelected = new Set();
 let remoteConfigCheckInFlight = false;
 let remoteConfigAuthWasReady = false;
 
-// ── Navegação por abas ──
+// ── Navegação por abas (persistida no navegador) ──
+function activateTab(name, persist = true) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = document.getElementById('tab-' + name);
+    if (tab) tab.classList.add('active');
+    if (persist) {
+        try {
+            localStorage.setItem(ACTIVE_TAB_KEY, name);
+        } catch (e) {
+            // localStorage indisponível: segue sem persistir
+        }
+    }
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    });
+    btn.addEventListener('click', () => activateTab(btn.dataset.tab));
 });
 
 // ── Auth ──
@@ -1020,7 +1036,21 @@ async function startSync(mappingIds = null) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mapping_ids: ids })
         });
-        const data = await res.json();
+        let data = null;
+        try {
+            data = await res.json();
+        } catch (e) {
+            data = null;
+        }
+        if (!res.ok) {
+            const detail = data && data.detail;
+            alert(
+                'Não foi possível iniciar: ' +
+                (typeof detail === 'string' ? detail : `HTTP ${res.status}`)
+            );
+            pollSyncStatus();
+            return;
+        }
         alert('Sync iniciado! Run ID: ' + data.run_id);
         pollSyncStatus();
     } catch (e) {
@@ -1029,8 +1059,14 @@ async function startSync(mappingIds = null) {
 }
 
 async function stopSync() {
-    await fetch(API + '/sync/stop', { method: 'POST' });
-    alert('Sync parado.');
+    const box = document.getElementById('sync-status');
+    if (box) box.textContent = '⏳ Cancelando sync e encerrando o upload atual...';
+    try {
+        await fetch(API + '/sync/stop', { method: 'POST' });
+    } catch (e) {
+        alert('Erro ao pedir a parada: ' + e.message);
+    }
+    pollSyncStatus();
 }
 
 function syncPhaseLabel(phase) {
@@ -1038,6 +1074,7 @@ function syncPhaseLabel(phase) {
         case 'preparing': return 'Preparando (lendo pastas e comparando)';
         case 'directories': return 'Criando pastas no Terabox';
         case 'uploading': return 'Enviando arquivos';
+        case 'cancelling': return 'Cancelando';
         case 'manifest': return 'Atualizando manifesto';
         case 'completed': return 'Concluído';
         case 'cancelled': return 'Cancelado';
@@ -1061,7 +1098,7 @@ function renderSyncStatus(data) {
     const wrap = document.getElementById('sync-progress-wrap');
     const bar = document.getElementById('sync-progress-bar');
     const progressText = document.getElementById('sync-progress-text');
-    if (wrap) wrap.hidden = !running && data.phase === 'idle';
+    if (wrap) wrap.hidden = !running && data.phase === 'idle' && !data.run_id;
     if (bar) {
         const percent = total > 0
             ? Math.min(100, (processed / total) * 100)
@@ -1075,7 +1112,46 @@ function renderSyncStatus(data) {
         ];
         if (data.current_mapping) lines.push(`📁 ${data.current_mapping}`);
         if (data.current_file) lines.push(`📄 ${data.current_file}`);
+        if (data.errors_total) {
+            lines.push(`⚠️ ${data.errors_total} erro(s) registrado(s)`);
+        }
         progressText.textContent = lines.join('\n');
+    }
+
+    // Progresso do arquivo atual (bytes, %, velocidade e ETA).
+    const fileWrap = document.getElementById('sync-file-progress-wrap');
+    const fileBar = document.getElementById('sync-file-progress-bar');
+    const fileText = document.getElementById('sync-file-progress-text');
+    const uploadTotal = Number(data.upload_bytes_total || 0);
+    const uploadDone = Number(data.upload_bytes_done || 0);
+    const uploadPercent = Number(data.upload_percent || 0);
+    if (fileWrap) {
+        fileWrap.hidden = !running || uploadTotal <= 0;
+    }
+    if (running && uploadTotal > 0) {
+        if (fileBar) {
+            fileBar.style.width = Math.min(100, uploadPercent) + '%';
+        }
+        if (fileText) {
+            const parts = [
+                `📤 ${formatBytes(uploadDone)} / ${formatBytes(uploadTotal)} ` +
+                `(${uploadPercent.toFixed(1)}%)`
+            ];
+            if (data.upload_speed_bps > 0) {
+                parts.push(`${formatBytes(data.upload_speed_bps)}/s`);
+            }
+            if (data.upload_eta_seconds !== null &&
+                data.upload_eta_seconds !== undefined) {
+                parts.push(`ETA ${formatDuration(data.upload_eta_seconds)}`);
+            }
+            if (data.upload_chunks_total > 1) {
+                parts.push(`bloco ${data.upload_chunk}/${data.upload_chunks_total}`);
+            }
+            if (data.upload_attempt > 1) {
+                parts.push(`tentativa ${data.upload_attempt}`);
+            }
+            fileText.textContent = parts.join(' • ');
+        }
     }
 
     let msg = '';
@@ -1086,49 +1162,82 @@ function renderSyncStatus(data) {
         msg += `  ❌ Falhas: ${data.files_failed}\n`;
         if (data.current_mapping) msg += `  📁 Mapeamento: ${data.current_mapping}\n`;
         if (data.current_file) msg += `  📄 Atual: ${data.current_file}`;
-    } else {
-        msg = data.error ? `❌ Sync com erro: ${data.error}\n` : `✅ Sync concluído!\n`;
+    } else if (data.run_id) {
+        msg = data.error ? `❌ Sync com erro: ${data.error}\n` : `✅ Último sync: ${label}\n`;
         msg += `  📊 Total: ${data.files_total} arquivos\n`;
         msg += `  ✅ Enviados: ${data.files_uploaded}\n`;
         msg += `  ⏭️ Ignorados: ${data.files_skipped}\n`;
         msg += `  ❌ Falhas: ${data.files_failed}`;
+        if (data.finished_at) msg += `\n  🕒 Finalizado: ${data.finished_at}`;
+    } else {
+        msg = 'Nenhum sync executado ainda.';
     }
     if ((data.errors || []).length) {
         msg += '\n\n⚠️ Detalhes das falhas:\n' + data.errors.slice(0, 30).map(e =>
             `${e.file || ''}: ${e.error}`).join('\n');
+        if (data.errors_total > 30 || data.errors_truncated) {
+            msg += '\n... veja o histórico para a lista completa.';
+        }
     }
     box.textContent = msg;
 }
 
-function stopSyncPolling() {
-    if (syncPollTimer) {
-        clearInterval(syncPollTimer);
-        syncPollTimer = null;
+function scheduleSyncMonitor(delay) {
+    if (syncMonitorTimer) {
+        clearTimeout(syncMonitorTimer);
+    }
+    syncMonitorTimer = setTimeout(syncMonitorTick, delay);
+}
+
+async function syncMonitorTick() {
+    syncMonitorTimer = null;
+    if (syncMonitorBusy) {
+        scheduleSyncMonitor(JOB_POLL_INTERVAL_MS);
+        return;
+    }
+    syncMonitorBusy = true;
+    let running = syncMonitorLastRunning;
+    try {
+        const res = await fetch(API + '/sync/status');
+        if (res.ok) {
+            const data = await res.json();
+            running = !!data.running;
+            syncMonitorLastRunning = running;
+            renderSyncStatus(data);
+            if (!running) {
+                if (syncMonitorFinishedRunId !== data.run_id) {
+                    syncMonitorFinishedRunId = data.run_id;
+                    loadSyncHistory();
+                }
+            } else {
+                syncMonitorFinishedRunId = null;
+            }
+        }
+    } catch (e) {
+        // Erro transitório de rede: mantém o monitor
+    } finally {
+        syncMonitorBusy = false;
+        const delay = document.hidden
+            ? 5000
+            : (running ? JOB_POLL_INTERVAL_MS : SYNC_IDLE_POLL_MS);
+        scheduleSyncMonitor(delay);
     }
 }
 
+function startSyncMonitor() {
+    scheduleSyncMonitor(0);
+}
+
 function pollSyncStatus() {
-    stopSyncPolling();
-    const tick = async () => {
-        if (syncPollBusy) return;
-        syncPollBusy = true;
-        try {
-            const res = await fetch(API + '/sync/status');
-            if (!res.ok) return;
-            const data = await res.json();
-            renderSyncStatus(data);
-            if (!data.running) {
-                stopSyncPolling();
-                loadSyncHistory();
-            }
-        } catch (e) {
-            // Mantém o polling; erro transitório de rede não deve parar a UI
-        } finally {
-            syncPollBusy = false;
-        }
-    };
-    tick();
-    syncPollTimer = setInterval(tick, JOB_POLL_INTERVAL_MS);
+    syncMonitorFinishedRunId = null;
+    scheduleSyncMonitor(0);
+}
+
+function stopSyncPolling() {
+    if (syncMonitorTimer) {
+        clearTimeout(syncMonitorTimer);
+        syncMonitorTimer = null;
+    }
 }
 
 async function loadSyncHistory() {
@@ -1137,14 +1246,112 @@ async function loadSyncHistory() {
         const data = await res.json();
         const div = document.getElementById('sync-history');
         div.innerHTML = '';
+        if (!Array.isArray(data) || data.length === 0) {
+            div.textContent = 'Nenhum sync registrado ainda.';
+            return;
+        }
         data.forEach(run => {
-            const p = document.createElement('p');
-            p.textContent = `Run #${run.id} - ${run.status} - ${run.files_uploaded}/${run.files_total} enviados, ${run.files_failed} falhas (${run.started_at})`;
-            div.appendChild(p);
+            const row = document.createElement('div');
+            row.className = 'sync-history-row';
+
+            const info = document.createElement('div');
+            info.className = 'history-info';
+            const finished = run.finished_at ? ` → ${run.finished_at}` : '';
+            info.textContent =
+                `Run #${run.id} - ${run.status} - ` +
+                `${run.files_uploaded}/${run.files_total} enviados, ` +
+                `${run.files_failed} falhas (${run.started_at}${finished})`;
+            row.appendChild(info);
+
+            if (run.errors_total > 0) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-danger history-errors';
+                btn.textContent =
+                    `⚠️ ${run.errors_total} erro(s) — ver detalhes`;
+                btn.addEventListener('click', () => showSyncErrors(run.id, run));
+                row.appendChild(btn);
+            }
+
+            div.appendChild(row);
         });
     } catch (e) {
         console.error(e);
     }
+}
+
+const SYNC_ERROR_KIND_LABELS = {
+    file: 'Falha de transferência',
+    plan: 'Arquivo inválido no plano',
+    scan: 'Erro de varredura',
+    folder: 'Erro ao criar pasta remota',
+    manifest: 'Erro no manifesto',
+    config: 'Erro na configuração remota'
+};
+
+async function showSyncErrors(runId, run = null) {
+    const modal = document.getElementById('sync-errors-modal');
+    const list = document.getElementById('sync-errors-list');
+    const summary = document.getElementById('sync-errors-summary');
+    if (!modal || !list) return;
+
+    modal.hidden = false;
+    list.innerHTML = '';
+    if (summary) {
+        summary.textContent = run
+            ? `Run #${runId} • ${run.status} • ` +
+              `${run.files_uploaded}/${run.files_total} enviados • ` +
+              `${run.files_failed} falha(s)`
+            : `Run #${runId}`;
+    }
+
+    const loading = document.createElement('div');
+    loading.className = 'sync-error-item';
+    loading.textContent = 'Carregando detalhes...';
+    list.appendChild(loading);
+
+    try {
+        const res = await fetch(API + `/sync/history/${runId}/errors`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const errors = await res.json();
+        list.innerHTML = '';
+        if (!Array.isArray(errors) || errors.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'sync-error-item';
+            empty.textContent = 'Nenhuma falha detalhada registrada.';
+            list.appendChild(empty);
+            return;
+        }
+        for (const item of errors) {
+            const div = document.createElement('div');
+            div.className = 'sync-error-item';
+            const kind = SYNC_ERROR_KIND_LABELS[item.kind] || item.kind || 'Erro';
+            div.textContent =
+                `⛔ ${kind}\n` +
+                `📄 ${item.path || '(sem caminho)'}\n` +
+                (item.mapping_name ? `📁 ${item.mapping_name}\n` : '') +
+                `💬 ${item.error}`;
+            list.appendChild(div);
+        }
+        if (run && run.errors_truncated) {
+            const truncated = document.createElement('div');
+            truncated.className = 'sync-error-item';
+            truncated.textContent =
+                '... a lista foi truncada; há mais erros neste run.';
+            list.appendChild(truncated);
+        }
+    } catch (e) {
+        list.innerHTML = '';
+        const error = document.createElement('div');
+        error.className = 'sync-error-item';
+        error.textContent = 'Erro ao carregar detalhes: ' + e.message;
+        list.appendChild(error);
+    }
+}
+
+function closeSyncErrorsModal() {
+    const modal = document.getElementById('sync-errors-modal');
+    if (modal) modal.hidden = true;
 }
 
 // ── Restaurar ──
@@ -1735,6 +1942,32 @@ function renderRestoreProgress(data) {
     if (data.current_file) lines.push(`📄 ${data.current_file}`);
     if (data.error) lines.push(`❌ ${data.error}`);
     text.textContent = lines.join('\n');
+
+    // Progresso do download atual: bytes, %, velocidade.
+    const fileWrap = document.getElementById('restore-file-progress-wrap');
+    const fileBar = document.getElementById('restore-file-progress-bar');
+    const fileText = document.getElementById('restore-file-progress-text');
+    const downloadTotal = Number(data.download_bytes_total || 0);
+    const downloadDone = Number(data.download_bytes_done || 0);
+    const downloadPercent = Number(data.download_percent || 0);
+    if (fileWrap) {
+        fileWrap.hidden = !running || downloadTotal <= 0;
+    }
+    if (running && downloadTotal > 0) {
+        if (fileBar) {
+            fileBar.style.width = Math.min(100, downloadPercent) + '%';
+        }
+        if (fileText) {
+            const parts = [
+                `📥 ${formatBytes(downloadDone)} / ${formatBytes(downloadTotal)} ` +
+                `(${downloadPercent.toFixed(1)}%)`
+            ];
+            if (data.download_speed_bps > 0) {
+                parts.push(`${formatBytes(data.download_speed_bps)}/s`);
+            }
+            fileText.textContent = parts.join(' • ');
+        }
+    }
 }
 
 function stopRestorePolling() {
@@ -1957,6 +2190,8 @@ async function loadSettings() {
         document.getElementById('s-autosync').checked = data.auto_sync;
         document.getElementById('s-notifications').checked = data.notifications;
         document.getElementById('s-concurrent').value = data.max_concurrent_uploads;
+        document.getElementById('s-upload-chunked').checked =
+            data.upload_chunked !== false;
         document.getElementById('s-browser').value = data.browser_preference;
         document.getElementById('s-autostart').checked = data.autostart;
         document.getElementById('s-machine-name').value = data.machine_name || '';
@@ -1981,6 +2216,7 @@ async function saveSettings(e) {
         auto_sync: document.getElementById('s-autosync').checked,
         notifications: document.getElementById('s-notifications').checked,
         max_concurrent_uploads: parseInt(document.getElementById('s-concurrent').value),
+        upload_chunked: document.getElementById('s-upload-chunked').checked,
         browser_preference: document.getElementById('s-browser').value,
         autostart: document.getElementById('s-autostart').checked,
         restore_confirm_overwrite: document.getElementById('s-restore-confirm').checked,
@@ -2100,17 +2336,6 @@ function formatDuration(seconds) {
 // ── Retomada de operações em andamento após recarregar a página ──
 async function resumeRunningOperations() {
     try {
-        const res = await fetch(API + '/sync/status');
-        if (res.ok) {
-            const data = await res.json();
-            renderSyncStatus(data);
-            if (data.running) pollSyncStatus();
-        }
-    } catch (e) {
-        // sem status do sync no carregamento
-    }
-
-    try {
         const res = await fetch(API + '/restore/status');
         if (!res.ok) return;
         const data = await res.json();
@@ -2189,16 +2414,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target === remoteModal) closeRemoteConfigModal();
         });
     }
+    const syncErrorsModal = document.getElementById('sync-errors-modal');
+    if (syncErrorsModal) {
+        syncErrorsModal.addEventListener('click', event => {
+            if (event.target === syncErrorsModal) closeSyncErrorsModal();
+        });
+    }
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') closeRemoteConfigModal();
+        if (event.key === 'Escape') {
+            closeRemoteConfigModal();
+            closeSyncErrorsModal();
+        }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) pollSyncStatus();
     });
 
     window.addEventListener('beforeunload', saveRestoreSelectionNow);
+
+    let savedTab = null;
+    try {
+        savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
+    } catch (e) {
+        savedTab = null;
+    }
+    activateTab(savedTab || 'config', false);
 
     updateRestoreMode();
     checkAuth();
     loadMappings();
     loadSyncHistory();
     loadSettings();
+    startSyncMonitor();
     resumeRunningOperations();
 });

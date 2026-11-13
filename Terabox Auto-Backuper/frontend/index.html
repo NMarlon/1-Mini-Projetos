@@ -130,6 +130,12 @@
                     <div id="sync-progress-bar" class="progress-bar"></div>
                 </div>
                 <div id="sync-progress-text" class="progress-text"></div>
+                <div id="sync-file-progress-wrap" class="file-progress" hidden>
+                    <div class="progress-track progress-track-thin">
+                        <div id="sync-file-progress-bar" class="progress-bar"></div>
+                    </div>
+                    <div id="sync-file-progress-text" class="progress-text"></div>
+                </div>
             </div>
             <div id="sync-status" class="status-box"></div>
             <h3>Histórico</h3>
@@ -164,6 +170,12 @@
                         <div id="restore-progress-bar" class="progress-bar"></div>
                     </div>
                     <div id="restore-progress-text" class="progress-text"></div>
+                    <div id="restore-file-progress-wrap" class="file-progress" hidden>
+                        <div class="progress-track progress-track-thin">
+                            <div id="restore-file-progress-bar" class="progress-bar"></div>
+                        </div>
+                        <div id="restore-file-progress-text" class="progress-text"></div>
+                    </div>
                     <button id="restore-stop-btn" type="button" class="btn-danger"
                         onclick="stopRestore()" hidden>⏹ Parar restauração</button>
                 </div>
@@ -179,6 +191,14 @@
                 <label><input type="checkbox" id="s-autosync" checked> Sync automático</label>
                 <label><input type="checkbox" id="s-notifications" checked> Notificações toast</label>
                 <label>Uploads simultâneos: <input type="number" id="s-concurrent" min="1" max="10" value="3"></label>
+                <label><input type="checkbox" id="s-upload-chunked" checked>
+                    Enviar arquivos grandes em blocos (lotes)</label>
+                <p class="help-text">
+                    Recomendado. Arquivos acima de 100 MB são enviados em blocos,
+                    com progresso e retry por bloco. Desmarque para enviar cada
+                    arquivo inteiro de uma vez (mais sujeito a timeout em
+                    conexões lentas).
+                </p>
                 <label>Navegador para auth:
                     <select id="s-browser">
                         <option value="auto">Automático</option>
@@ -267,8 +287,24 @@
         </div>
     </div>
 
+    <div id="sync-errors-modal" class="modal" hidden>
+        <div class="modal-content" role="dialog" aria-modal="true"
+            aria-labelledby="sync-errors-modal-title">
+            <div class="modal-header">
+                <h3 id="sync-errors-modal-title">Falhas do sync</h3>
+                <button type="button" class="modal-close"
+                    onclick="closeSyncErrorsModal()" aria-label="Fechar">✕</button>
+            </div>
+            <div id="sync-errors-summary" class="remote-import-summary"></div>
+            <div id="sync-errors-list" class="sync-errors-list"></div>
+            <div class="modal-actions">
+                <button type="button" onclick="closeSyncErrorsModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <small>Terabox Auto-Backuper v0.3.5</small>
+        <small>Terabox Auto-Backuper v0.3.6</small>
     </footer>
 
     <script src="/static/js/remote_config.js"></script>
