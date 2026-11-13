@@ -384,7 +384,7 @@ configuração remota para mapeamentos de arquivo único.
 ## Status
 
 ### GET /api/health
-Health check. `{ "status": "ok", "version": "0.3.4" }`
+Health check. `{ "status": "ok", "version": "0.3.5" }`
 
 ### GET /api/status
 Status geral do app (auth, sync, scheduler, watchdog).

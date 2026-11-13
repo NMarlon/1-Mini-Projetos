@@ -22,7 +22,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import Callable, Iterable, Optional, Set
+from typing import Callable, Iterable, Optional
 
 from backend.config import TEMP_DIR
 from backend.paths import normalize_remote
