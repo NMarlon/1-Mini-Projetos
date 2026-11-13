@@ -14,6 +14,15 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+# Perfis do Windows que são compartilhados ou de sistema. Um caminho neles não
+# pertence a "outro usuário" e não deve ser rebaseado para o perfil atual.
+_SHARED_PROFILE_NAMES = {
+    "public",
+    "default",
+    "default user",
+    "all users",
+}
+
 
 class LocalPathError(ValueError):
     """Caminho local inválido ou impossível de criar."""
@@ -133,17 +142,24 @@ def validate_local_mapping_path(
             warnings.append("A pasta ainda não existe; ela será criada.")
 
     if create:
+        target = (
+            os.path.dirname(normalized)
+            if resolved_is_file
+            else normalized
+        )
+        if not os.path.isdir(target):
+            foreign = detect_foreign_profile(target)
+            if foreign:
+                raise LocalPathError(
+                    "O caminho pertence ao perfil do usuário "
+                    f"'{foreign['foreign_user']}', não ao seu perfil "
+                    f"'{foreign['current_user']}'. A pasta não foi criada "
+                    "no perfil errado. Sugestão de caminho: "
+                    f"{foreign['suggested_path']}"
+                )
         try:
-            if resolved_is_file:
-                os.makedirs(os.path.dirname(normalized), exist_ok=True)
-            else:
-                os.makedirs(normalized, exist_ok=True)
+            os.makedirs(target, exist_ok=True)
         except OSError as exc:
-            target = (
-                os.path.dirname(normalized)
-                if resolved_is_file
-                else normalized
-            )
             raise LocalPathError(
                 f"Não foi possível criar a pasta '{target}': {exc}"
             ) from exc
@@ -153,3 +169,78 @@ def validate_local_mapping_path(
         is_file=resolved_is_file,
         warnings=warnings,
     )
+
+
+def current_windows_user() -> str:
+    """Nome do usuário Windows atual (vazio quando não identificável)."""
+    return str(os.environ.get("USERNAME") or "").strip()
+
+
+def current_user_profile() -> Optional[str]:
+    """Raiz do perfil do usuário atual, quando identificável."""
+    profile = str(os.environ.get("USERPROFILE") or "").strip()
+    if profile and os.path.isabs(profile):
+        return os.path.abspath(profile)
+    user = current_windows_user()
+    drive = str(os.environ.get("SystemDrive") or "C:").strip() or "C:"
+    if not user:
+        return None
+    return os.path.join(drive + os.sep, "Users", user)
+
+
+def detect_foreign_profile(
+    path: str, current_user: Optional[str] = None
+) -> Optional[dict]:
+    """Detecta ``...\\Users\\<outro usuário>\\...`` e sugere o rebase.
+
+    Retorna ``None`` quando o caminho não é de um perfil de usuário ou quando
+    já pertence ao usuário atual. Perfis compartilhados (Public, Default etc.)
+    também são ignorados.
+    """
+    raw = _clean_raw_path(path)
+    if not raw:
+        return None
+
+    expanded = os.path.expandvars(os.path.expanduser(raw))
+    if not os.path.isabs(expanded):
+        return None
+
+    normalized = os.path.abspath(expanded)
+    drive, tail = os.path.splitdrive(normalized)
+    parts = [part for part in tail.replace("/", "\\").split("\\") if part]
+    if len(parts) < 2 or parts[0].casefold() != "users":
+        return None
+
+    foreign_user = parts[1]
+    if foreign_user.casefold() in _SHARED_PROFILE_NAMES:
+        return None
+
+    current = str(current_user or current_windows_user()).strip()
+    if not current or foreign_user.casefold() == current.casefold():
+        return None
+
+    profile = current_user_profile()
+    profile_drive = os.path.splitdrive(profile or "")[0]
+    profile_name = (
+        os.path.basename((profile or "").rstrip("\\/")) if profile else ""
+    )
+    if (
+        not profile
+        or profile_drive.casefold() != drive.casefold()
+        or profile_name.casefold() != current.casefold()
+    ):
+        profile = os.path.join(drive + os.sep, "Users", current)
+
+    remainder = parts[2:]
+    suggested = (
+        os.path.normpath(os.path.join(profile, *remainder))
+        if remainder
+        else os.path.normpath(profile)
+    )
+    return {
+        "foreign_user": foreign_user,
+        "current_user": current,
+        "foreign_root": os.path.join(drive + os.sep, "Users", foreign_user),
+        "current_root": os.path.normpath(profile),
+        "suggested_path": suggested,
+    }

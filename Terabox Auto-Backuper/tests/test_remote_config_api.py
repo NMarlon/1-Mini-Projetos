@@ -3,9 +3,12 @@
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import backend.database as database
+import backend.remote_config as remote_config
 from backend.config import DEFAULT_REMOTE_CONFIG_PATH
+from backend.local_paths import LocalPathError
 from backend.remote_config import (
     RemoteConfigConflict,
     RemoteConfigEmpty,
@@ -290,6 +293,60 @@ class RemoteConfigServiceTest(unittest.IsolatedAsyncioTestCase):
         row = await database.fetch_one("SELECT * FROM mappings")
         self.assertEqual(row["is_file"], 1)
         self.assertEqual(row["include_subfolders"], 0)
+        self.assertFalse(os.path.exists(target))
+
+    async def test_apply_import_importa_mesmo_sem_criar_pasta(self):
+        target = os.path.join(self._tmp.name, "Bloqueada", "Fotos")
+        config = make_config(
+            [
+                make_entry(
+                    "u1",
+                    "/Backup/Fotos",
+                    {"outra-maquina": target},
+                )
+            ]
+        )
+
+        async def fake_load_remote(preferred_path=None):
+            return {
+                "exists": True,
+                "path": "/config/backup.json",
+                "source": "configured",
+                "config": config,
+                "error": None,
+                "hash": config_hash(config, ignore_volatile=True),
+            }
+
+        self.manager.load_remote = fake_load_remote
+        real_validate = remote_config.validate_local_mapping_path
+
+        def fake_validate(
+            raw_path, is_file=None, *, create=False, fallback_is_file=None
+        ):
+            if create:
+                raise LocalPathError("sem permissão para criar a pasta")
+            return real_validate(
+                raw_path,
+                is_file,
+                create=False,
+                fallback_is_file=fallback_is_file,
+            )
+
+        with mock.patch(
+            "backend.remote_config.validate_local_mapping_path",
+            side_effect=fake_validate,
+        ):
+            result = await self.manager.apply_import(
+                config_hash(config, ignore_volatile=True),
+                [{"uid": "u1", "local_path": target}],
+            )
+
+        self.assertEqual(len(result["created"]), 1)
+        self.assertEqual(result["errors"], [])
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertIn("sem permissão", result["warnings"][0]["warning"])
+        row = await database.fetch_one("SELECT * FROM mappings")
+        self.assertEqual(row["local_path"], target)
         self.assertFalse(os.path.exists(target))
 
     async def test_save_mescla_caminho_de_outra_maquina(self):

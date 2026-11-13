@@ -251,6 +251,55 @@ class RemoteConfigImportPlanTest(unittest.TestCase):
         self.assertTrue(row["selected"])
         self.assertEqual(row["other_machines"][0]["machine_name"], "PC-1")
 
+    def test_sugestao_de_outro_perfil_windows_e_rebaseada(self):
+        foreign = r"C:\Users\OutroUsuario\Documents\Fotos"
+        config = config_for(
+            [
+                entry(
+                    "u1",
+                    "Fotos",
+                    "/Backup/Fotos",
+                    local_paths={"m1": foreign},
+                )
+            ]
+        )
+        plan = build_import_plan(config, [], "m2")
+
+        row = plan["mappings"][0]
+        expected_root = os.environ.get("USERPROFILE") or (
+            "C:\\Users\\" + os.environ.get("USERNAME", "")
+        )
+        self.assertEqual(row["original_local_path"], foreign)
+        self.assertEqual(row["rebase"]["foreign_user"], "OutroUsuario")
+        self.assertEqual(
+            row["local_path"],
+            os.path.normpath(os.path.join(expected_root, "Documents", "Fotos")),
+        )
+        self.assertTrue(
+            any("perfil" in warning.lower() for warning in row["warnings"])
+        )
+        self.assertIsNone(row["path_error"])
+        self.assertTrue(row["selected"])
+
+    def test_caminho_do_proprio_pc_nao_e_rebaseado(self):
+        foreign = r"C:\Users\OutroUsuario\Documents\Fotos"
+        config = config_for(
+            [
+                entry(
+                    "u1",
+                    "Fotos",
+                    "/Backup/Fotos",
+                    local_paths={"m2": foreign},
+                )
+            ]
+        )
+        plan = build_import_plan(config, [], "m2")
+
+        row = plan["mappings"][0]
+        self.assertIsNone(row["rebase"])
+        self.assertEqual(row["local_path"], foreign)
+        self.assertEqual(row["suggestion_source"], "this_machine")
+
     def test_existente_por_uid_nao_e_selecionado_por_padrao(self):
         local_path = os.path.join(self.root, "Fotos")
         os.makedirs(local_path)

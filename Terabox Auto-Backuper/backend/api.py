@@ -15,7 +15,7 @@ from backend.models import (
     Mapping, MappingCreate, MappingUpdate, MappingBulkEnabled,
     SyncStatus, SyncRequest, Settings, SettingsUpdate,
     AuthStatus, AuthConnect, AuthConnectManual, BrowserProfile, HealthResponse,
-    RestorePlanRequest, RestoreRequest, CsvImportRequest,
+    RestorePlanRequest, RestoreRequest, RestoreStatus, CsvImportRequest,
     RemoteConfigSaveRequest, RemoteConfigImportRequest,
 )
 from backend import auth
@@ -40,10 +40,9 @@ from backend.paths import (
     normalize_remote,
     sanitize_remote_path,
 )
-from backend.restore import (
-    build_restore_plan,
-    compute_file_metadata,
-)
+from backend.manifest import download_manifest
+from backend.restore import build_restore_plan
+from backend.restore_runner import execute_restore
 
 router = APIRouter()
 
@@ -500,23 +499,97 @@ async def sync_stream():
 
 # ── Restaurar ──
 
-async def _download_manifest(client) -> Optional[dict]:
-    """Baixa o manifesto remoto para um arquivo temporário e devolve o JSON."""
-    import tempfile
-    import uuid
+# Estado do job de restauração em background. O polling do frontend consulta
+# ``/restore/status`` a cada 0,3s enquanto ``running`` for verdadeiro.
+_restore_job: dict = {
+    "task": None,
+    "cancel_event": None,
+    "progress": {
+        "running": False,
+        "job_id": None,
+        "phase": "idle",
+        "started_at": None,
+        "finished_at": None,
+        "elapsed_seconds": 0.0,
+        "files_total": 0,
+        "files_done": 0,
+        "files_created": 0,
+        "files_replaced": 0,
+        "files_failed": 0,
+        "files_invalid": 0,
+        "current_index": 0,
+        "current_file": None,
+        "current_mapping": None,
+        "current_remote_path": None,
+        "cancel_requested": False,
+        "error": None,
+        "errors": [],
+        "errors_truncated": False,
+        "summary": None,
+    },
+}
 
-    tmp = os.path.join(tempfile.gettempdir(), f"_manifest_{uuid.uuid4().hex[:8]}.json")
+
+def _new_restore_progress(job_id: str) -> dict:
+    return {
+        "running": True,
+        "job_id": job_id,
+        "phase": "preparing",
+        "started_at": datetime.now().isoformat(),
+        "finished_at": None,
+        "elapsed_seconds": 0.0,
+        "files_total": 0,
+        "files_done": 0,
+        "files_created": 0,
+        "files_replaced": 0,
+        "files_failed": 0,
+        "files_invalid": 0,
+        "current_index": 0,
+        "current_file": None,
+        "current_mapping": None,
+        "current_remote_path": None,
+        "cancel_requested": False,
+        "error": None,
+        "errors": [],
+        "errors_truncated": False,
+        "summary": None,
+    }
+
+
+def _restore_elapsed(progress: dict) -> float:
+    started = progress.get("started_at")
+    if not started:
+        return 0.0
     try:
-        ok = await client.download_file("/_terabox_autobackup_manifest.json", tmp)
-        if not ok:
-            return None
-        with open(tmp, "r", encoding="utf-8") as f:
-            return json.load(f)
-    finally:
+        started_dt = datetime.fromisoformat(started)
+        end_dt = datetime.now()
+        if progress.get("finished_at"):
+            try:
+                end_dt = datetime.fromisoformat(progress["finished_at"])
+            except Exception:
+                pass
+        return max(0.0, (end_dt - started_dt).total_seconds())
+    except Exception:
+        return float(progress.get("elapsed_seconds") or 0.0)
+
+
+def _detail_text(detail) -> str:
+    if isinstance(detail, str):
+        return detail
+    if isinstance(detail, dict):
+        message = detail.get("message")
+        if message:
+            return str(message)
         try:
-            os.remove(tmp)
+            return json.dumps(detail, ensure_ascii=False)
         except Exception:
-            pass
+            return str(detail)
+    return str(detail)
+
+
+async def _download_manifest(client) -> Optional[dict]:
+    """Baixa o manifesto remoto (mesma leitura usada pelo sync)."""
+    return await download_manifest(client)
 
 
 @router.get("/restore/manifest")
@@ -530,7 +603,7 @@ async def restore_manifest():
     try:
         manifest = await _download_manifest(client)
         if manifest is None:
-            return {"version": "2.0", "files": [], "directories": [],
+            return {"version": "2.1", "files": [], "directories": [],
                     "error": "Manifesto não encontrado no Terabox"}
         return manifest
     finally:
@@ -552,6 +625,93 @@ async def _load_restore_context(client):
     return manifest, mappings
 
 
+async def _prepare_restore(client, files, allow_overwrite: bool):
+    """Monta o plano e valida conflitos/chave antes de baixar qualquer byte."""
+    manifest, mappings = await _load_restore_context(client)
+    plan = build_restore_plan(files, manifest, mappings)
+
+    conflicts = [
+        target for target in plan.targets if target.action == "replace"
+    ]
+    if conflicts and not allow_overwrite:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": (
+                    f"{len(conflicts)} arquivo(s) já existem e precisam "
+                    "de confirmação para serem substituídos."
+                ),
+                "summary": plan.summary,
+                "conflicts": [target.to_dict() for target in conflicts[:100]],
+            },
+        )
+
+    needs_key = any(
+        target.encrypted and target.action != "error"
+        for target in plan.targets
+    )
+    encryption_key = (
+        await database.get_setting("encryption_key") if needs_key else None
+    )
+    return plan, encryption_key
+
+
+async def _run_restore_job(
+    *,
+    files: List[str],
+    allow_overwrite: bool,
+    cancel_event: asyncio.Event,
+    progress: dict,
+):
+    """Executa o Restaurar em background, atualizando ``progress`` por arquivo."""
+    from backend.terabox_client import TeraboxClient
+
+    client = None
+    try:
+        auth_data = await auth.get_cached_auth()
+        if not auth_data:
+            raise RuntimeError(
+                "Sessão do Terabox expirou. Reconecte e tente novamente."
+            )
+        client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
+        plan, encryption_key = await _prepare_restore(
+            client, files, allow_overwrite
+        )
+        progress["phase"] = "preparing"
+        await execute_restore(
+            client,
+            plan,
+            encryption_key,
+            progress=progress,
+            cancel_event=cancel_event,
+        )
+    except HTTPException as exc:
+        progress["error"] = _detail_text(exc.detail)
+        progress["phase"] = "failed"
+    except asyncio.CancelledError:
+        progress["error"] = "Restauração interrompida."
+        progress["phase"] = "cancelled"
+        raise
+    except Exception as exc:
+        progress["error"] = str(exc) or exc.__class__.__name__
+        progress["phase"] = "failed"
+    finally:
+        if client is not None:
+            try:
+                await client.close()
+            except Exception:
+                pass
+        progress["running"] = False
+        progress["finished_at"] = datetime.now().isoformat()
+        progress["elapsed_seconds"] = _restore_elapsed(progress)
+        progress["current_file"] = None
+        progress["current_mapping"] = None
+        progress["current_remote_path"] = None
+        progress["current_index"] = 0
+        _restore_job["task"] = None
+        _restore_job["cancel_event"] = None
+
+
 @router.post("/restore/plan")
 async def restore_plan(body: RestorePlanRequest):
     """Prévia da restauração: destinos, conflitos e erros, sem baixar nada."""
@@ -568,225 +728,86 @@ async def restore_plan(body: RestorePlanRequest):
         await client.close()
 
 
-def _restore_result_failure(target, error: str) -> dict:
+@router.post("/restore/start")
+async def restore_start(body: RestoreRequest):
+    """Inicia o Restaurar em background e devolve o id do job."""
+    auth_data = await auth.get_cached_auth()
+    if not auth_data:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    task = _restore_job.get("task")
+    if task is not None and not task.done():
+        raise HTTPException(
+            status_code=409,
+            detail="Já existe uma restauração em andamento.",
+        )
+    if not body.files:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhum arquivo selecionado para restaurar.",
+        )
+
+    job_id = uuid.uuid4().hex[:12]
+    cancel_event = asyncio.Event()
+    progress = _new_restore_progress(job_id)
+    progress["files_total"] = len(body.files)
+
+    _restore_job["progress"] = progress
+    _restore_job["cancel_event"] = cancel_event
+    _restore_job["task"] = asyncio.create_task(
+        _run_restore_job(
+            files=list(body.files),
+            allow_overwrite=bool(body.allow_overwrite),
+            cancel_event=cancel_event,
+            progress=progress,
+        )
+    )
     return {
-        "remote_path": target.remote_path,
-        "local_path": target.local_path,
-        "success": False,
-        "overwritten": False,
-        "action": "error",
-        "error": error or "erro desconhecido",
+        "status": "started",
+        "job_id": job_id,
+        "files_total": len(body.files),
     }
+
+
+@router.get("/restore/status", response_model=RestoreStatus)
+async def restore_status():
+    """Progresso do Restaurar. O frontend consulta a cada 0,3s."""
+    progress = _restore_job["progress"]
+    data = dict(progress)
+    task = _restore_job.get("task")
+    if task is not None and task.done() and data.get("running"):
+        data["running"] = False
+    if data.get("running"):
+        data["elapsed_seconds"] = _restore_elapsed(data)
+    return RestoreStatus(**data)
+
+
+@router.post("/restore/stop")
+async def restore_stop():
+    """Pede o cancelamento do Restaurar em andamento."""
+    task = _restore_job.get("task")
+    if task is None or task.done():
+        return {"status": "idle"}
+    cancel_event = _restore_job.get("cancel_event")
+    if cancel_event is not None:
+        cancel_event.set()
+    _restore_job["progress"]["cancel_requested"] = True
+    _restore_job["progress"]["phase"] = "cancelling"
+    return {"status": "cancelling"}
 
 
 @router.post("/restore/download")
 async def restore_download(body: RestoreRequest):
+    """Restauração bloqueante (compatibilidade). Prefira /restore/start."""
     auth_data = await auth.get_cached_auth()
     if not auth_data:
         raise HTTPException(status_code=401, detail="Não autenticado")
     from backend.terabox_client import TeraboxClient
     client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
     try:
-        manifest, mappings = await _load_restore_context(client)
-        plan = build_restore_plan(body.files, manifest, mappings)
-
-        conflicts = [
-            target for target in plan.targets if target.action == "replace"
-        ]
-        if conflicts and not body.allow_overwrite:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "message": (
-                        f"{len(conflicts)} arquivo(s) já existem e precisam "
-                        "de confirmação para serem substituídos."
-                    ),
-                    "summary": plan.summary,
-                    "conflicts": [
-                        target.to_dict() for target in conflicts[:100]
-                    ],
-                },
-            )
-
-        needs_key = any(
-            target.encrypted and target.action != "error"
-            for target in plan.targets
+        plan, encryption_key = await _prepare_restore(
+            client, body.files, body.allow_overwrite
         )
-        encryption_key = (
-            await database.get_setting("encryption_key") if needs_key else None
-        )
-
-        results = []
-        plain_updates = []
-        encrypted_updates = []
-        now = datetime.now().isoformat()
-
-        for target in plan.targets:
-            if target.action == "error" or not target.local_path:
-                results.append(
-                    _restore_result_failure(
-                        target, target.error or "erro desconhecido"
-                    )
-                )
-                continue
-
-            local_path = target.local_path
-            parent = os.path.dirname(local_path)
-            try:
-                os.makedirs(parent, exist_ok=True)
-            except Exception as exc:
-                results.append(
-                    _restore_result_failure(
-                        target, f"não foi possível criar a pasta: {exc}"
-                    )
-                )
-                continue
-
-            existed = os.path.exists(local_path)
-            ok = False
-            error = None
-            try:
-                if target.encrypted:
-                    if not encryption_key:
-                        raise RuntimeError(
-                            "arquivo criptografado, mas a chave de "
-                            "criptografia não está configurada"
-                        )
-                    from backend.encryption import decrypt_file
-                    import tempfile
-                    import uuid
-
-                    tmp_enc = os.path.join(
-                        tempfile.gettempdir(),
-                        f"_restore_{uuid.uuid4().hex[:8]}.enc",
-                    )
-                    # O arquivo final é montado como .restore-part na mesma
-                    # pasta para que o os.replace seja atômico.
-                    part_path = local_path + ".restore-part"
-                    try:
-                        ok = await client.download_file(
-                            target.remote_path, tmp_enc
-                        )
-                        if ok:
-                            await asyncio.to_thread(
-                                decrypt_file,
-                                encryption_key,
-                                tmp_enc,
-                                part_path,
-                            )
-                            os.replace(part_path, local_path)
-                    finally:
-                        for path in (tmp_enc, part_path):
-                            try:
-                                if os.path.exists(path):
-                                    os.remove(path)
-                            except Exception:
-                                pass
-                else:
-                    ok = await client.download_file(
-                        target.remote_path, local_path
-                    )
-            except Exception as exc:
-                error = str(exc)
-                ok = False
-
-            if not ok:
-                results.append(
-                    _restore_result_failure(
-                        target, error or "falha no download"
-                    )
-                )
-                continue
-
-            # Atualiza o cache local para o próximo sync não reenviar um
-            # arquivo que já é idêntico ao que está no Terabox.
-            size = target.size
-            md5 = None
-            mtime_ns = None
-            try:
-                metadata = await asyncio.to_thread(
-                    compute_file_metadata, local_path
-                )
-                size = metadata["size"]
-                md5 = metadata["md5"]
-                mtime_ns = metadata["mtime_ns"]
-            except Exception:
-                pass
-
-            if target.mapping_id is not None and target.local_rel_path:
-                if target.encrypted:
-                    if md5:
-                        encrypted_updates.append(
-                            (
-                                size,
-                                md5,
-                                mtime_ns,
-                                now,
-                                target.mapping_id,
-                                target.local_rel_path,
-                            )
-                        )
-                elif md5:
-                    plain_updates.append(
-                        (
-                            size,
-                            md5,
-                            md5,
-                            mtime_ns,
-                            now,
-                            target.mapping_id,
-                            target.local_rel_path,
-                        )
-                    )
-
-            results.append(
-                {
-                    "remote_path": target.remote_path,
-                    "local_path": local_path,
-                    "success": True,
-                    "overwritten": bool(existed),
-                    "action": "replaced" if existed else "created",
-                    "error": None,
-                }
-            )
-
-        # A atualização do cache é secundária: os arquivos já foram
-        # restaurados. Se o banco falhar, o próximo sync apenas reavalia.
-        try:
-            if plain_updates:
-                await database.execute_many(
-                    """UPDATE files
-                       SET size = ?, md5 = ?, remote_md5 = ?, mtime_ns = ?,
-                           status = 'uploaded', last_synced_at = ?, error = NULL
-                       WHERE mapping_id = ? AND local_rel_path = ?""",
-                    plain_updates,
-                )
-            if encrypted_updates:
-                await database.execute_many(
-                    """UPDATE files
-                       SET size = ?, md5 = ?, mtime_ns = ?,
-                           status = 'uploaded', last_synced_at = ?, error = NULL
-                       WHERE mapping_id = ? AND local_rel_path = ?""",
-                    encrypted_updates,
-                )
-        except Exception:
-            pass
-
-        restored = sum(1 for result in results if result["success"])
-        replaced = sum(
-            1
-            for result in results
-            if result["success"] and result["overwritten"]
-        )
-        return {
-            "summary": {
-                "restored": restored,
-                "created": restored - replaced,
-                "replaced": replaced,
-                "failed": len(results) - restored,
-            },
-            "results": results,
-        }
+        return await execute_restore(client, plan, encryption_key)
     finally:
         await client.close()
 

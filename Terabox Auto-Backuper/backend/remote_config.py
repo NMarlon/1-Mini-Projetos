@@ -33,6 +33,7 @@ from backend.config import (
 )
 from backend.local_paths import (
     LocalPathError,
+    detect_foreign_profile,
     validate_local_mapping_path,
 )
 from backend.paths import (
@@ -549,6 +550,26 @@ def build_import_plan(
             local_path = other_paths[0]
             suggestion_source = "other_machine"
 
+        # Sugestões vindas de outro computador podem apontar para o perfil de
+        # outro usuário do Windows (ex.: C:\Users\marlo). O mapeamento será
+        # importado no perfil atual, nunca criando pasta no perfil errado.
+        original_local_path = local_path
+        rebase = None
+        rebase_warning = None
+        if local_path and suggestion_source in (
+            "existing_mapping",
+            "other_machine",
+        ):
+            rebase = detect_foreign_profile(local_path)
+            if rebase:
+                local_path = rebase["suggested_path"]
+                rebase_warning = (
+                    "O caminho sugerido usava o perfil do usuário "
+                    f"'{rebase['foreign_user']}' de outro computador. "
+                    f"Foi ajustado para o seu perfil "
+                    f"'{rebase['current_user']}': {rebase['suggested_path']}"
+                )
+
         path_error = None
         warnings: List[str] = []
         normalized_local = ""
@@ -563,6 +584,9 @@ def build_import_plan(
                 )
             except RemoteConfigInvalid as exc:
                 path_error = str(exc)
+
+        if rebase_warning:
+            warnings.insert(0, rebase_warning)
 
         if entry.get("encrypted") and not encryption_key_available:
             warnings.append(
@@ -625,6 +649,8 @@ def build_import_plan(
             "existing_id": existing.get("id") if existing else None,
             "current_local_path": existing_local or None,
             "local_path": local_path,
+            "original_local_path": original_local_path or None,
+            "rebase": rebase,
             "normalized_local_path": normalized_local or None,
             "suggestion_source": suggestion_source,
             "needs_update": bool(needs_update),
@@ -1466,6 +1492,10 @@ class RemoteConfigManager:
         created = []
         updated = []
         errors = list(operations["errors"])
+        # A criação da pasta é melhor-esforço: se o Windows bloquear (ACL,
+        # perfil de outro usuário etc.), o mapeamento é importado mesmo assim
+        # e o usuário recebe um aviso amigável.
+        warnings = []
         now = _now_iso()
 
         # Cria as pastas/pasta-pai dos itens selecionados, inclusive os que já
@@ -1476,7 +1506,7 @@ class RemoteConfigManager:
                     item["local_path"], item["is_file"], create=True
                 )
             except LocalPathError as exc:
-                errors.append({"uid": item["uid"], "error": str(exc)})
+                warnings.append({"uid": item["uid"], "warning": str(exc)})
 
         for item in operations["create"]:
             try:
@@ -1484,8 +1514,7 @@ class RemoteConfigManager:
                     item["local_path"], item["is_file"], create=True
                 )
             except LocalPathError as exc:
-                errors.append({"uid": item["uid"], "error": str(exc)})
-                continue
+                warnings.append({"uid": item["uid"], "warning": str(exc)})
             try:
                 mapping_id = await database.execute(
                     """INSERT INTO mappings
@@ -1518,8 +1547,7 @@ class RemoteConfigManager:
                     item["local_path"], item["is_file"], create=True
                 )
             except LocalPathError as exc:
-                errors.append({"uid": item["uid"], "error": str(exc)})
-                continue
+                warnings.append({"uid": item["uid"], "warning": str(exc)})
             try:
                 await database.execute(
                     """UPDATE mappings
@@ -1555,6 +1583,7 @@ class RemoteConfigManager:
             "updated": updated,
             "skipped": operations["skipped"],
             "errors": errors,
+            "warnings": warnings,
             "config_path": loaded.get("path"),
             "source": loaded.get("source"),
             "config_hash": current_hash,

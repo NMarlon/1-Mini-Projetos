@@ -30,6 +30,11 @@ from backend.config import (
     TEMP_DIR,
 )
 from backend import auth, database, notifications
+from backend.manifest import (
+    download_manifest,
+    merge_manifest,
+    write_manifest,
+)
 from backend.paths import (
     join_remote,
     normalize_remote,
@@ -62,11 +67,15 @@ class SyncEngine:
         self._status = {
             "running": False,
             "run_id": None,
+            "phase": "idle",
+            "started_at": None,
             "files_total": 0,
             "files_uploaded": 0,
             "files_failed": 0,
             "files_skipped": 0,
+            "files_processed": 0,
             "current_file": None,
+            "current_mapping": None,
             "error": None,
             "errors": [],
         }
@@ -125,11 +134,15 @@ class SyncEngine:
         self._status = {
             "running": True,
             "run_id": run_id,
+            "phase": "preparing",
+            "started_at": datetime.now().isoformat(),
             "files_total": 0,
             "files_uploaded": 0,
             "files_failed": 0,
             "files_skipped": 0,
+            "files_processed": 0,
             "current_file": None,
+            "current_mapping": None,
             "error": None,
             "errors": [],
         }
@@ -174,20 +187,32 @@ class SyncEngine:
 
     # ── Planejamento ──
 
-    async def _fetch_snapshot(self, client: TeraboxClient, root: str) -> RemoteSnapshot:
-        """Lista o remoto com uma segunda tentativa em caso de erro temporário."""
+    async def _fetch_snapshot(
+        self, client: TeraboxClient, root: str, *, strict: bool = False
+    ) -> RemoteSnapshot:
+        """Lista o remoto com uma segunda tentativa em caso de erro temporário.
+
+        ``strict=True`` levanta o erro final em vez de devolver um snapshot
+        vazio. O manifesto usa isso para não apagar entradas de um mapeamento
+        cuja listagem remota falhou.
+        """
+        last_error = None
         for attempt in range(2):
             try:
                 await client.ensure_token()
                 return await client.fetch_remote_snapshot(root)
-            except TeraboxAuthError:
+            except TeraboxAuthError as exc:
+                last_error = exc
                 await client.refresh_token()
                 if attempt == 1:
                     raise
-            except TeraboxTransientError:
+            except TeraboxTransientError as exc:
+                last_error = exc
                 if attempt == 1:
                     raise
                 await asyncio.sleep(1.5 + random.random())
+        if strict and last_error:
+            raise last_error
         return RemoteSnapshot()
 
     async def _local_md5(self, entry: LocalEntry, db_row: Optional[dict]) -> Optional[str]:
@@ -374,12 +399,14 @@ class SyncEngine:
 
         client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
         run_started = datetime.now().isoformat()
+        self._status["started_at"] = run_started
+        self._status["phase"] = "preparing"
         try:
             mappings = await self._get_mappings(mapping_ids)
             if not mappings:
-                # Nenhum mapeamento selecionado: atualiza o manifesto para
-                # vazio, senão o Restaurar continuaria listando arquivos de
-                # mapeamentos que foram desmarcados.
+                # Nenhum mapeamento selecionado nesta execução. O manifesto
+                # continua sendo reconstruído para todos os mapeamentos locais,
+                # mas preserva as entradas de outros computadores.
                 try:
                     await self._update_manifest(
                         client, SyncPlan(mappings=[]), run_started
@@ -399,7 +426,9 @@ class SyncEngine:
                     err.get("file") or err.get("mapping_name"),
                     err.get("error") or "erro de varredura",
                 )
+            self._status["phase"] = "directories"
             self._status["files_total"] = len(plan.items)
+            self._status["files_processed"] = 0
             await database.execute(
                 "UPDATE sync_runs SET files_total = ? WHERE id = ?",
                 (len(plan.items), run_id),
@@ -410,15 +439,24 @@ class SyncEngine:
             for snapshot in plan.snapshots.values():
                 known_dirs.update(snapshot.dirs)
             ensured: Set[str] = set()
+            mapping_names = {
+                int(mapping["id"]): str(mapping.get("name") or "")
+                for mapping in mappings
+            }
 
             for mapping in mappings:
                 if self._cancelled:
                     await self._finish_run(run_id, "cancelled")
                     return
+                remote_root = sanitize_remote_path(mapping["remote_path"])
+                self._status["current_file"] = remote_root
+                self._status["current_mapping"] = str(
+                    mapping.get("name") or ""
+                )
                 try:
                     await self._ensure_directory_chain(
                         client,
-                        sanitize_remote_path(mapping["remote_path"]),
+                        remote_root,
                         known_dirs,
                         ensured,
                     )
@@ -431,6 +469,10 @@ class SyncEngine:
                 if self._cancelled:
                     await self._finish_run(run_id, "cancelled")
                     return
+                self._status["current_file"] = remote_dir
+                self._status["current_mapping"] = mapping_names.get(
+                    int(mapping_id), ""
+                )
                 try:
                     await self._ensure_directory_chain(
                         client, remote_dir, known_dirs, ensured
@@ -438,6 +480,9 @@ class SyncEngine:
                 except Exception as exc:
                     self._record_status_error(remote_dir, f"falha ao criar subpasta: {exc}")
 
+            self._status["phase"] = "uploading"
+            self._status["current_file"] = None
+            self._status["current_mapping"] = None
             await self._notify(
                 "sync_started",
                 {"run_id": run_id, "files_total": len(plan.items)},
@@ -449,6 +494,12 @@ class SyncEngine:
                     return
 
                 self._status["current_file"] = item.local_rel_path
+                self._status["current_mapping"] = item.mapping_name
+                self._status["files_processed"] = (
+                    self._status["files_uploaded"]
+                    + self._status["files_skipped"]
+                    + self._status["files_failed"]
+                )
                 await self._notify("file_processing", {"file": item.local_rel_path})
 
                 if item.action == "skip":
@@ -470,6 +521,9 @@ class SyncEngine:
                     await self._record_failure(item, run_id, exc)
 
             # Manifesto (não falha o sync inteiro se der erro)
+            self._status["phase"] = "manifest"
+            self._status["current_file"] = None
+            self._status["current_mapping"] = None
             try:
                 await self._update_manifest(client, plan, run_started)
             except Exception as exc:
@@ -485,6 +539,7 @@ class SyncEngine:
             self._running = False
             self._status["running"] = False
             self._status["current_file"] = None
+            self._status["current_mapping"] = None
 
     async def _ensure_directory_chain(
         self,
@@ -839,31 +894,65 @@ class SyncEngine:
 
     # ── Manifesto ──
 
-    async def _update_manifest(self, client: TeraboxClient, plan: SyncPlan, run_started: str):
-        """Gera manifesto v2 apenas com arquivos que existem no remoto.
+    async def _update_manifest(
+        self,
+        client: TeraboxClient,
+        plan: SyncPlan,
+        run_started: str,
+        *,
+        dry_run: bool = False,
+    ):
+        """Atualiza o manifesto global sem apagar entradas de outros PCs.
 
-        Inclui todos os mapeamentos habilitados (não só os sincronizados nesta
-        execução), conferindo a existência remota. Assim, arquivos apagados
-        manualmente do Terabox não ficam "fantasmas" no Restaurar.
+        A reconstrução é feita apenas para os mapeamentos locais cuja listagem
+        remota foi confirmada nesta execução. Mapeamentos desativados ou com
+        falha de listagem mantêm as entradas antigas. Entradas de outros
+        computadores são preservadas e deduplicadas por ``remote_path``.
         """
-        verified: Set[str] = set(self._remote_verified)
         try:
             all_mappings = await database.fetch_all(
-                "SELECT * FROM mappings WHERE enabled = 1"
+                "SELECT * FROM mappings ORDER BY id"
             )
         except Exception:
-            all_mappings = plan.mappings
+            all_mappings = list(plan.mappings)
+
+        by_id = {
+            int(mapping["id"]): mapping
+            for mapping in all_mappings
+            if mapping.get("id") is not None
+        }
+        local_uids = {
+            str(mapping.get("uid") or "").strip()
+            for mapping in all_mappings
+            if str(mapping.get("uid") or "").strip()
+        }
+
+        verified: Set[str] = set(self._remote_verified)
+        verified_uids: Set[str] = set()
+        preserve_uids: Set[str] = set()
 
         for mapping in all_mappings:
+            uid = str(mapping.get("uid") or "").strip()
+            if not uid:
+                continue
+            if not bool(mapping.get("enabled", 1)):
+                preserve_uids.add(uid)
+                continue
             snapshot = plan.snapshots.get(int(mapping["id"]))
             if snapshot is None:
                 try:
                     snapshot = await self._fetch_snapshot(
-                        client, sanitize_remote_path(mapping["remote_path"])
+                        client,
+                        sanitize_remote_path(mapping["remote_path"]),
+                        strict=True,
                     )
                 except Exception:
+                    # Não apaga o que já estava no manifesto por causa de uma
+                    # falha transitória de listagem remota.
+                    preserve_uids.add(uid)
                     continue
             verified.update(snapshot.files.keys())
+            verified_uids.add(uid)
 
         rows = await database.fetch_all(
             """SELECT f.*, m.name AS mapping_name, m.uid AS mapping_uid,
@@ -873,6 +962,9 @@ class SyncEngine:
         )
         files = []
         for row in rows:
+            uid = str(row.get("mapping_uid") or "").strip()
+            if uid not in verified_uids:
+                continue
             remote_path = normalize_remote(row["remote_path"])
             if remote_path not in verified:
                 continue
@@ -884,7 +976,7 @@ class SyncEngine:
                     "md5": row["md5"],
                     "remote_md5": row.get("remote_md5"),
                     "mapping_id": row["mapping_id"],
-                    "mapping_uid": row.get("mapping_uid"),
+                    "mapping_uid": uid,
                     "mapping_name": row["mapping_name"],
                     "mapping_remote_path": normalize_remote(
                         row.get("mapping_remote_path") or ""
@@ -896,58 +988,48 @@ class SyncEngine:
 
         directories = []
         for mapping_id, remote_dir in plan.directories:
-            directories.append({"mapping_id": mapping_id, "remote_path": remote_dir})
-
-        manifest = {
-            "version": "2.0",
-            "generated_at": datetime.now().isoformat(),
-            "run_started_at": run_started,
-            "files": files,
-            "directories": directories,
-        }
-
-        tmp = Path(TEMP_DIR) / f"_manifest_{uuid.uuid4().hex[:8]}.json"
-        try:
-            with open(tmp, "w", encoding="utf-8") as fh:
-                json.dump(manifest, fh, indent=2, ensure_ascii=False)
-            md5 = TeraboxClient.compute_md5(str(tmp))
-            size = os.path.getsize(tmp)
-            md5_json = json.dumps([md5])
-            manifest_path = "/_terabox_autobackup_manifest.json"
-
-            pre = await self._retry_operation(
-                client,
-                lambda: client.precreate_file(manifest_path, md5_json),
-                "precreate manifesto",
+            mapping = by_id.get(int(mapping_id))
+            if not mapping:
+                continue
+            uid = str(mapping.get("uid") or "").strip()
+            if uid not in verified_uids:
+                continue
+            directories.append(
+                {
+                    "mapping_id": mapping_id,
+                    "mapping_uid": uid,
+                    "remote_path": remote_dir,
+                }
             )
-            if not pre.get("ok"):
-                # Manifesto antigo pode estar bloqueando; remove e tenta de novo
-                await client.delete_remote(manifest_path)
-                pre = await self._retry_operation(
-                    client,
-                    lambda: client.precreate_file(manifest_path, md5_json),
-                    "precreate manifesto (retry)",
-                )
-            if not pre.get("ok"):
-                raise TeraboxError(pre.get("error") or "não foi possível criar o manifesto")
 
-            uploadid = pre["uploadid"]
-            result = await client.upload_file(str(tmp), manifest_path, uploadid, md5, 0)
-            if result in ("failed", "mismatch"):
-                raise TeraboxTransientError("upload do manifesto falhou", transient=True)
-            await self._retry_operation(
-                client,
-                lambda: client.create_file(
-                    manifest_path, uploadid, size, md5_json, overwrite=True
+        existing = await download_manifest(client, strict=True)
+        machine = await database.get_machine_identity()
+        merged = merge_manifest(
+            existing,
+            files,
+            directories,
+            local_uids,
+            preserve_local_uids=preserve_uids,
+            machine_id=machine.get("machine_id") or "",
+            machine_name=machine.get("machine_name") or "",
+            run_started_at=run_started,
+        )
+        if dry_run:
+            return merged
+        result = await write_manifest(
+            client, merged, retry=self._retry_operation
+        )
+        await self._notify(
+            "manifest_updated",
+            {
+                "files": result.get("files", len(merged.get("files") or [])),
+                "directories": result.get(
+                    "directories", len(merged.get("directories") or [])
                 ),
-                "criar manifesto",
-            )
-            await self._notify("manifest_updated", {"files": len(files)})
-        finally:
-            try:
-                os.remove(tmp)
-            except Exception:
-                pass
+                "preserved_mapping_uids": len(preserve_uids),
+            },
+        )
+        return merged
 
     async def _save_remote_config(self, client: TeraboxClient):
         """Atualiza o cadastro remoto no fim do sync, sem falhar o backup."""
@@ -971,6 +1053,12 @@ class SyncEngine:
             (datetime.now().isoformat(), status, error, run_id),
         )
         self._status["running"] = False
+        self._status["phase"] = status
+        self._status["files_processed"] = (
+            self._status["files_uploaded"]
+            + self._status["files_skipped"]
+            + self._status["files_failed"]
+        )
         if error:
             self._status["error"] = error
 

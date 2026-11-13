@@ -3,8 +3,14 @@
 import os
 import tempfile
 import unittest
+from unittest import mock
 
-from backend.local_paths import LocalPathError, validate_local_mapping_path
+from backend import local_paths
+from backend.local_paths import (
+    LocalPathError,
+    detect_foreign_profile,
+    validate_local_mapping_path,
+)
 
 
 class LocalPathsTest(unittest.TestCase):
@@ -69,6 +75,57 @@ class LocalPathsTest(unittest.TestCase):
             with self.subTest(is_file=is_file):
                 with self.assertRaises(LocalPathError):
                     validate_local_mapping_path(target, is_file, create=True)
+
+    def test_detecta_perfil_de_outro_usuario_e_sugere_rebase(self):
+        detected = detect_foreign_profile(
+            r"C:\Users\marlo\Documents\Minecraft\saves",
+            current_user="Marlon",
+        )
+
+        self.assertIsNotNone(detected)
+        self.assertEqual(detected["foreign_user"], "marlo")
+        self.assertEqual(detected["current_user"], "Marlon")
+        self.assertEqual(
+            detected["suggested_path"],
+            os.path.normpath(r"C:\Users\Marlon\Documents\Minecraft\saves"),
+        )
+
+    def test_nao_rebaseia_perfil_atual_nem_perfis_compartilhados(self):
+        for path in (
+            rf"C:\Users\{local_paths.current_windows_user()}\Documents",
+            r"C:\Users\Public\Documents",
+            r"C:\Users\Default\Documents",
+        ):
+            with self.subTest(path=path):
+                self.assertIsNone(detect_foreign_profile(path))
+
+    def test_nao_rebaseia_caminho_fora_de_users(self):
+        self.assertIsNone(
+            detect_foreign_profile(r"D:\Dados\Users\marlo\Fotos")
+        )
+        self.assertIsNone(detect_foreign_profile(r"C:\Fotos"))
+        self.assertIsNone(detect_foreign_profile("pasta/relativa"))
+
+    def test_nao_cria_pasta_no_perfil_de_outro_usuario(self):
+        target = os.path.join(self.root, "perfil-errado", "Nova")
+
+        def fake_detect(path, current_user=None):
+            return {
+                "foreign_user": "outro",
+                "current_user": "atual",
+                "foreign_root": r"C:\Users\outro",
+                "current_root": r"C:\Users\atual",
+                "suggested_path": os.path.join(self.root, "perfil-certo", "Nova"),
+            }
+
+        with mock.patch.object(
+            local_paths, "detect_foreign_profile", side_effect=fake_detect
+        ):
+            with self.assertRaises(LocalPathError) as ctx:
+                validate_local_mapping_path(target, False, create=True)
+
+        self.assertIn("perfil", str(ctx.exception))
+        self.assertFalse(os.path.exists(target))
 
 
 if __name__ == "__main__":

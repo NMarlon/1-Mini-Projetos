@@ -74,11 +74,15 @@ class SyncRun(BaseModel):
 class SyncStatus(BaseModel):
     running: bool = False
     run_id: Optional[int] = None
+    phase: str = "idle"
+    started_at: Optional[str] = None
     files_total: int = 0
     files_uploaded: int = 0
     files_failed: int = 0
     files_skipped: int = 0
+    files_processed: int = 0
     current_file: Optional[str] = None
+    current_mapping: Optional[str] = None
     error: Optional[str] = None
     errors: List[dict] = Field(default_factory=list)
 
@@ -166,6 +170,29 @@ class RestoreRequest(BaseModel):
     files: List[str]
     allow_overwrite: bool = False
 
+class RestoreStatus(BaseModel):
+    running: bool = False
+    job_id: Optional[str] = None
+    phase: str = "idle"
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    elapsed_seconds: float = 0.0
+    files_total: int = 0
+    files_done: int = 0
+    files_created: int = 0
+    files_replaced: int = 0
+    files_failed: int = 0
+    files_invalid: int = 0
+    current_index: int = 0
+    current_file: Optional[str] = None
+    current_mapping: Optional[str] = None
+    current_remote_path: Optional[str] = None
+    cancel_requested: bool = False
+    error: Optional[str] = None
+    errors: List[dict] = Field(default_factory=list)
+    errors_truncated: bool = False
+    summary: Optional[dict] = None
+
 # ── Configuração remota ──
 
 class RemoteConfigSaveRequest(BaseModel):
@@ -184,4 +211,4 @@ class RemoteConfigImportRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.3.4"
+    version: str = "0.3.5"
