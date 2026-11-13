@@ -76,6 +76,7 @@ class SyncStatus(BaseModel):
     run_id: Optional[int] = None
     phase: str = "idle"
     started_at: Optional[str] = None
+    finished_at: Optional[str] = None
     files_total: int = 0
     files_uploaded: int = 0
     files_failed: int = 0
@@ -83,6 +84,17 @@ class SyncStatus(BaseModel):
     files_processed: int = 0
     current_file: Optional[str] = None
     current_mapping: Optional[str] = None
+    upload_bytes_done: int = 0
+    upload_bytes_total: int = 0
+    upload_speed_bps: float = 0.0
+    upload_eta_seconds: Optional[float] = None
+    upload_percent: float = 0.0
+    upload_chunk: int = 0
+    upload_chunks_total: int = 0
+    upload_attempt: int = 0
+    last_progress_at: Optional[str] = None
+    errors_total: int = 0
+    errors_truncated: bool = False
     error: Optional[str] = None
     errors: List[dict] = Field(default_factory=list)
 
@@ -105,6 +117,7 @@ class Settings(BaseModel):
     auto_sync: bool = True
     notifications: bool = True
     max_concurrent_uploads: int = 3
+    upload_chunked: bool = True
     autostart: bool = False
     browser_preference: str = "auto"  # auto, chrome, edge, firefox
     encryption_key: Optional[str] = None
@@ -119,6 +132,7 @@ class SettingsUpdate(BaseModel):
     auto_sync: Optional[bool] = None
     notifications: Optional[bool] = None
     max_concurrent_uploads: Optional[int] = None
+    upload_chunked: Optional[bool] = None
     autostart: Optional[bool] = None
     browser_preference: Optional[str] = None
     encryption_key: Optional[str] = None
@@ -187,6 +201,11 @@ class RestoreStatus(BaseModel):
     current_file: Optional[str] = None
     current_mapping: Optional[str] = None
     current_remote_path: Optional[str] = None
+    download_bytes_done: int = 0
+    download_bytes_total: int = 0
+    download_speed_bps: float = 0.0
+    download_percent: float = 0.0
+    last_progress_at: Optional[str] = None
     cancel_requested: bool = False
     error: Optional[str] = None
     errors: List[dict] = Field(default_factory=list)
@@ -211,4 +230,4 @@ class RemoteConfigImportRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.3.5"
+    version: str = "0.3.6"

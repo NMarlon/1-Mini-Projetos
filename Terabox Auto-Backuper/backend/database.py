@@ -59,8 +59,25 @@ async def init_db():
                 files_uploaded INTEGER NOT NULL DEFAULT 0,
                 files_failed INTEGER NOT NULL DEFAULT 0,
                 files_skipped INTEGER NOT NULL DEFAULT 0,
+                errors_total INTEGER NOT NULL DEFAULT 0,
+                errors_truncated INTEGER NOT NULL DEFAULT 0,
                 error TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS sync_run_errors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'error',
+                mapping_id INTEGER,
+                mapping_name TEXT,
+                path TEXT,
+                error TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (run_id) REFERENCES sync_runs(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_sync_run_errors_run
+                ON sync_run_errors(run_id);
 
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
@@ -87,6 +104,7 @@ async def init_db():
             "auto_sync": "true",
             "notifications": "true",
             "max_concurrent_uploads": "3",
+            "upload_chunked": "true",
             "autostart": "false",
             "browser_preference": "auto",
             "restore_confirm_overwrite": "true",
@@ -194,10 +212,23 @@ async def _migrate_schema(db: aiosqlite.Connection):
     # como eternamente em andamento no histórico.
     await db.execute(
         """UPDATE sync_runs
-           SET status = 'cancelled', finished_at = COALESCE(finished_at, ?)
+           SET status = 'cancelled',
+               finished_at = COALESCE(finished_at, ?),
+               error = COALESCE(error, 'app encerrado durante o sync')
            WHERE status = 'running' AND finished_at IS NULL""",
         (datetime.now().isoformat(),),
     )
+
+    # Contadores de erros detalhados por run (migração de bancos antigos).
+    run_columns = await _table_columns(db, "sync_runs")
+    for name, definition in {
+        "errors_total": "INTEGER NOT NULL DEFAULT 0",
+        "errors_truncated": "INTEGER NOT NULL DEFAULT 0",
+    }.items():
+        if name not in run_columns:
+            await db.execute(
+                f"ALTER TABLE sync_runs ADD COLUMN {name} {definition}"
+            )
 
     # Normalizar caminhos remotos antigos (barra final, barras invertidas)
     cursor = await db.execute("SELECT id, remote_path FROM mappings")

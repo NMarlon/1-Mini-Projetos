@@ -28,8 +28,18 @@ DEFAULT_MAX_CONCURRENT = 3
 DEFAULT_RATE_LIMIT_MS = 400
 DEFAULT_DEBOUNCE_SECONDS = 2
 MAX_RETRIES = 3
-CHUNK_SIZE_BYTES = 120 * 1024 * 1024  # 120MB
-LARGE_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024  # 2GB
+
+# Upload em blocos (lotes). O usuário pode desligar em Configurações.
+CHUNK_SIZE_BYTES = 100 * 1024 * 1024  # 100MB
+LARGE_FILE_THRESHOLD = CHUNK_SIZE_BYTES
+
+# Timeouts e proteção contra upload travado.
+UPLOAD_CONNECT_TIMEOUT_SECONDS = 30
+UPLOAD_STALL_SECONDS = 120          # curl aborta se ficar abaixo da velocidade mínima
+UPLOAD_MIN_SPEED_BPS = 1024         # 1 KB/s
+UPLOAD_MAX_TIME_SECONDS = 4 * 3600  # teto absoluto por bloco
+UPLOAD_MIN_BYTES_PER_SECOND = 128 * 1024  # usado para calcular --max-time
+UPLOAD_NO_PROGRESS_SECONDS = 300    # watchdog do motor
 
 # jsToken
 JSTOKEN_TTL_SECONDS = 300  # 5 minutos

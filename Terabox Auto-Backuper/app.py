@@ -46,7 +46,11 @@ async def lifespan(app: FastAPI):
 
     # Configurar scheduler
     async def periodic_sync():
-        await sync_engine.start_sync()
+        try:
+            await sync_engine.start_sync()
+        except RuntimeError:
+            # Já existe um sync em andamento; o próximo ciclo tenta de novo.
+            pass
 
     sync_scheduler.set_callback(periodic_sync)
     await sync_scheduler.start()
@@ -55,7 +59,10 @@ async def lifespan(app: FastAPI):
     async def monitor_sync():
         auto = await database.get_setting("auto_sync")
         if auto == "true":
-            await sync_engine.start_sync()
+            try:
+                await sync_engine.start_sync()
+            except RuntimeError:
+                pass
 
     mappings = await database.fetch_all(
         "SELECT local_path, is_file FROM mappings WHERE enabled = 1"

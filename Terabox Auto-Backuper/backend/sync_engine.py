@@ -25,9 +25,9 @@ from backend.config import (
     CHUNK_SIZE_BYTES,
     DEFAULT_MAX_CONCURRENT,
     DEFAULT_RATE_LIMIT_MS,
-    LARGE_FILE_THRESHOLD,
     MAX_RETRIES,
     TEMP_DIR,
+    UPLOAD_NO_PROGRESS_SECONDS,
 )
 from backend import auth, database, notifications
 from backend.manifest import (
@@ -57,18 +57,37 @@ from backend.terabox_client import (
 )
 
 
+def composite_multipart_md5(md5_list: List[str]) -> str:
+    """MD5 que o Terabox usa para uploads multipart.
+
+    É o hash do JSON compacto da lista de MD5s dos blocos, não o hash do
+    arquivo inteiro. Guardamos esse valor em ``files.remote_md5`` para o
+    próximo plano reconhecer o arquivo como idêntico.
+    """
+    return hashlib.md5(
+        json.dumps(md5_list, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 class SyncEngine:
     """Motor de sync com plano, retry e rate-limit."""
+
+    MAX_RUN_ERRORS = 500
 
     def __init__(self):
         self._running = False
         self._cancelled = False
         self._current_run_id: Optional[int] = None
+        self._task: Optional[asyncio.Task] = None
+        self._client: Optional[TeraboxClient] = None
+        self._run_error_count = 0
+        self._run_errors_truncated = False
         self._status = {
             "running": False,
             "run_id": None,
             "phase": "idle",
             "started_at": None,
+            "finished_at": None,
             "files_total": 0,
             "files_uploaded": 0,
             "files_failed": 0,
@@ -76,6 +95,17 @@ class SyncEngine:
             "files_processed": 0,
             "current_file": None,
             "current_mapping": None,
+            "upload_bytes_done": 0,
+            "upload_bytes_total": 0,
+            "upload_speed_bps": 0.0,
+            "upload_eta_seconds": None,
+            "upload_percent": 0.0,
+            "upload_chunk": 0,
+            "upload_chunks_total": 0,
+            "upload_attempt": 0,
+            "last_progress_at": None,
+            "errors_total": 0,
+            "errors_truncated": False,
             "error": None,
             "errors": [],
         }
@@ -118,10 +148,17 @@ class SyncEngine:
     # ── Entrada pública ──
 
     async def start_sync(self, mapping_ids: Optional[List[int]] = None) -> int:
-        """Inicia um sync. Retorna run_id."""
+        """Inicia um sync. Retorna run_id.
+
+        Levanta ``RuntimeError`` se já houver um sync em andamento; a API
+        converte isso em 409 para a UI não fingir que iniciou outro run.
+        """
         async with self._lock:
             if self._running:
-                return self._current_run_id or 0
+                raise RuntimeError(
+                    "Já existe um sync em andamento. Pare o sync atual "
+                    "antes de iniciar outro."
+                )
             self._running = True
             self._cancelled = False
             self._semaphore = asyncio.Semaphore(self._max_concurrent)
@@ -136,6 +173,7 @@ class SyncEngine:
             "run_id": run_id,
             "phase": "preparing",
             "started_at": datetime.now().isoformat(),
+            "finished_at": None,
             "files_total": 0,
             "files_uploaded": 0,
             "files_failed": 0,
@@ -143,16 +181,69 @@ class SyncEngine:
             "files_processed": 0,
             "current_file": None,
             "current_mapping": None,
+            "upload_bytes_done": 0,
+            "upload_bytes_total": 0,
+            "upload_speed_bps": 0.0,
+            "upload_eta_seconds": None,
+            "upload_percent": 0.0,
+            "upload_chunk": 0,
+            "upload_chunks_total": 0,
+            "upload_attempt": 0,
+            "last_progress_at": None,
+            "errors_total": 0,
+            "errors_truncated": False,
             "error": None,
             "errors": [],
         }
         self._remote_verified = set()
+        self._run_error_count = 0
+        self._run_errors_truncated = False
 
-        asyncio.create_task(self._run_sync(run_id, mapping_ids))
+        self._task = asyncio.create_task(self._run_sync(run_id, mapping_ids))
         return run_id
 
-    async def stop_sync(self):
+    async def stop_sync(self, timeout: float = 15.0):
+        """Pede parada e mata o upload em andamento, liberando novo sync."""
         self._cancelled = True
+        if self._status.get("running"):
+            self._status["phase"] = "cancelling"
+
+        client = self._client
+        if client is not None:
+            try:
+                await client.cancel_active_upload()
+            except Exception:
+                pass
+
+        task = self._task
+        if task is not None and not task.done():
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=timeout)
+            except asyncio.TimeoutError:
+                task.cancel()
+                try:
+                    await task
+                except BaseException:
+                    pass
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+
+        # Fallback: se a task sumiu sem finalizar o run, fecha o estado.
+        if self._running:
+            self._running = False
+            self._status["running"] = False
+            self._status["phase"] = "cancelled"
+            if self._current_run_id:
+                try:
+                    await self._finish_run(
+                        self._current_run_id,
+                        "cancelled",
+                        error="parada solicitada",
+                    )
+                except Exception:
+                    pass
 
     async def preview(self, mapping_ids: Optional[List[int]] = None) -> dict:
         """Calcula o plano sem enviar, criar pastas ou alterar o banco."""
@@ -398,6 +489,7 @@ class SyncEngine:
             return
 
         client = TeraboxClient(auth_data["cookies"], auth_data["jstoken"])
+        self._client = client
         run_started = datetime.now().isoformat()
         self._status["started_at"] = run_started
         self._status["phase"] = "preparing"
@@ -412,8 +504,10 @@ class SyncEngine:
                         client, SyncPlan(mappings=[]), run_started
                     )
                 except Exception as exc:
-                    self._record_status_error(
-                        "manifesto", f"falha ao atualizar manifesto: {exc}"
+                    await self._record_status_error(
+                        "manifesto",
+                        f"falha ao atualizar manifesto: {exc}",
+                        kind="manifest",
                     )
                 await self._save_remote_config(client)
                 await self._finish_run(run_id, "completed")
@@ -422,9 +516,12 @@ class SyncEngine:
             await self._notify("planning_started", {})
             plan = await self._build_plan(client, mappings)
             for err in plan.errors[:100]:
-                self._record_status_error(
+                await self._record_status_error(
                     err.get("file") or err.get("mapping_name"),
                     err.get("error") or "erro de varredura",
+                    kind="scan",
+                    mapping_id=err.get("mapping_id"),
+                    mapping_name=err.get("mapping_name"),
                 )
             self._status["phase"] = "directories"
             self._status["files_total"] = len(plan.items)
@@ -461,8 +558,12 @@ class SyncEngine:
                         ensured,
                     )
                 except Exception as exc:
-                    self._record_status_error(
-                        mapping.get("local_path"), f"falha ao criar pasta remota: {exc}"
+                    await self._record_status_error(
+                        mapping.get("local_path"),
+                        f"falha ao criar pasta remota: {exc}",
+                        kind="folder",
+                        mapping_id=mapping.get("id"),
+                        mapping_name=mapping.get("name"),
                     )
 
             for mapping_id, remote_dir in plan.directories:
@@ -478,7 +579,13 @@ class SyncEngine:
                         client, remote_dir, known_dirs, ensured
                     )
                 except Exception as exc:
-                    self._record_status_error(remote_dir, f"falha ao criar subpasta: {exc}")
+                    await self._record_status_error(
+                        remote_dir,
+                        f"falha ao criar subpasta: {exc}",
+                        kind="folder",
+                        mapping_id=mapping_id,
+                        mapping_name=mapping_names.get(int(mapping_id), ""),
+                    )
 
             self._status["phase"] = "uploading"
             self._status["current_file"] = None
@@ -495,6 +602,7 @@ class SyncEngine:
 
                 self._status["current_file"] = item.local_rel_path
                 self._status["current_mapping"] = item.mapping_name
+                self._reset_upload_progress()
                 self._status["files_processed"] = (
                     self._status["files_uploaded"]
                     + self._status["files_skipped"]
@@ -527,14 +635,28 @@ class SyncEngine:
             try:
                 await self._update_manifest(client, plan, run_started)
             except Exception as exc:
-                self._record_status_error("manifesto", f"falha ao atualizar manifesto: {exc}")
+                await self._record_status_error(
+                    "manifesto",
+                    f"falha ao atualizar manifesto: {exc}",
+                    kind="manifest",
+                )
 
             await self._save_remote_config(client)
             await self._finish_run(run_id, "completed")
 
+        except asyncio.CancelledError:
+            try:
+                await self._finish_run(
+                    run_id, "cancelled", error="parada solicitada"
+                )
+            except Exception:
+                pass
+            raise
         except Exception as exc:
             await self._finish_run(run_id, "failed", error=str(exc))
         finally:
+            self._client = None
+            self._task = None
             await client.close()
             self._running = False
             self._status["running"] = False
@@ -599,6 +721,45 @@ class SyncEngine:
             raise last_error
         raise TeraboxError(f"Falha em {description}")
 
+    def _reset_upload_progress(self):
+        self._status.update(
+            {
+                "upload_bytes_done": 0,
+                "upload_bytes_total": 0,
+                "upload_speed_bps": 0.0,
+                "upload_eta_seconds": None,
+                "upload_percent": 0.0,
+                "upload_chunk": 0,
+                "upload_chunks_total": 0,
+                "upload_attempt": 0,
+                "last_progress_at": None,
+            }
+        )
+
+    def _make_progress_cb(self, base_bytes: int, total_bytes: int, chunk_index: int):
+        """Callback do curl: converte o progresso do bloco em progresso total."""
+        def _cb(done: int, _block_total: int, speed_bps: float):
+            overall = min(total_bytes, base_bytes + max(0, int(done)))
+            percent = (
+                (overall / total_bytes) * 100.0 if total_bytes > 0 else 0.0
+            )
+            eta = None
+            if speed_bps and speed_bps > 0 and total_bytes > overall:
+                eta = (total_bytes - overall) / speed_bps
+            self._status.update(
+                {
+                    "upload_bytes_done": overall,
+                    "upload_bytes_total": total_bytes,
+                    "upload_speed_bps": float(speed_bps or 0.0),
+                    "upload_eta_seconds": eta,
+                    "upload_percent": percent,
+                    "upload_chunk": chunk_index,
+                    "last_progress_at": datetime.now().isoformat(),
+                }
+            )
+
+        return _cb
+
     async def _process_file_with_retry(
         self, client: TeraboxClient, item: PlanItem, run_id: int
     ):
@@ -609,9 +770,14 @@ class SyncEngine:
         """
         last_error = None
         for attempt in range(MAX_RETRIES):
+            if self._cancelled:
+                raise asyncio.CancelledError()
+            self._status["upload_attempt"] = attempt + 1
             try:
                 await self._process_file(client, item, run_id)
                 return
+            except asyncio.CancelledError:
+                raise
             except TeraboxAuthError as exc:
                 last_error = exc
                 if attempt >= MAX_RETRIES - 1:
@@ -663,9 +829,12 @@ class SyncEngine:
                 upload_path = str(enc_path)
                 upload_size = os.path.getsize(upload_path)
 
+            chunked = (
+                await database.get_setting("upload_chunked") or "true"
+            ) != "false"
             pieces: List[str] = []
             md5_list: List[str] = []
-            if upload_size >= LARGE_FILE_THRESHOLD:
+            if chunked and upload_size > CHUNK_SIZE_BYTES:
                 num_chunks = (upload_size + CHUNK_SIZE_BYTES - 1) // CHUNK_SIZE_BYTES
                 for i in range(num_chunks):
                     chunk_path = temp_dir / f".chunk_{i:04d}"
@@ -680,7 +849,26 @@ class SyncEngine:
                 md5_list = [md5]
                 pieces = [upload_path]
 
+            self._status.update(
+                {
+                    "upload_bytes_done": 0,
+                    "upload_bytes_total": upload_size,
+                    "upload_speed_bps": 0.0,
+                    "upload_eta_seconds": None,
+                    "upload_percent": 0.0,
+                    "upload_chunk": 0,
+                    "upload_chunks_total": len(pieces),
+                    "last_progress_at": datetime.now().isoformat(),
+                }
+            )
+
             md5_json = json.dumps(md5_list)
+            composite_md5 = None
+            if len(md5_list) > 1 and not encrypted:
+                # O Terabox calcula o MD5 de uploads multipart como o MD5 do
+                # JSON compacto da lista de blocos. Guardamos esse valor para
+                # o próximo plano reconhecer o arquivo como idêntico.
+                composite_md5 = composite_multipart_md5(md5_list)
             cloud_path = item.remote_path
 
             await self._rate_limit()
@@ -707,16 +895,55 @@ class SyncEngine:
                 raise TeraboxError(pre.get("error") or "precreate falhou", errno=pre.get("errno"))
             uploadid = pre["uploadid"]
 
+            base_bytes = 0
             for idx, piece in enumerate(pieces):
-                await self._rate_limit()
-                async with self._semaphore:
-                    result = await client.upload_file(
-                        piece, cloud_path, uploadid, md5_list[idx], idx
-                    )
-                if result in ("failed", "mismatch"):
+                if self._cancelled:
+                    raise asyncio.CancelledError()
+                piece_size = os.path.getsize(piece)
+                progress_cb = self._make_progress_cb(
+                    base_bytes, upload_size, idx + 1
+                )
+                last_result = "failed"
+                for chunk_attempt in range(MAX_RETRIES):
+                    if self._cancelled:
+                        raise asyncio.CancelledError()
+                    await self._rate_limit()
+                    async with self._semaphore:
+                        last_result = await client.upload_file(
+                            piece,
+                            cloud_path,
+                            uploadid,
+                            md5_list[idx],
+                            idx,
+                            progress_cb=progress_cb,
+                        )
+                    if last_result not in ("failed", "mismatch"):
+                        break
+                    if self._cancelled:
+                        raise asyncio.CancelledError()
+                    if chunk_attempt < MAX_RETRIES - 1:
+                        await asyncio.sleep(
+                            (2 ** chunk_attempt) + random.random()
+                        )
+                else:
                     raise TeraboxTransientError(
-                        f"upload do bloco {idx} falhou ({result})", transient=True
+                        f"upload do bloco {idx + 1}/{len(pieces)} falhou "
+                        f"({last_result})",
+                        transient=True,
                     )
+                base_bytes += piece_size
+                self._status["upload_bytes_done"] = min(
+                    upload_size, base_bytes
+                )
+                self._status["upload_percent"] = (
+                    (base_bytes / upload_size) * 100.0
+                    if upload_size > 0
+                    else 100.0
+                )
+                self._status["last_progress_at"] = datetime.now().isoformat()
+
+            self._status["upload_percent"] = 100.0
+            self._status["upload_eta_seconds"] = 0.0
 
             await self._rate_limit()
             await self._retry_operation(
@@ -749,17 +976,22 @@ class SyncEngine:
                         transient=True,
                     )
                 remote_md5 = remote.md5
+                expected_md5 = (
+                    md5_list[0] if len(pieces) == 1 else composite_md5
+                )
                 if (
                     remote.md5
-                    and len(pieces) == 1
+                    and expected_md5
                     and not encrypted
-                    and remote.md5.lower() != md5_list[0].lower()
+                    and remote.md5.lower() != expected_md5.lower()
                 ):
                     raise TeraboxTransientError(
                         "MD5 remoto diferente após upload", transient=True
                     )
             elif len(pieces) == 1 and not encrypted:
                 remote_md5 = md5_list[0]
+            elif composite_md5:
+                remote_md5 = composite_md5
 
             # Confere se o arquivo local não mudou durante o upload
             st_after = os.stat(local_path)
@@ -856,15 +1088,88 @@ class SyncEngine:
             ),
         )
 
-    def _record_status_error(self, file: str, error: str):
+    async def _record_status_error(
+        self,
+        file: str,
+        error: str,
+        *,
+        kind: str = "scan",
+        mapping_id: Optional[int] = None,
+        mapping_name: Optional[str] = None,
+    ):
+        """Registra erro no status ao vivo e no histórico persistente do run."""
+        message = str(error)
         errors = self._status.setdefault("errors", [])
         if len(errors) < 100:
-            errors.append({"file": file, "error": str(error)})
+            errors.append(
+                {
+                    "file": file,
+                    "error": message,
+                    "kind": kind,
+                    "mapping_name": mapping_name,
+                }
+            )
+        await self._persist_run_error(
+            kind, file, message, mapping_id, mapping_name
+        )
+
+    async def _persist_run_error(
+        self,
+        kind: str,
+        path: Optional[str],
+        error: str,
+        mapping_id: Optional[int] = None,
+        mapping_name: Optional[str] = None,
+    ):
+        run_id = self._current_run_id
+        if not run_id:
+            return
+        if self._run_error_count >= self.MAX_RUN_ERRORS:
+            if not self._run_errors_truncated:
+                self._run_errors_truncated = True
+                self._status["errors_truncated"] = True
+                try:
+                    await database.execute(
+                        "UPDATE sync_runs SET errors_truncated = 1 WHERE id = ?",
+                        (run_id,),
+                    )
+                except Exception:
+                    pass
+            return
+        try:
+            await database.execute(
+                """INSERT INTO sync_run_errors
+                   (run_id, kind, mapping_id, mapping_name, path, error, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    run_id,
+                    kind,
+                    mapping_id,
+                    mapping_name,
+                    path,
+                    error,
+                    datetime.now().isoformat(),
+                ),
+            )
+            self._run_error_count += 1
+            self._status["errors_total"] = self._run_error_count
+            await database.execute(
+                "UPDATE sync_runs SET errors_total = errors_total + 1 WHERE id = ?",
+                (run_id,),
+            )
+        except Exception:
+            pass
 
     async def _record_failure(self, item: PlanItem, run_id: int, exc: Exception):
         message = str(exc)
         self._status["files_failed"] += 1
-        self._record_status_error(item.local_rel_path, message)
+        await self._record_status_error(
+            item.local_rel_path,
+            message,
+            kind="plan" if item.action == "error" else "file",
+            mapping_id=item.mapping_id,
+            mapping_name=item.mapping_name,
+        )
         try:
             await self._upsert_file(
                 mapping_id=item.mapping_id,
@@ -1040,20 +1345,25 @@ class SyncEngine:
                 client=client, reason="sync_finished"
             )
         except Exception as exc:
-            self._record_status_error(
+            await self._record_status_error(
                 "configuração remota",
                 f"falha ao salvar configuração remota: {exc}",
+                kind="config",
             )
 
     # ── Finalização ──
 
     async def _finish_run(self, run_id: int, status: str, error: str = None):
+        finished_at = datetime.now().isoformat()
         await database.execute(
             "UPDATE sync_runs SET finished_at = ?, status = ?, error = ? WHERE id = ?",
-            (datetime.now().isoformat(), status, error, run_id),
+            (finished_at, status, error, run_id),
         )
         self._status["running"] = False
         self._status["phase"] = status
+        self._status["finished_at"] = finished_at
+        self._status["errors_total"] = self._run_error_count
+        self._status["errors_truncated"] = self._run_errors_truncated
         self._status["files_processed"] = (
             self._status["files_uploaded"]
             + self._status["files_skipped"]

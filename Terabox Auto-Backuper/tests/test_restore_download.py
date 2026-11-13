@@ -23,13 +23,16 @@ class FakeTeraboxClient:
         self.source_map = source_map
         self.downloads = []
 
-    async def download_file(self, remote_path, local_path):
+    async def download_file(self, remote_path, local_path, progress_cb=None):
         self.downloads.append((remote_path, local_path))
         source = self.source_map.get(remote_path)
         if not source:
             return False
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copyfile(source, local_path)
+        if progress_cb:
+            size = os.path.getsize(local_path)
+            progress_cb(size, size, 0.0)
         return True
 
     async def close(self):

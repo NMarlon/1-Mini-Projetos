@@ -24,7 +24,7 @@ class SlowFakeClient:
         self.downloads = []
         self.closed = False
 
-    async def download_file(self, remote_path, local_path):
+    async def download_file(self, remote_path, local_path, progress_cb=None):
         if self.delay:
             await asyncio.sleep(self.delay)
         self.downloads.append(remote_path)
@@ -33,6 +33,9 @@ class SlowFakeClient:
             return False
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copyfile(source, local_path)
+        if progress_cb:
+            size = os.path.getsize(local_path)
+            progress_cb(size, size, 0.0)
         return True
 
     async def close(self):
@@ -168,6 +171,10 @@ class RestoreJobTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status.files_created, 1)
         self.assertEqual(status.current_file, None)
         self.assertEqual(status.summary["restored"], 1)
+        self.assertEqual(
+            status.download_bytes_total, os.path.getsize(source)
+        )
+        self.assertEqual(status.download_percent, 100.0)
         self.assertEqual(client.downloads, [remote])
         self.assertTrue(client.closed)
 

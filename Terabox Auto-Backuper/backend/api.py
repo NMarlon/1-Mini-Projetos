@@ -430,7 +430,10 @@ async def _reload_file_monitor():
         async def _cb():
             auto = await database.get_setting("auto_sync")
             if auto == "true":
-                await sync_engine.start_sync()
+                try:
+                    await sync_engine.start_sync()
+                except RuntimeError:
+                    pass
         file_monitor.start(mappings, _cb, debounce_seconds=2.0)
     except Exception:
         pass
@@ -451,7 +454,12 @@ async def sync_preview(body: Optional[SyncRequest] = None):
 
 @router.post("/sync/start")
 async def sync_start(body: Optional[SyncRequest] = None):
-    run_id = await sync_engine.start_sync(body.mapping_ids if body else None)
+    try:
+        run_id = await sync_engine.start_sync(
+            body.mapping_ids if body else None
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"run_id": run_id, "status": "started"}
 
 
@@ -464,6 +472,47 @@ async def sync_stop():
 @router.get("/sync/status", response_model=SyncStatus)
 async def sync_status():
     s = sync_engine.get_status()
+    if not s.get("running") and not s.get("run_id"):
+        # Após F5/reinício o estado em memória nasce vazio. Usa o último run
+        # persistido para a UI não mostrar "0/0 concluído".
+        row = await database.fetch_one(
+            "SELECT * FROM sync_runs ORDER BY id DESC LIMIT 1"
+        )
+        if row:
+            s.update(
+                {
+                    "run_id": row["id"],
+                    "phase": row["status"],
+                    "started_at": row["started_at"],
+                    "finished_at": row["finished_at"],
+                    "files_total": row["files_total"],
+                    "files_uploaded": row["files_uploaded"],
+                    "files_failed": row["files_failed"],
+                    "files_skipped": row["files_skipped"],
+                    "files_processed": (
+                        row["files_uploaded"]
+                        + row["files_skipped"]
+                        + row["files_failed"]
+                    ),
+                    "errors_total": row["errors_total"],
+                    "errors_truncated": bool(row["errors_truncated"]),
+                    "error": row["error"],
+                }
+            )
+            errors = await database.fetch_all(
+                """SELECT * FROM sync_run_errors
+                   WHERE run_id = ? ORDER BY id LIMIT 100""",
+                (row["id"],),
+            )
+            s["errors"] = [
+                {
+                    "file": item["path"],
+                    "error": item["error"],
+                    "kind": item["kind"],
+                    "mapping_name": item["mapping_name"],
+                }
+                for item in errors
+            ]
     return SyncStatus(**s)
 
 
@@ -474,6 +523,16 @@ async def sync_history(limit: int = 20, offset: int = 0):
         (limit, offset),
     )
     return rows
+
+
+@router.get("/sync/history/{run_id}/errors")
+async def sync_history_errors(run_id: int, limit: int = 500):
+    """Erros detalhados de um run (arquivo/pasta, mapeamento e motivo)."""
+    return await database.fetch_all(
+        """SELECT * FROM sync_run_errors
+           WHERE run_id = ? ORDER BY id LIMIT ?""",
+        (run_id, max(1, min(1000, int(limit)))),
+    )
 
 
 @router.get("/sync/stream")
@@ -901,6 +960,7 @@ async def get_settings():
         "auto_sync",
         "notifications",
         "max_concurrent_uploads",
+        "upload_chunked",
         "autostart",
         "browser_preference",
         "restore_confirm_overwrite",
@@ -917,6 +977,7 @@ async def get_settings():
         auto_sync=data.get("auto_sync", "true") == "true",
         notifications=data.get("notifications", "true") == "true",
         max_concurrent_uploads=int(data.get("max_concurrent_uploads", 3)),
+        upload_chunked=data.get("upload_chunked", "true") == "true",
         autostart=data.get("autostart", "false") == "true",
         browser_preference=data.get("browser_preference", "auto"),
         encryption_key=data.get("encryption_key"),
@@ -951,6 +1012,10 @@ async def update_settings(body: SettingsUpdate):
     if body.max_concurrent_uploads is not None:
         await database.set_setting("max_concurrent_uploads", str(body.max_concurrent_uploads))
         sync_engine._max_concurrent = body.max_concurrent_uploads
+    if body.upload_chunked is not None:
+        await database.set_setting(
+            "upload_chunked", "true" if body.upload_chunked else "false"
+        )
     if body.autostart is not None:
         await database.set_setting("autostart", "true" if body.autostart else "false")
         if body.autostart:

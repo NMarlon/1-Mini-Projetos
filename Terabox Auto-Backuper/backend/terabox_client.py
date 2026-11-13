@@ -13,9 +13,10 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import time
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Callable, List, Optional, Set, Tuple
 from urllib.parse import quote_plus
 
 import httpx
@@ -27,9 +28,14 @@ from backend.config import (
     CHANNEL,
     CLIENT_TYPE,
     PROJECT_DIR,
+    UPLOAD_CONNECT_TIMEOUT_SECONDS,
+    UPLOAD_MAX_TIME_SECONDS,
+    UPLOAD_MIN_BYTES_PER_SECOND,
+    UPLOAD_MIN_SPEED_BPS,
+    UPLOAD_STALL_SECONDS,
 )
 from backend.paths import join_remote, normalize_local, normalize_remote, remote_parent
-from backend.process_utils import run_hidden
+from backend.process_utils import hidden_kwargs
 from backend.sync_plan import LocalEntry, RemoteEntry, RemoteSnapshot
 
 # Erros de autenticação/jsToken conhecidos
@@ -44,6 +50,35 @@ MISSING_ERRNOS = {-7, -9}
 API_PAGE_SIZE = 1000
 API_PACE_SECONDS = 0.12
 MAX_LIST_PAGES = 1000
+
+_PROGRESS_PERCENT_RE = re.compile(r"(\d+(?:[.,]\d+)?)%")
+_PROGRESS_SPEED_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([kKmMgG]?)/s")
+
+
+def parse_curl_progress(line: str) -> Optional[Tuple[float, float]]:
+    """Extrai (percentual, bytes/s) de uma linha de progresso do curl."""
+    percent_match = _PROGRESS_PERCENT_RE.search(line or "")
+    if not percent_match:
+        return None
+    try:
+        percent = float(percent_match.group(1).replace(",", "."))
+    except ValueError:
+        return None
+    speed = 0.0
+    speed_match = _PROGRESS_SPEED_RE.search(line or "")
+    if speed_match:
+        try:
+            value = float(speed_match.group(1).replace(",", "."))
+            unit = speed_match.group(2).lower()
+            speed = value * {
+                "": 1,
+                "k": 1024,
+                "m": 1024 ** 2,
+                "g": 1024 ** 3,
+            }[unit]
+        except (ValueError, KeyError):
+            speed = 0.0
+    return percent, speed
 
 SKIP_FILE_NAMES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 SKIP_FILE_SUFFIXES = (".tmp", ".part", ".crdownload", "~")
@@ -75,6 +110,7 @@ class TeraboxClient:
         self.cookies_str = "; ".join(f"{k}={v}" for k, v in self.cookies.items())
         self._token_issued_at = float(token_issued_at or time.time())
         self._last_api_call = 0.0
+        self._active_procs = set()
         self._client = httpx.AsyncClient(
             base_url=BASE_URL_TB,
             headers={"User-Agent": USER_AGENT},
@@ -84,7 +120,24 @@ class TeraboxClient:
         )
 
     async def close(self):
+        await self.cancel_active_upload()
         await self._client.aclose()
+
+    async def cancel_active_upload(self):
+        """Mata todos os curls de upload em andamento."""
+        for proc in list(self._active_procs):
+            if proc.returncode is not None:
+                continue
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                continue
+            except Exception:
+                pass
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=5)
+            except Exception:
+                pass
 
     # ── Helpers internos ──
 
@@ -430,6 +483,16 @@ class TeraboxClient:
 
     # ── Upload via curl ──
 
+    @staticmethod
+    def upload_max_time(local_path: str) -> int:
+        """Teto de tempo do curl calculado pelo tamanho do bloco."""
+        try:
+            size = os.path.getsize(local_path)
+        except OSError:
+            size = 0
+        seconds = int(size / max(1, UPLOAD_MIN_BYTES_PER_SECOND)) + 600
+        return max(1800, min(UPLOAD_MAX_TIME_SECONDS, seconds))
+
     async def upload_file(
         self,
         local_path: str,
@@ -437,12 +500,22 @@ class TeraboxClient:
         uploadid: str,
         md5hash: str,
         partseq: int = 0,
+        progress_cb: Optional[Callable[[int, int, float], None]] = None,
+        max_time: Optional[int] = None,
     ) -> str:
-        """Upload de arquivo/chunk via curl. Retorna md5 ou 'failed'/'mismatch'."""
+        """Upload de arquivo/chunk via curl, cancelável e com progresso.
+
+        ``progress_cb(bytes_done, bytes_total, bytes_per_second)`` é chamado
+        enquanto o curl envia. Retorna md5 ou ``'failed'``/``'mismatch'``.
+        """
         try:
-            loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(
-                None, self._curl_upload, local_path, cloud_filename, uploadid, partseq
+            result = await self._curl_upload(
+                local_path,
+                cloud_filename,
+                uploadid,
+                partseq,
+                progress_cb=progress_cb,
+                max_time=max_time,
             )
             if result is None:
                 return "failed"
@@ -452,13 +525,23 @@ class TeraboxClient:
             if str(uresp.get("md5", "")).lower() == str(md5hash).lower():
                 return str(uresp["md5"])
             return "mismatch"
+        except asyncio.CancelledError:
+            await self.cancel_active_upload()
+            raise
         except Exception:
             return "failed"
 
-    def _curl_upload(
-        self, local_path: str, cloud_filename: str, uploadid: str, partseq: int
+    async def _curl_upload(
+        self,
+        local_path: str,
+        cloud_filename: str,
+        uploadid: str,
+        partseq: int,
+        *,
+        progress_cb: Optional[Callable[[int, int, float], None]] = None,
+        max_time: Optional[int] = None,
     ) -> Optional[str]:
-        """Executa curl para upload (bloqueante, roda em executor)."""
+        """Executa curl como subprocesso assíncrono (permite matar no stop)."""
         curl_exe = "curl"
         local_curl = PROJECT_DIR / "curl" / "bin" / "curl.exe"
         if local_curl.exists():
@@ -466,10 +549,14 @@ class TeraboxClient:
         elif (PROJECT_DIR / "curl.exe").exists():
             curl_exe = str(PROJECT_DIR / "curl.exe")
 
+        if max_time is None:
+            max_time = self.upload_max_time(local_path)
+
         cloud_path = cloud_filename
         cmd = [
             curl_exe,
-            "-sS",
+            "--show-error",
+            "--progress-bar",
             "-X",
             "POST",
             "-H",
@@ -485,18 +572,104 @@ class TeraboxClient:
             "-F",
             f'file=@"{local_path}"',
             "--connect-timeout",
-            "30",
+            str(UPLOAD_CONNECT_TIMEOUT_SECONDS),
+            "--speed-limit",
+            str(UPLOAD_MIN_SPEED_BPS),
+            "--speed-time",
+            str(UPLOAD_STALL_SECONDS),
             "--max-time",
-            "1800",
+            str(int(max_time)),
             f"{BASE_URL_TB.replace('www', 'c-jp')}:443/rest/2.0/pcs/superfile2?"
             f"method=upload&type=tmpfile&app_id={APP_ID}&path={quote_plus(cloud_path)}&"
             f"uploadid={uploadid}&partseq={partseq}",
         ]
         try:
-            out = run_hidden(cmd, capture_output=True, check=True, timeout=1800)
-            return out.stdout.decode("utf-8", errors="replace")
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                **hidden_kwargs(),
+            )
         except Exception:
             return None
+
+        self._active_procs.add(proc)
+        try:
+            stdout_task = asyncio.create_task(proc.stdout.read())
+            stderr_task = asyncio.create_task(
+                self._consume_curl_progress(proc, local_path, progress_cb)
+            )
+            stdout, _ = await asyncio.gather(stdout_task, stderr_task)
+            returncode = await proc.wait()
+            if returncode != 0:
+                return None
+            return stdout.decode("utf-8", errors="replace")
+        finally:
+            self._active_procs.discard(proc)
+
+    async def _consume_curl_progress(
+        self,
+        proc,
+        local_path: str,
+        progress_cb: Optional[Callable[[int, int, float], None]],
+    ):
+        """Lê o stderr do curl e calcula bytes/velocidade em tempo real."""
+        try:
+            total = int(os.path.getsize(local_path))
+        except OSError:
+            total = 0
+
+        last_done = 0
+        last_time = time.monotonic()
+        speed = 0.0
+        buffer = b""
+        while True:
+            chunk = await proc.stderr.read(4096)
+            if not chunk:
+                break
+            buffer += chunk
+            normalized = buffer.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            lines = normalized.split(b"\n")
+            buffer = lines.pop() if lines else b""
+            for raw in lines:
+                parsed = parse_curl_progress(
+                    raw.decode("utf-8", errors="replace").strip()
+                )
+                if not parsed:
+                    continue
+                percent, _ignored = parsed
+                done = (
+                    int(total * max(0.0, min(100.0, percent)) / 100.0)
+                    if total
+                    else 0
+                )
+                now = time.monotonic()
+                elapsed = now - last_time
+                if elapsed >= 0.4:
+                    delta = max(0, done - last_done)
+                    speed = delta / elapsed if elapsed > 0 else 0.0
+                    last_done = done
+                    last_time = now
+                if progress_cb is not None:
+                    try:
+                        progress_cb(done, total, speed)
+                    except Exception:
+                        pass
+        if buffer:
+            parsed = parse_curl_progress(
+                buffer.decode("utf-8", errors="replace").strip()
+            )
+            if parsed and progress_cb is not None:
+                percent, _ignored = parsed
+                done = (
+                    int(total * max(0.0, min(100.0, percent)) / 100.0)
+                    if total
+                    else 0
+                )
+                try:
+                    progress_cb(done, total, speed)
+                except Exception:
+                    pass
 
     # ── Download (para processo reverso) ──
 
@@ -545,7 +718,12 @@ class TeraboxClient:
             pass
         return None
 
-    async def download_file(self, remote_path: str, local_path: str) -> bool:
+    async def download_file(
+        self,
+        remote_path: str,
+        local_path: str,
+        progress_cb: Optional[Callable[[int, int, float], None]] = None,
+    ) -> bool:
         """Baixa um arquivo remoto para o caminho local (sem deixar parcial)."""
         link = await self.get_download_link(remote_path)
         if not link:
@@ -555,10 +733,27 @@ class TeraboxClient:
             async with self._client.stream("GET", link) as resp:
                 if resp.status_code != 200:
                     return False
+                try:
+                    total = int(resp.headers.get("content-length") or 0)
+                except (TypeError, ValueError):
+                    total = 0
                 Path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+                done = 0
+                started = time.monotonic()
+                last_report = 0.0
                 with open(tmp_path, "wb") as f:
                     async for chunk in resp.aiter_bytes(chunk_size=1024 * 1024):
                         f.write(chunk)
+                        done += len(chunk)
+                        if progress_cb is not None:
+                            now = time.monotonic()
+                            if now - last_report >= 0.25:
+                                elapsed = max(0.001, now - started)
+                                progress_cb(done, total, done / elapsed)
+                                last_report = now
+                if progress_cb is not None:
+                    elapsed = max(0.001, time.monotonic() - started)
+                    progress_cb(done, total or done, done / elapsed)
             os.replace(tmp_path, local_path)
             return True
         except Exception:

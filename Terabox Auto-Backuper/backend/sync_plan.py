@@ -113,6 +113,17 @@ def decide_action(
     if remote.md5 and local_md5:
         if remote.md5.lower() == local_md5.lower():
             return "skip", "MD5 igual"
+        # Upload em blocos: o Terabox devolve o MD5 do JSON compacto dos
+        # blocos, não o MD5 do arquivo. Se o hash remoto confere com o
+        # registrado e o cache local também confere, o conteúdo é o mesmo.
+        if (
+            db_row
+            and db_row.get("remote_md5")
+            and str(db_row["remote_md5"]).lower() == remote.md5.lower()
+            and str(db_row.get("md5") or "").lower() == local_md5.lower()
+            and int(db_row.get("size") or 0) == local_size
+        ):
+            return "skip", "hash multipart confere com o registrado"
         return "replace", "MD5 diferente"
 
     # O Terabox nem sempre devolve MD5. Nesse caso usamos o cache local.

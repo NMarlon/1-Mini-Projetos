@@ -90,6 +90,37 @@ class DecideActionTest(unittest.TestCase):
         action, _ = decide_action(10, "abc", remote, {"size": 10, "md5": "abc"})
         self.assertEqual(action, "skip")
 
+    def test_hash_multipart_confere_com_o_registrado(self):
+        remote = RemoteEntry(path="/a", size=10, md5="composite")
+        db_row = {
+            "size": 10,
+            "md5": "abc",
+            "remote_md5": "composite",
+        }
+        action, reason = decide_action(10, "abc", remote, db_row)
+        self.assertEqual(action, "skip")
+        self.assertIn("multipart", reason)
+
+    def test_hash_multipart_nao_esconde_arquivo_local_alterado(self):
+        remote = RemoteEntry(path="/a", size=10, md5="composite")
+        db_row = {
+            "size": 10,
+            "md5": "abc",
+            "remote_md5": "composite",
+        }
+        action, _ = decide_action(10, "novo", remote, db_row)
+        self.assertEqual(action, "replace")
+
+    def test_hash_multipart_diferente_substitui(self):
+        remote = RemoteEntry(path="/a", size=10, md5="outro")
+        db_row = {
+            "size": 10,
+            "md5": "abc",
+            "remote_md5": "composite",
+        }
+        action, _ = decide_action(10, "abc", remote, db_row)
+        self.assertEqual(action, "replace")
+
     def test_criptografado_usa_md5_do_plaintext(self):
         remote = RemoteEntry(path="/a.enc", size=999, md5="cipher")
         action, _ = decide_action(10, "plain", remote, {"size": 10, "md5": "plain"}, True)

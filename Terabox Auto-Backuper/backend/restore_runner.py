@@ -53,6 +53,26 @@ def _record_progress_error(progress: Optional[dict], target: RestoreTarget, erro
         progress["errors_truncated"] = True
 
 
+def _make_download_cb(progress: Optional[dict]):
+    """Callback de download: bytes, velocidade e percentual do arquivo atual."""
+    if progress is None:
+        return None
+
+    def _cb(done: int, total: int, speed_bps: float):
+        percent = (done / total * 100.0) if total > 0 else 0.0
+        progress.update(
+            {
+                "download_bytes_done": int(done),
+                "download_bytes_total": int(total),
+                "download_speed_bps": float(speed_bps or 0.0),
+                "download_percent": percent,
+                "last_progress_at": datetime.now().isoformat(),
+            }
+        )
+
+    return _cb
+
+
 def _elapsed_seconds(progress: Optional[dict]) -> float:
     if not progress or not progress.get("started_at"):
         return 0.0
@@ -105,6 +125,11 @@ async def execute_restore(
                 "current_file": None,
                 "current_mapping": None,
                 "current_remote_path": None,
+                "download_bytes_done": 0,
+                "download_bytes_total": 0,
+                "download_speed_bps": 0.0,
+                "download_percent": 0.0,
+                "last_progress_at": None,
                 "error": None,
                 "errors": [],
                 "errors_truncated": False,
@@ -131,6 +156,11 @@ async def execute_restore(
                     "current_file": target.local_path,
                     "current_mapping": target.mapping_name,
                     "current_remote_path": target.remote_path,
+                    "download_bytes_done": 0,
+                    "download_bytes_total": target.size or 0,
+                    "download_speed_bps": 0.0,
+                    "download_percent": 0.0,
+                    "last_progress_at": datetime.now().isoformat(),
                 }
             )
 
@@ -168,7 +198,9 @@ async def execute_restore(
                 part_path = local_path + ".restore-part"
                 try:
                     ok = await client.download_file(
-                        target.remote_path, tmp_enc
+                        target.remote_path,
+                        tmp_enc,
+                        progress_cb=_make_download_cb(progress),
                     )
                     if ok:
                         await asyncio.to_thread(
@@ -187,7 +219,9 @@ async def execute_restore(
                             pass
             else:
                 ok = await client.download_file(
-                    target.remote_path, local_path
+                    target.remote_path,
+                    local_path,
+                    progress_cb=_make_download_cb(progress),
                 )
         except Exception as exc:
             error = str(exc)
