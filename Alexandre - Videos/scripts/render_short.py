@@ -65,18 +65,34 @@ def ass_time(t: float) -> str:
 
 
 def chunkize(texto: str, max_palavras: int, max_chars: int) -> list[str]:
-    """Quebra em telas de 4–7 palavras (regra do 02-PESQUISA-VIRAL)."""
+    """Quebra em telas de 4–7 palavras (regra do 02-PESQUISA-VIRAL).
+
+    Distribui as palavras EM BALANÇO (n chunks de tamanho parecido) para não
+    sobrar um "cara." sozinho no fim — erro de QA do piloto 01.
+    """
     palavras = texto.split()
+    if len(palavras) <= max_palavras:
+        return [texto]
+    import math
+    n_chunks = math.ceil(len(palavras) / max_palavras)
+    base = math.ceil(len(palavras) / n_chunks)
     chunks, atual = [], ""
-    for p in palavras:
+    for i, p in enumerate(palavras):
+        restam = len(palavras) - i
+        falta = n_chunks - len(chunks) - 1
         cand = (atual + " " + p).strip()
-        if atual and (len(cand) > max_chars or len(cand.split()) > max_palavras):
+        # fecha o chunk quando atingir o alvo e ainda houver pedaço p/ os próximos
+        if atual and (len(cand.split()) >= base or len(cand) > max_chars) and falta > 0:
             chunks.append(atual)
             atual = p
         else:
             atual = cand
     if atual:
         chunks.append(atual)
+    # evita chunk minúsculo no fim: distribui de volta
+    if len(chunks) >= 2 and len(chunks[-1].split()) < 3:
+        ultimo = chunks.pop()
+        chunks[-1] = (chunks[-1] + " " + ultimo).strip()
     return chunks or [texto]
 
 

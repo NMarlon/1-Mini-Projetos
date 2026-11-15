@@ -7,7 +7,7 @@
   "dur_max": 40,
   "segmentos": [
     { "start": 702.0, "end": 714.5 },
-    { "start": 718.0, "end": 724.0 },
+    { "start": 718.0, "end": 722.9 },
     { "start": 725.0, "end": 730.0 }
   ],
   "zooms": [
@@ -16,14 +16,14 @@
   ],
   "hook": [
     { "texto": "\"VOCÊ NÃO TEM AURA\"", "inicio": 0.0, "fim": 3.0 },
-    { "texto": "E ELE AINDA GANHOU O JOGO", "inicio": 19.5, "fim": 23.9 }
+    { "texto": "E ELE AINDA GANHOU O JOGO", "inicio": 18.4, "fim": 22.8 }
   ],
   "legenda": "roteiros/01-aura-3x1.srt",
   "destaque": ["aura", "3x1"],
   "bgm": { "arquivo": "assets/music/after_party.ogg", "volume": 0.10 },
   "sfx": [
     { "t": 11.0, "arquivo": "assets/sfx/boom.ogg", "volume": 0.9 },
-    { "t": 17.4, "arquivo": "assets/sfx/risada.wav", "volume": 0.45 }
+    { "t": 17.4, "arquivo": "assets/sfx/risada.wav", "volume": 0.30 }
   ],
   "loop": true,
   "meta": {
