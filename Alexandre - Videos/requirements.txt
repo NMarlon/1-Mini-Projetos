@@ -1,0 +1,3 @@
+# requirements.txt — pipeline Alexandre Videos
+faster-whisper>=1.1
+srt>=3.5
