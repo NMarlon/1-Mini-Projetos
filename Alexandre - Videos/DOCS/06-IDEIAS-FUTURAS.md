@@ -5,11 +5,16 @@
 ## Ideias — canal Warzone
 
 - [ ] Pack de SFX/memes próprio em `assets/` (royalty-free) com preset de uso por tipo de punchline.
-- [ ] Template FFmpeg de legenda TikTok reutilizável (`templates/legenda_tiktok.ass`).
-- [ ] Script de análise automática de bruto: picos de áudio + scene detection → ranquear momentos.
-- [ ] Detectar loops (fim ↔ começo) nos shorts.
+- [x] ~~Template FFmpeg de legenda TikTok reutilizável~~ → feito: `templates/estilo.json` + ASS
+      gerado por `scripts/render_short.py` (hook no topo, legenda na base, destaque amarelo).
+- [x] ~~Script de análise automática de bruto~~ → feito: `scripts/analisar_bruto.py`.
+- [ ] Detectar loops (fim ↔ começo) nos shorts (hoje: loop = repetir os 0,4s do início no fim).
 - [ ] Estudar melhor horário/formato de postagem e A/B de thumbnails (spec em `07`).
 - [ ] Possível dublagem TTS PT-BR (decisão futura do usuário — hoje: manter áudio original).
+- [ ] Meme de imagem/cutaway por cima do gameplay (hoje: só SFX + textos) — exigiria assets
+      de meme com licença limpa e posicionamento manual por receita.
+- [ ] Legenda palavra-a-palavra (hoje: 4–7 palavras por tela com tempo proporcional).
+- [ ] Thumbnail/frame de capa gerado automaticamente para TikTok/Shorts.
 
 ## Bugs / pendências conhecidas
 
@@ -18,5 +23,6 @@
 
 ## Melhorias de fluxo
 
-- [ ] Padronizar `output/<nome>/meta.md` (título, legenda, hashtags, duração, specs).
-- [ ] Checklist de QA automatizado (resolução, loudness, duração) via script.
+- [x] ~~Padronizar `output/<nome>/meta.md`~~ → feito: gerado por `scripts/render_short.py`.
+- [x] ~~Checklist de QA automatizado~~ → parcial: checklist escrito no `meta.md` + verificação
+      manual de frames/áudio; automatizar checagem de specs num script ainda falta.

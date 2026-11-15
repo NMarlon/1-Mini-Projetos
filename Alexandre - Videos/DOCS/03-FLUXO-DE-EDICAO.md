@@ -26,16 +26,35 @@
 
 ## B) Pipeline de EDIÇÃO viral (clips Warzone → short)
 
+Reproduzível de ponta a ponta (tudo local, offline). Exemplo real: `roteiros/01-aura-3x1.json`.
+
 ```
-1. Inspecionar bruto: ffprobe + extrair áudio + scene detection
-2. Analisar picos de áudio (gritos/risos) e cortes de cena → work/analise.md ranqueado
-3. Selecionar segmento com arco (hook → tensão → punchline), 21–34s
-4. Render (FFmpeg): corte fino, 9:16 com fundo desfocado, zoom pulse 3–5s,
-   legendas estilo TikTok, SFX/meme no punchline, trilha com ducking
-5. QA: extrair frames-chave, conferir specs (resolução, loudness, duração)
-6. output/<nome>/video.mp4 + meta.md (título, legenda, hashtags)
-7. commit
+1. Análise do bruto
+   python scripts/analisar_bruto.py <bruto.mp4>
+   → work/<bruto>_analise.md (janelas ranqueadas por energia + cortes de cena + silêncios)
+
+2. Transcrição das zonas quentes (Whisper medium)
+   python scripts/legendar.py <bruto.mp4> --start <t> --dur <s> --lang pt --out work/<zona>.srt
+   → ATENÇÃO: tempos do .srt são RELATIVOS ao --start. Validar com frames:
+   ffmpeg -ss <t> -i <bruto> -frames:v 1 work\chk.jpg   (alucinação = frase repetida — ver 05)
+
+3. Roteiro: criar roteiros/<slug>.json (copiar o 01) com segmentos, zooms, hook, sfx, bgm, meta
+   + gerar a legenda do timeline:
+   python scripts/montar_srt.py work/<zona>.srt --seg <rel1>:<rel2>,... --out roteiros/<slug>.srt
+
+4. Render (2 passos):
+   python scripts/render_short.py roteiros/<slug>.json --so-video   # só geometria (QA rápido)
+   python scripts/render_short.py roteiros/<slug>.json              # completo
+
+5. QA: extrair frames em 3–5 pontos, conferir hook/legenda/enquadramento; conferir áudio:
+   ffmpeg -i output/<slug>/video.mp4 -af volumedetect -f null -   (max_volume < -1 dB)
+
+6. output/<slug>/video.mp4 + meta.md (título, legenda, hashtags, specs, checklist) → commit
 ```
+
+Modos de verticalização: `blurpad` (faixa central + fundo desfocado — **padrão p/ fonte 360p**)
+e `crop` (recorte cheio, só p/ fonte 720p+). Estilo de legenda/hook: `templates/estilo.json`.
+Assets: só CC0/CC BY, baixados por `scripts/baixar_assets.py`, créditos em `assets/CREDITOS.md`.
 
 ## Especificações de saída (shorts)
 
