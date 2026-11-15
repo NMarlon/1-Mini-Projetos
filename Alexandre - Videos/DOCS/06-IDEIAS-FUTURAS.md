@@ -4,6 +4,11 @@
 
 ## Ideias — canal Warzone
 
+- [ ] **Novos brutos do streamer** → material novo p/ shorts (hoje o bruto de 12min só
+      rendeu 3 trechos com fala real; ver `04-TAREFAS.md`).
+- [ ] Reaproveitar os mesmos trechos com **ângulos/cortes diferentes** (variação de hook
+      para testar retenção — A/B de ganchos).
+
 - [ ] Pack de SFX/memes próprio em `assets/` (royalty-free) com preset de uso por tipo de punchline.
 - [x] ~~Template FFmpeg de legenda TikTok reutilizável~~ → feito: `templates/estilo.json` + ASS
       gerado por `scripts/render_short.py` (hook no topo, legenda na base, destaque amarelo).

@@ -50,6 +50,7 @@ Alexandre - Videos/
 ├── DOCS/                ← toda a documentação
 ├── requirements.txt     ← dependências Python do pipeline
 ├── scripts/             ← pipeline (transcrição, tradução, render)
+├── roteiros/            ← receitas JSON + .srt de cada short
 ├── assets/              memes, sfx, music, fonts (livres para uso)
 ├── templates/           presets de legenda/enquadramento
 ├── raw/                 vídeos brutos de entrada

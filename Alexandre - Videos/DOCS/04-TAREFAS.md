@@ -39,6 +39,37 @@
 
 ---
 
+## TAREFA CONCLUÍDA: shorts virais do bruto Warzone
+
+**Status:** ✅ — **4 shorts entregues** (piloto + 3), todos em `output/` com `meta.md`
+(título, legenda do post, hashtags, specs e checklist de QA).
+
+| # | Slug | Duração | Base |
+|---|---|---|---|
+| 1 | `01-aura-3x1` | 22,8s | fala real "você não tem aura" → morte → 3x1 → cara vence o jogo |
+| 2 | `02-oracao-na-troca` | 28,4s | fala real "bóra pai / na cara não / o sangue de Jesus tem poder" na troca |
+| 3 | `03-revolta-dos-vencedores` | 22,9s | fala real "é a revolta dos vencedores… é agora que ele vai" |
+| 4 | `04-free-kill` | 19,4s | só hook textual (2:54–3:15, sem fala na fonte) |
+
+**QC programático dos 4:** 1080×1920, H.264, duração 19–29s, pico de áudio < 0 dB.
+
+### Como foram feitos (reproduzir p/ próximos)
+
+1. `scripts/analisar_bruto.py` → zonas quentes; `scripts/legendar.py` por zona (VAD ligado).
+2. `roteiros/<slug>.json` (copiar um existente) + `scripts/montar_srt.py` (tempos relativos).
+3. `scripts/render_short.py roteiros/<slug>.json` → `output/<slug>/video.mp4` + `meta.md`.
+4. QA: `ffprobe` (duração/resolução), `volumedetect` (pico < 0 dB) e leitura do `.ass`
+   gerado em `work/` (o texto é conferido no `.ass`, não só no frame).
+
+### Aprendizado importante sobre o material
+
+- O bruto de 12min tem **fala real só em 3 trechos** (11:14–11:41, 11:42–12:18, 10:22–10:39);
+  o resto é menu/rotação (e o Whisper `--sem-vad` alucina — ver `05`).
+- **Próximos shorts exigem material novo** (mais VODs do streamer) ou reaproveitamento
+  criativo dos mesmos trechos com outros cortes — backlog em `06-IDEIAS-FUTURAS.md`.
+
+---
+
 ## TAREFA EM ANDAMENTO (outra sessão): Tradução do vídeo chinês → PT-BR
 
 **Status:** ✅ CONCLUÍDA (2026-11-15) — entrega em `output/traducao-chines-PTBR/`

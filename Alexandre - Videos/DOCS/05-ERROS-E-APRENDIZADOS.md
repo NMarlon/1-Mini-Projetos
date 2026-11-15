@@ -153,7 +153,30 @@
 
 ---
 
-## [2026-05] Leitura de duração MP4
+## [2026-11] `git commit -- <caminhos>` RE-ADICIONA arquivos que você acabou de remover do índice
+
+- **Erro:** rodei `git rm --cached <2 mp4>` e em seguida `git commit -m "..." -- <caminhos>`;
+  o commit saiu sem as remoções e os mp4 continuavam rastreados.
+- **Causa:** com pathspec, o git compara HEAD × **árvore de trabalho** (onde os arquivos
+  existem) e ignora o `rm --cached` que estava só no índice.
+- **Solução:** remover do índice e comitar **SEM pathspec** (o índice já só tinha aquelas
+  mudanças); ou `git commit -m ... --staged`/`git rm --cached` + `git commit` direto.
+- **Aprendizado:** conferir sempre com `git ls-files <pasta>` e `git show --stat HEAD`.
+
+---
+
+## [2026-11] Leitura de imagem para QA pode devolver frame ANTIGO (stale)
+
+- **Erro:** frames extraídos do short 04 voltavam mostrando legenda do short 03, e leituras
+  repetidas do mesmo instante pareciam "hook preso" — gerou investigação falsa.
+- **Causa:** a leitura de imagens do ambiente devolveu conteúdo de arquivos lidos antes
+  (mesmo com nome novo). Os `.ass` (texto) estavam corretos e o ffmpeg tinha rodado ok.
+- **Solução:** QA determinístico primeiro — **ler o `.ass` gerado** (texto exato),
+  `ffprobe` (duração/resolução), `volumedetect` (áudio) e log do comando ffmpeg;
+  imagem só como confirmação secundária, sempre com nome de arquivo novo.
+- **Aprendizado:** não confundir falha da ferramenta de leitura com bug do render —
+  checar a fonte do dado (`.ass`, exit code) antes de reescrever código.
+
 ---
 
 ## [2026-11] Whisper `--sem-vad` ALUCINA por repetição
@@ -169,6 +192,7 @@
 
 ---
 
+## [2026-05] Leitura de duração MP4
 
 - **Erro:** não havia ffprobe no início.
 - **Solução:** parser manual do átomo `mvhd` (offset varia conforme versão 0/1) —
