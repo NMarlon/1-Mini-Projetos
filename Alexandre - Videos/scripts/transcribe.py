@@ -4,10 +4,16 @@ Uso: python scripts/transcribe.py <audio.wav> [prefixo_saida]
 Saida: work/<prefixo>.raw.srt + work/<prefixo>.transcript.txt + imprime idioma detectado.
 """
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import srt
 from faster_whisper import WhisperModel
+
+
+def td(seconds: float) -> timedelta:
+    """faster-whisper devolve float; srt exige timedelta (ver 05-ERROS)."""
+    return timedelta(seconds=max(0.0, float(seconds)))
 
 # modelo small = bom equilibrio CPU/qualidade p/ chines + pt
 MODEL_SIZE = "small"
@@ -29,7 +35,7 @@ def main() -> None:
 
     subs, lines = [], []
     for i, seg in enumerate(segments, start=1):
-        subs.append(srt.Subtitle(index=i, start=seg.start, end=seg.end,
+        subs.append(srt.Subtitle(index=i, start=td(seg.start), end=td(seg.end),
                                  content=seg.text.strip()))
         lines.append(f"[{seg.start:7.2f} -> {seg.end:7.2f}] {seg.text.strip()}")
 

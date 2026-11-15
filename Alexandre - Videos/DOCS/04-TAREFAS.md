@@ -15,13 +15,24 @@
 - Estilo de referência TikTok (para o .srt e futuras legendas).
 - Instalações autorizadas.
 
+### Contexto do vídeo (verificado nos frames)
+
+- Gameplay de Warzone (UI PT-BR: "PREPARE-SE PARA LUTA", "Fuzileiro", mapa "Downtown"),
+  overlay de moldura/coroa "King Azuos" + **sticker meme chinês** (caricatura + bandeira da China)
+  e username "cookY".
+- **Áudio MISTO pt-br + chinês** (confirmado pelo usuário) → Whisper detecta 1 idioma por chamada.
+- **Estratégia:** transcrever 2× — passada forçando `language='pt'` e passada `language='zh'` —
+  e mesclar segmentos por timestamps. Modelo `medium` (o `small` alucinou em trechos com música).
+
 ### Passos e status
 
 - [x] Instalar FFmpeg (winget) e faster-whisper + srt (pip)
 - [x] Estrutura de pastas + AGENTS.md + DOCS
-- [ ] Extrair áudio (`scripts/extract_audio.py`)
-- [ ] Transcrever com Whisper (`scripts/transcribe.py`) — **confirmar idioma real**
-- [ ] Traduzir para PT-BR → `work/*.pt-BR.srt`
+- [x] Extrair áudio (`scripts/extract_audio.py`) → `work/ssstik.io_1794764333421_audio.wav`
+- [x] Transcrição 1 (modelo small) — detectou `zh`, mas alucinou → descartada como base
+- [x] Transcrição 2 (modelo medium) — em andamento
+- [ ] Transcrições forçadas `pt` e `zh` + mesclagem por timestamp
+- [ ] Traduzir chinês → PT-BR (e revisar trechos já em pt) → `work/*.pt-BR.srt`
 - [ ] QA de timing/quebras (preview com legendas, sem cravar)
 - [ ] Entregar em `output/` (vídeo original + .srt + meta.md)
 - [ ] Registrar aprendizados em `05-ERROS-E-APRENDIZADOS.md`

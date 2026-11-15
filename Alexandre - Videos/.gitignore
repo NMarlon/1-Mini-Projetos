@@ -1,0 +1,5 @@
+# Intermediários e cache local; os arquivos-fonte e entregáveis permanecem versionados.
+work/*
+!work/.gitkeep
+__pycache__/
+*.py[cod]
