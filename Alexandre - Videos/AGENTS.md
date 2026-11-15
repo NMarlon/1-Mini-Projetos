@@ -20,13 +20,15 @@ do projeto (ex.: tradução de vídeos em chinês).
 | [`DOCS/05-ERROS-E-APRENDIZADOS.md`](DOCS/05-ERROS-E-APRENDIZADOS.md) | Erros cometidos e como superá-los (NÃO caia nos mesmos) |
 | [`DOCS/06-IDEIAS-FUTURAS.md`](DOCS/06-IDEIAS-FUTURAS.md) | Backlog: ideias, melhorias e bugs que ficaram para o futuro |
 | [`DOCS/07-ESPECIFICACOES-PLATAFORMA.md`](DOCS/07-ESPECIFICACOES-PLATAFORMA.md) | Specs técnicas de TikTok/Shorts, títulos, hashtags |
+| [`DOCS/08-REFERENCIAS.md`](DOCS/08-REFERENCIAS.md) | Links das fontes usadas na pesquisa viral |
 
 ## ✅ Regras (O QUE VOCÊ DEVE / NÃO DEVE fazer)
 
 1. **Você é um Desenvolvedor Full-Stack experiente.** Trate o projeto com nível profissional.
 2. **Tudo que for fundamental ao projeto DEVE estar neste repo** — scripts, docs, configs,
    requirements. Nada de arquivos espalhados perdidos no computador. O repo deve funcionar
-   de forma autônoma.
+   de forma autônoma. **Exceção (decisão do usuário 2026-11):** os **vídeos brutos `*.mp4`
+   de entrada NÃO são versionados** (ver `.gitignore`) — entregáveis em `output/` sim.
 3. **Documente em `DOCS/`** — toda informação relevante para que a próxima IA continue
    de onde você parou.
 4. **Commit no final de CADA tarefa.** Se algo der errado, o usuário volta para um commit
