@@ -30,9 +30,10 @@
 - [x] Estrutura de pastas + AGENTS.md + DOCS
 - [x] Extrair áudio (`scripts/extract_audio.py`) → `work/ssstik.io_1794764333421_audio.wav`
 - [x] Transcrição 1 (modelo small) — detectou `zh`, mas alucinou → descartada como base
-- [x] Transcrição 2 (modelo medium) — em andamento
-- [ ] Transcrições forçadas `pt` e `zh` + mesclagem por timestamp
-- [ ] Traduzir chinês → PT-BR (e revisar trechos já em pt) → `work/*.pt-BR.srt`
+- [x] Transcrição 2 (modelo medium) — download travou a 976MB; resolvido com `download_model.py`
+- [x] Transcrições forçadas `zh` e `pt` (`scripts/transcribe_mixed.py`)
+- [ ] Mapear idioma por janela (`scripts/lang_map.py`) — em execução
+- [ ] Montar .srt final misto (zh traduzido + pt revisado) → `work/*.pt-BR.srt`
 - [ ] QA de timing/quebras (preview com legendas, sem cravar)
 - [ ] Entregar em `output/` (vídeo original + .srt + meta.md)
 - [ ] Registrar aprendizados em `05-ERROS-E-APRENDIZADOS.md`

@@ -1,0 +1,10 @@
+{
+  "fonte": "Arial",
+  "legenda_tam": 74,
+  "legenda_margem_v": 300,
+  "hook_tam": 86,
+  "hook_margem_v": 420,
+  "contorno": 6,
+  "max_palavras": 6,
+  "max_chars": 32
+}

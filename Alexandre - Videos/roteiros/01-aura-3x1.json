@@ -1,0 +1,34 @@
+{
+  "slug": "01-aura-3x1",
+  "fonte": "YTDown.com_YouTube_Media_mwysrmuy-rc_MORRE-DIABLO-partida-SOLO-VS-SQUAD-no-Call-of-Dutty-Warzone-Ressurgência_003_360p.mp4",
+  "modo": "blurpad",
+  "y_mira": 0.45,
+  "fps": 30,
+  "dur_max": 40,
+  "segmentos": [
+    { "start": 702.0, "end": 714.5 },
+    { "start": 718.0, "end": 724.0 },
+    { "start": 725.0, "end": 730.0 }
+  ],
+  "zooms": [
+    { "start": 10.6, "fim": 11.6, "valor": 0.16 },
+    { "start": 12.6, "fim": 13.4, "valor": 0.12 }
+  ],
+  "hook": [
+    { "texto": "\"VOCÊ NÃO TEM AURA\"", "inicio": 0.0, "fim": 3.0 },
+    { "texto": "E ELE AINDA GANHOU O JOGO", "inicio": 19.5, "fim": 23.9 }
+  ],
+  "legenda": "roteiros/01-aura-3x1.srt",
+  "destaque": ["aura", "3x1"],
+  "bgm": { "arquivo": "assets/music/after_party.ogg", "volume": 0.10 },
+  "sfx": [
+    { "t": 11.0, "arquivo": "assets/sfx/boom.ogg", "volume": 0.9 },
+    { "t": 17.4, "arquivo": "assets/sfx/risada.wav", "volume": 0.45 }
+  ],
+  "loop": true,
+  "meta": {
+    "titulo": "\"você não tem aura\" — e o final me deixou em choque 😭",
+    "legenda_post": "o cara disse que eu não tenho aura... aí aconteceu isso 💀 quem aguenta 3x1?",
+    "hashtags": ["#warzone", "#callofduty", "#cod", "#clips", "#gaming", "#fyp", "#brasil"]
+  }
+}
