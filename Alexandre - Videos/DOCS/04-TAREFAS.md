@@ -32,8 +32,11 @@
 - [x] Transcrição 1 (modelo small) — detectou `zh`, mas alucinou → descartada como base
 - [x] Transcrição 2 (modelo medium) — download travou a 976MB; resolvido com `download_model.py`
 - [x] Transcrições forçadas `zh` e `pt` (`scripts/transcribe_mixed.py`)
-- [ ] Mapear idioma por janela (`scripts/lang_map.py`) — em execução
-- [ ] Montar .srt final misto (zh traduzido + pt revisado) → `work/*.pt-BR.srt`
+- [x] Mapear idioma por janela (`scripts/lang_map.py`) — 2 passes (4s/2s e 3s/1s)
+- [x] Comparar passes (`scripts/compare_passes.py`) → zh vence em logprob; passada pt
+      estava traduzindo (espelho semântico) — ver `05-ERROS-E-APRENDIZADOS.md`
+- [ ] Sonda AUTO por janela (`scripts/lang_probe.py`) — idioma real + texto nativo
+- [ ] Montar .srt final misto (zh traduzido + pt real preservado) → `work/*.pt-BR.srt`
 - [ ] QA de timing/quebras (preview com legendas, sem cravar)
 - [ ] Entregar em `output/` (vídeo original + .srt + meta.md)
 - [ ] Registrar aprendizados em `05-ERROS-E-APRENDIZADOS.md`
