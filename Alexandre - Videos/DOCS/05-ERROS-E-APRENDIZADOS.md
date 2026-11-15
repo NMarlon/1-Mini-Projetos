@@ -35,6 +35,20 @@
 
 ---
 
+## [2026-05] Filtro `subtitles=` do ffmpeg quebra com caminho absoluto Windows (`C:`)
+
+- **Erro:** `Error parsing a filter description ... No option name near '/MarlonScripts/...'`
+  ao rodar `-vf subtitles=filename='C:/...'`.
+- **Causa:** o parser de filtros do ffmpeg divide opções por `:` — o `C:` do drive
+  Windows é interpretado como separador de opção, mesmo entre aspas.
+- **Solução:** usar caminho **relativo** sem drive letter
+  (`subtitles=filename=work/arquivo.srt:force_style='...'`) e rodar com cwd na raiz
+  do projeto. Ver `scripts/preview_subtitles.py`.
+- **Aprendizado:** em FFmpeg filters no Windows, sempre caminho relativo (e sem
+  espaços ou com escape `C\:/`).
+
+---
+
 ## [2026-05] UnicodeEncodeError no console Windows (cp1252) ao imprimir chinês
 
 - **Erro:** `print()` de texto chinês em console cp1252 → `UnicodeEncodeError` no final

@@ -41,7 +41,9 @@
 
 ## TAREFA EM ANDAMENTO (outra sessão): Tradução do vídeo chinês → PT-BR
 
-**Status:** 🟡 EM ANDAMENTO
+**Status:** ✅ CONCLUÍDA (2026-11-15) — entrega em `output/traducao-chines-PTBR/`
+(vídeo original intacto + `traducao-chines-PTBR.pt-BR.srt` editável + `meta.md` com
+diagnóstico de timeline, incertezas e título sugerido).
 **Arquivo:** `Tradução do chinês/ssstik.io_1794764333421.mp4` (51,8s, 1,8 MB, TikTok)
 **Decisões do usuário (2026-05):**
 - Legendas em arquivo `.srt` **editável, NÃO cravadas** no vídeo.
@@ -69,12 +71,14 @@
 - [x] Mapear idioma por janela (`scripts/lang_map.py`) — 2 passes (4s/2s e 3s/1s)
 - [x] Comparar passes (`scripts/compare_passes.py`) → zh vence em logprob; passada pt
       estava traduzindo (espelho semântico) — ver `05-ERROS-E-APRENDIZADOS.md`
-- [ ] Sonda AUTO por janela (`scripts/lang_probe.py`) — idioma real + texto nativo
-- [ ] Montar .srt final misto (zh traduzido + pt real preservado) → `work/*.pt-BR.srt`
-- [ ] QA de timing/quebras (preview com legendas, sem cravar)
-- [ ] Entregar em `output/` (vídeo original + .srt + meta.md)
-- [ ] Registrar aprendizados em `05-ERROS-E-APRENDIZADOS.md`
-- [ ] Commit
+- [x] Sonda AUTO por janela (`scripts/lang_probe.py`) — idioma real + texto nativo
+      → achado: **pt-br real em 21.7–24.4s** ("ou morra tentando"); resto é chinês + música
+- [x] Montar .srt final misto → `work/ssstik.pt-BR.srt` (9 legendas, chinês traduzido,
+      pt preservado, música descartada)
+- [x] QA de timing/quebras (preview em `work/*_preview.mp4`, frames conferidos — vídeo intacto)
+- [x] Entregar em `output/traducao-chines-PTBR/` (vídeo original + .srt + meta.md)
+- [x] Registrar aprendizados em `05-ERROS-E-APRENDIZADOS.md`
+- [x] Commit
 
 ### Como proceder (referências)
 

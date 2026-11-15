@@ -21,10 +21,11 @@ def main() -> None:
     out = Path("work") / (video.stem + "_preview.mp4")
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    # escape de caminho p/ filtro do ffmpeg (Windows): C:/... e aspas
-    srt_posix = srt_file.resolve().as_posix()
+    # escape de caminho p/ filtro do ffmpeg (Windows): usar caminho RELATIVO sem
+    # drive letter — "C:" quebra o parser de filtros (ver 05-ERROS-E-APRENDIZADOS)
+    srt_rel = srt_file.resolve().relative_to(Path.cwd().resolve()).as_posix()
     vf = (
-        f"subtitles=filename='{srt_posix}':force_style="
+        f"subtitles=filename={srt_rel}:force_style="
         "'FontName=Arial,FontSize=14,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
         "BorderStyle=1,Outline=3,Shadow=0,MarginV=60,Alignment=2'"
     )

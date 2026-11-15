@@ -1,0 +1,34 @@
+{
+  "slug": "02-oracao-na-troca",
+  "fonte": "YTDown.com_YouTube_Media_mwysrmuy-rc_MORRE-DIABLO-partida-SOLO-VS-SQUAD-no-Call-of-Dutty-Warzone-Ressurgência_003_360p.mp4",
+  "modo": "blurpad",
+  "y_mira": 0.45,
+  "fps": 30,
+  "dur_max": 40,
+  "segmentos": [
+    { "start": 673.0, "end": 686.5 },
+    { "start": 686.5, "end": 696.0 },
+    { "start": 696.5, "end": 701.5 }
+  ],
+  "zooms": [
+    { "start": 5.9, "fim": 6.9, "valor": 0.14 },
+    { "start": 13.6, "fim": 14.8, "valor": 0.16 }
+  ],
+  "hook": [
+    { "texto": "ORANDO NO MEIO DA TROCA", "inicio": 0.0, "fim": 3.0 },
+    { "texto": "SÓ PODE SER MILAGRE", "inicio": 22.6, "fim": 28.4 }
+  ],
+  "legenda": "roteiros/02-oracao-na-troca.srt",
+  "destaque": ["Jesus", "poder"],
+  "bgm": { "arquivo": "assets/music/after_party.ogg", "volume": 0.10 },
+  "sfx": [
+    { "t": 13.6, "arquivo": "assets/sfx/boom.ogg", "volume": 0.7 },
+    { "t": 22.9, "arquivo": "assets/sfx/risada.wav", "volume": 0.30 }
+  ],
+  "loop": true,
+  "meta": {
+    "titulo": "ele começou a orar no meio da troca 💀",
+    "legenda_post": "\"o sangue de Jesus tem poder\" e aí o cara me meteu essa na troca 😭 marca quem precisa ver isso",
+    "hashtags": ["#warzone", "#callofduty", "#cod", "#clips", "#gaming", "#fyp", "#brasil"]
+  }
+}
