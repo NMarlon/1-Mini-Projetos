@@ -1,0 +1,33 @@
+{
+  "slug": "03-revolta-dos-vencedores",
+  "fonte": "YTDown.com_YouTube_Media_mwysrmuy-rc_MORRE-DIABLO-partida-SOLO-VS-SQUAD-no-Call-of-Dutty-Warzone-Ressurgência_003_360p.mp4",
+  "modo": "blurpad",
+  "y_mira": 0.45,
+  "fps": 30,
+  "dur_max": 40,
+  "segmentos": [
+    { "start": 617.0, "end": 634.5 },
+    { "start": 636.0, "end": 641.0 }
+  ],
+  "zooms": [
+    { "start": 5.4, "fim": 6.4, "valor": 0.15 },
+    { "start": 19.6, "fim": 20.6, "valor": 0.13 }
+  ],
+  "hook": [
+    { "texto": "A REVOLTA DOS VENCEDORES", "inicio": 0.0, "fim": 3.0 },
+    { "texto": "É AGORA QUE ELE VAI", "inicio": 19.4, "fim": 22.9 }
+  ],
+  "legenda": "roteiros/03-revolta-dos-vencedores.srt",
+  "destaque": ["revolta", "vencedores"],
+  "bgm": { "arquivo": "assets/music/after_party.ogg", "volume": 0.10 },
+  "sfx": [
+    { "t": 17.6, "arquivo": "assets/sfx/risada.wav", "volume": 0.28 },
+    { "t": 19.6, "arquivo": "assets/sfx/boom.ogg", "volume": 0.6 }
+  ],
+  "loop": true,
+  "meta": {
+    "titulo": "\"é a revolta dos vencedores\" 💀 e o final não tem explicação",
+    "legenda_post": "ele mesmo anunciou: \"é agora que ele vai\" — e aconteceu 😭 marca quem sempre fala assim",
+    "hashtags": ["#warzone", "#callofduty", "#cod", "#clips", "#gaming", "#fyp", "#brasil"]
+  }
+}

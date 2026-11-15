@@ -1,0 +1,31 @@
+{
+  "slug": "04-free-kill",
+  "fonte": "YTDown.com_YouTube_Media_mwysrmuy-rc_MORRE-DIABLO-partida-SOLO-VS-SQUAD-no-Call-of-Dutty-Warzone-Ressurgência_003_360p.mp4",
+  "modo": "blurpad",
+  "y_mira": 0.45,
+  "fps": 30,
+  "dur_max": 40,
+  "segmentos": [
+    { "start": 174.0, "end": 183.0 },
+    { "start": 185.0, "end": 195.0 }
+  ],
+  "zooms": [
+    { "start": 9.6, "fim": 10.6, "valor": 0.15 }
+  ],
+  "hook": [
+    { "texto": "ELE NEM SABIA QUE EU TAVA AQUI", "inicio": 0.0, "fim": 3.2 },
+    { "texto": "FREE KILL", "inicio": 14.8, "fim": 19.4 }
+  ],
+  "destaque": [],
+  "bgm": { "arquivo": "assets/music/after_party.ogg", "volume": 0.10 },
+  "sfx": [
+    { "t": 10.0, "arquivo": "assets/sfx/boom.ogg", "volume": 0.75 },
+    { "t": 15.2, "arquivo": "assets/sfx/risada.wav", "volume": 0.28 }
+  ],
+  "loop": true,
+  "meta": {
+    "titulo": "ele nem sabia que eu tava aqui 💀 free kill do dia",
+    "legenda_post": "o cara apareceu no momento mais errado possível 😭 quem já tomou assim?",
+    "hashtags": ["#warzone", "#callofduty", "#cod", "#clips", "#gaming", "#fyp", "#brasil"]
+  }
+}
