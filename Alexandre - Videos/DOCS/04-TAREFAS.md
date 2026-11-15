@@ -5,7 +5,41 @@
 
 ---
 
-## TAREFA ATUAL: Tradução do vídeo chinês → PT-BR (legendas editáveis)
+## TAREFA EM ANDAMENTO: shorts virais do bruto Warzone
+
+**Status:** 🟡 PILOTO CONCLUÍDO — falta o lote (+3 shorts)
+**Bruto:** `YTDown..._MORRE-DIABLO..._003_360p.mp4` (12min24s, 360p) — versão não rastreada no git (decisão do usuário).
+**Fluxo:** `03-FLUXO-DE-EDICAO.md` (seção B) · pesquisa `02-PESQUISA-VIRAL.md` · specs `07`.
+
+### Concluído
+
+- [x] `scripts/analisar_bruto.py` → `work/*_analise.md` (energia + cortes de cena ranqueados).
+      Zonas quentes: **8:55–9:35** e **11:10–12:24** (+ intro 0:00–0:41).
+- [x] Transcrições: `work/bruto.srt` (varredura VAD) e `work/fim.srt` (11:40–12:24, sem VAD, falas reais).
+- [x] Assets livres baixados (`scripts/baixar_assets.py` → `assets/` + `assets/CREDITOS.md`).
+- [x] Pipeline de render em 2 passos (`scripts/render_short.py`) + `templates/estilo.json`
+      (hook no topo, legendas 4–7 palavras com palavra-chave em amarelo, blurpad 9:16,
+      zoom pulse, SFX/bgm com loudnorm -14 LUFS, loop, `meta.md` automático).
+- [x] **Piloto `01-aura-3x1`** → `output/01-aura-3x1/` (22,8s, 1080×1920) — commit `54b1685`.
+
+### Falta (como proceder)
+
+- [ ] Transcrição do 1º terço: `work/inicio.srt` (roda em background; se morrer, repetir
+      `scripts/legendar.py <bruto> --start 0 --dur 535 --lang pt --out work/inicio.srt`).
+- [ ] Escolher **+3 momentos**: transcrever a zona quente com `legendar.py` e **conferir frames**
+      (`ffmpeg -ss T -frames:v 1`) antes de virar legenda — `--sem-vad` alucina (ver `05`).
+- [ ] Para cada: copiar `roteiros/01-aura-3x1.json` → `roteiros/<slug>.json`, ajustar segmentos/zooms/hook;
+      `montar_srt.py` (tempos RELATIVOS ao `--start`); `render_short.py`; QA de frames; commit.
+
+### Cuidados já mapeados (ler `05-ERROS-E-APRENDIZADOS.md` antes)
+
+- Fonte **360p** → usar modo `blurpad` (nunca `crop`, fica borrado demais).
+- `--sem-vad` repete frase (alucinação); chunk de legenda minúsculo no fim → `chunkize` balanceado já corrigido.
+- Black frame de transição no bruto (~12:03) → cortar segmentos nos limites limpos.
+
+---
+
+## TAREFA EM ANDAMENTO (outra sessão): Tradução do vídeo chinês → PT-BR
 
 **Status:** 🟡 EM ANDAMENTO
 **Arquivo:** `Tradução do chinês/ssstik.io_1794764333421.mp4` (51,8s, 1,8 MB, TikTok)
@@ -55,8 +89,7 @@
 
 ---
 
-## PRÓXIMA TAREFA (prevista): primeiro short viral do bruto Warzone
+## TAREFA CONCLUÍDA: pesquisa viral + higiene do git
 
-- Bruto: `YTDown..._MORRE-DIABLO..._003_360p.mp4` (12min24s, 360p).
-- Fluxo: `03-FLUXO-DE-EDICAO.md` (seção B). Pesquisa: `02-PESQUISA-VIRAL.md`.
-- Bloqueio: nenhum (não iniciada — começar analisando o bruto).
+**Status:** ✅ — `02-PESQUISA-VIRAL.md` ampliada (dados de retenção, crop no crosshair,
+horários de post), `08-REFERENCIAS.md` criada, mp4 brutos fora do versionamento.
