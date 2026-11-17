@@ -1,6 +1,6 @@
 # 03 — Guia rápido (PC + celular)
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 ---
 
@@ -51,6 +51,24 @@ Se preferir passo a passo, veja a seção 4.
 
 > A senha é necessária apenas no primeiro login. O Pomelu guarda a sessão no
 > Android Keystore.
+
+### 3.1. Webapp completo (sessões, projetos, arquivos, Git, terminal)
+
+O gateway serve o workspace do Desktop em `:8444`:
+
+1. Abra no Chrome do celular:
+   `https://marlon-dell-pc.tail6ded59.ts.net:8444`
+2. Faça login com o mesmo usuário/senha.
+3. Opcional: “Adicionar à tela inicial” (PWA) ou instalar o **Hermes-Android**
+   e apontar para a mesma URL.
+4. Se não abrir, rode no PC:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1
+   ```
+
+> O **Mono Hermes** (APK) mostra sessões no `:8443`, mas a UI dele é de
+> Hermes 0.22.0; no servidor 0.23.1 aparece um aviso de versão informativo.
+> Para o workspace completo e alinhado, use o Webapp `:8444`.
 
 ## 4. Passo a passo manual (se não quiser o Instalar-Tudo)
 
@@ -123,6 +141,9 @@ O JSON deve conter `"auth_required": true` e `"auth_providers": ["basic"]`.
 # Garantir que tudo está de pé
 powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Mobile.ps1
 
+# Webapp completo (se estiver habilitado)
+powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1
+
 # Ver status
 powershell -ExecutionPolicy Bypass -File .\scripts\Status-Diagnostico.ps1
 ```
@@ -140,6 +161,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Remover-Autostart.ps1
 ```
 
 O OpenCode em `:443` **não é afetado**.
+O gateway/webapp em `:9120` continua; use `-PararGateway` se quiser parar
+também (isso derruba o webapp `:8444`).
 
 ## 7. Reverter tudo (rollback completo)
 
@@ -157,8 +180,10 @@ Quando o Hermes for atualizado (Store/`hermes update`):
 
 1. Rode `Status-Diagnostico.ps1`.
 2. Teste `/api/status` e o login.
-3. Se o protocolo mudar, veja `DOCS/06-TROUBLESHOOTING.md`.
-4. **Não** rode `hermes update` sozinho sem backup (REGRA 13).
+3. Se o webapp estiver habilitado, rode `Configurar-Webapp.ps1 -Forcar`
+   para recopiar o renderer da nova versão.
+4. Se o protocolo mudar, veja `DOCS/06-TROUBLESHOOTING.md`.
+5. **Não** rode `hermes update` sozinho sem backup (REGRA 13).
 
 ## 9. PC novo
 

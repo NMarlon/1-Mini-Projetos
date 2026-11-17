@@ -1,6 +1,6 @@
 # 04 — Scripts e comandos
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 Todos os scripts ficam em `scripts/` e são compatíveis com **PowerShell 5.1**.
 Nunca use `pwsh` nem recursos do PowerShell 7.
@@ -14,6 +14,7 @@ Nunca use `pwsh` nem recursos do PowerShell 7.
 | `Instalar-Tudo.ps1` | Configura auth + servidor + Tailscale + autostart | Primeira instalação ou PC novo |
 | `Configurar-Hermes.ps1` | Gera credenciais e define `dashboard.public_url` | Reconfigurar auth |
 | `Configurar-Tailscale.ps1` | Cria/remove o handler `:8443` | Publicar ou reverter |
+| `Configurar-Webapp.ps1` | Copia o renderer e liga o Webapp em `:9120`/`:8444` | Workspace completo (projetos/arquivos/Git/terminal) |
 | `Iniciar-Servidor.ps1` | Garante o `hermes serve` (background ou `-Foreground`) | Chamado pelo `Iniciar-Mobile` e pela Tarefa Agendada |
 | `Iniciar-Mobile.ps1` | Garante servidor + Tailscale e mostra URL | Dia a dia |
 | `Parar-Mobile.ps1` | Para o servidor e remove o handler | Manutenção |
@@ -124,6 +125,7 @@ O que faz:
 2. Chama `Configurar-Tailscale.ps1`.
 3. Verifica `/api/status` local e via HTTPS.
 4. Mostra URL e como obter as credenciais.
+5. Se o webapp estiver habilitado, checa `:9120` e mostra a URL `:8444`.
 
 Opções: `-Porta`, `-PortaPublica`, `-SemTailscale`, `-AbrirNavegador`.
 
@@ -138,6 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Parar-Mobile.ps1
 - Para **somente** esse PID.
 - Remove o handler `:8443` (opcional; por padrão mantém).
 - **Nunca** roda `hermes serve --stop` (que pararia o Desktop também).
+- O gateway/webapp em `:9120` continua; use `-PararGateway` para parar também.
 
 ## 8. `Instalar-Autostart.ps1`
 
@@ -200,7 +203,8 @@ Checa:
 7. `/api/status` via HTTPS do tailnet.
 8. Firewall (somente leitura).
 9. Tarefa Agendada.
-10. Salva log em `logs/` se `-SalvarEmLog`.
+10. Webapp (config, `HERMES_WEBAPP_DIST`, 9120, 8444, login).
+11. Salva log em `logs/` se `-SalvarEmLog`.
 
 ## 12. `Manter-Acordado.ps1`
 
@@ -216,7 +220,30 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Manter-Acordado.ps1 -Reverter
 
 Backup em `%LOCALAPPDATA%\HermesMobile\energia-backup.json`.
 
-## 13. Comandos úteis (sem script)
+## 14. `Configurar-Webapp.ps1`
+
+```powershell
+# Copiar/atualizar e ligar o webapp
+powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1
+
+# Forçar recópia do renderer (após atualizar o Hermes)
+powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1 -Forcar
+```
+
+O que faz:
+
+1. Localiza `app.asar.unpacked\dist` na instalação MSIX.
+2. Copia para `%LOCALAPPDATA%\HermesMobile\webapp-dist` (robocopy /MIR).
+3. Grava `HERMES_WEBAPP_DIST` no `.env`.
+4. Liga `webapp.enabled` no gateway (`127.0.0.1:9120`) e define
+   `webapp.public_url` para `https://<pc>.<tailnet>.ts.net:8444`.
+5. Reinicia o gateway e aguarda `/api/status`.
+6. Publica `tailscale serve --https=8444 http://127.0.0.1:9120`.
+7. Testa local e público.
+
+O Pomelu continua no `:8443`; o webapp usa `:8444`.
+
+## 15. Comandos úteis (sem script)
 
 ```powershell
 # Ver status do servidor

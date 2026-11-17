@@ -1,6 +1,6 @@
 # 13 — Checklist do celular
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 > Esta é a parte que **só o Marlon pode fazer** (instalar/autenticar no
 > celular). O PC já está configurado e validado.
@@ -14,6 +14,8 @@
 - [x] Auth básica com hash scrypt + secret.
 - [x] `dashboard.public_url` configurado.
 - [x] Tailscale Serve `:8443 → 127.0.0.1:9119`.
+- [x] Gateway/webapp em `127.0.0.1:9120` e Tailscale `:8444`.
+- [x] Gateway instalado como login item (`Hermes_Gateway.vbs`).
 - [x] Tailscale Serve `:443 → 127.0.0.1:28894` (OpenCode) preservado.
 - [x] Tarefa Agendada `Hermes Mobile - Servidor` no login.
 - [x] Modelo padrão `deepseek-v4.1-flash` (OpenCode Go) testado.
@@ -53,6 +55,24 @@
    apagar um temporário”) e confirme que o card de aprovação aparece.
 5. Feche e reabra o app; a sessão deve continuar.
 
+### 2.4. Webapp completo (opcional, recomendado para projetos)
+
+1. Abra no Chrome:
+   `https://marlon-dell-pc.tail6ded59.ts.net:8444`
+2. Faça login com o mesmo usuário/senha.
+3. Você verá o workspace do Desktop: sessões, projetos, arquivos, Git e
+   terminal.
+4. Opcional: “Adicionar à tela inicial” (PWA) ou usar o **Hermes-Android**
+   apontando para a mesma URL.
+
+### 2.5. Mono Hermes (opcional)
+
+- APK v0.4.0: <https://github.com/Monoperro0207/mono-hermes/releases/latest>
+- URL: `https://marlon-dell-pc.tail6ded59.ts.net:8443`
+- Mostra sessões/histórico, mas a UI é de Hermes 0.22.0; no servidor 0.23.1
+  aparece um **aviso de versão informativo**.
+- Para o workspace completo e alinhado, use o Webapp `:8444`.
+
 ## 3. Se não conectar
 
 Consulte [`06-TROUBLESHOOTING.md`](06-TROUBLESHOOTING.md). Os erros mais
@@ -65,6 +85,8 @@ comuns:
 | 400 Host refused | `dashboard.public_url` errado | Conferir no PC |
 | “Gateway too old” | Hermes < 0.21.5 | Atualizar (com backup) |
 | WebSocket cai | Tailscale/rede instável | Reconectar; ver logs |
+| Webapp `:8444` não abre | gateway parado | `hermes gateway start` ou `Configurar-Webapp.ps1` |
+| Aviso de versão no Mono Hermes | app 0.22 vs servidor 0.23 | informativo; usar Webapp `:8444` |
 
 ## 4. Opcional: plugin de push
 

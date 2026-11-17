@@ -1,6 +1,6 @@
 # 05 — Segurança
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 ---
 
@@ -70,6 +70,8 @@ Isso gera nova senha/hash/secret. Depois:
 
 - [ ] Nenhum segredo no `git status`.
 - [ ] `tailscale serve status` mostra 443 → 28894 e 8443 → 9119.
+- [ ] `tailscale serve status` mostra 8444 → 9120 (webapp).
+- [ ] `https://...:8444/login` responde 200.
 - [ ] `tailscale funnel status` **não** mostra nada.
 - [ ] Hermes escutando só em `127.0.0.1`.
 - [ ] `/api/status` retorna `auth_required: true`.
@@ -86,6 +88,17 @@ Isso gera nova senha/hash/secret. Depois:
 - ❌ Desativar o auth gate para “facilitar”.
 - ❌ Instalar APK do Pomelu de site aleatório (só Play Store ou GitHub
   oficial `ateymoori/pomelu`).
+
+## 10. Webapp (8444)
+
+- O gateway escuta `127.0.0.1:9120`; o Tailscale Serve publica em `:8444`.
+- O login é o mesmo (`hermes` + senha); `webapp.public_url` liga o gate.
+- O renderer é copiado da instalação 0.23.1 para
+  `%LOCALAPPDATA%\HermesMobile\webapp-dist`; o manifesto
+  `webapp-dist.json` guarda a versão e o SHA-256 do `index.html`.
+- O webapp dá acesso a terminal/arquivos/Git; trate como acesso ao PC.
+- Revogação: rotacione a senha (`Configurar-Hermes.ps1 -Rotacionar`) e remova
+  o dispositivo no Tailscale.
 - ❌ Conectar o Pomelu em HTTP público.
 
 ## 8. Plugin Pomelu (quando avaliado)

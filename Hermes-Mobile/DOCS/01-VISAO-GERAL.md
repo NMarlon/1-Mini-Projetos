@@ -1,6 +1,6 @@
 # 01 — Visão geral
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 ---
 
@@ -9,10 +9,14 @@
 Usar o **Hermes Agent** que roda no PC Windows do Marlon a partir do
 **celular Android (Galaxy A32)**, com acesso privado pelo **Tailscale**.
 
-O cliente escolhido é o **Pomelu**, um app Android/iOS open-source feito
+O cliente principal é o **Pomelu**, um app Android/iOS open-source feito
 especificamente para Hermes. Ele fala o protocolo do `hermes serve`
 (REST + JSON-RPC/WebSocket) e oferece chats por bot/perfil, aprovações,
 perguntas, voz, arquivos, cron e tela do bot.
+
+Para o workspace completo (sessões, projetos, arquivos, Git, terminal), o
+projeto também habilita o **Webapp oficial** do Desktop via cópia do renderer
+instalado, servido pelo gateway em `:8444`.
 
 ## 2. Escopo
 
@@ -20,34 +24,37 @@ perguntas, voz, arquivos, cron e tela do bot.
 
 - Configurar autenticação do gateway do Hermes.
 - Subir o `hermes serve` em `127.0.0.1:9119`.
-- Publicar via Tailscale Serve HTTPS em `:8443`.
-- Instalar/manter o autostart no login.
-- Documentar o uso do Pomelu no celular.
+- Publicar via Tailscale Serve HTTPS em `:8443` (Pomelu/Mono Hermes).
+- Habilitar o Webapp oficial em `:8444` (gateway 9120).
+- Instalar/manter o autostart no login (servidor + gateway).
+- Documentar o uso do Pomelu, Webapp e Mono Hermes no celular.
 - Scripts de diagnóstico, início, parada, credenciais e rollback.
 
 ### Fora do escopo
 
 - Criar app Android próprio.
-- Compilar o webapp oficial do Hermes.
+- Compilar o webapp a partir do código-fonte.
 - Instalar um Hermes separado no celular (Termux).
 - Gerenciar modelos/providers/chaves de API.
 - Abrir portas no roteador ou usar Tailscale Funnel.
 - Alterar configurações de energia do PC.
 
-## 3. Estado atual (2026-11-16)
+## 3. Estado atual (2026-11-17)
 
 | Item | Valor |
 |---|---|
 | Hermes | v0.23.1 stable (Microsoft Store/MSIX) |
 | Home | `C:\Users\Marlon\AppData\Local\hermes` |
 | Servidor | `hermes serve` em `127.0.0.1:9119` |
+| Gateway/Webapp | gateway em `127.0.0.1:9120` |
 | Modelo padrão | `deepseek-v4.1-flash` (OpenCode Go) |
 | Auth | usuário + hash scrypt + secret (via `.env`) |
-| URL pública | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
+| URL Pomelu | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
+| URL Webapp | `https://marlon-dell-pc.tail6ded59.ts.net:8444` |
 | Tailscale | PC `marlon-dell-pc` (`100.76.44.54`), celular `a32-de-marlon` (`100.66.158.57`) |
 | OpenCode | `https://marlon-dell-pc.tail6ded59.ts.net` (443 → 28894) |
-| App | Pomelu (`se.royan.pomelu`) |
-| Autostart | Tarefa Agendada no login |
+| Apps | Pomelu (Play Store) + Mono Hermes (APK) |
+| Autostart | Tarefa `Hermes Mobile - Servidor` + Startup `Hermes_Gateway.vbs` |
 | Energia | não alterada |
 | Plugin Pomelu | não instalado (backlog) |
 
@@ -60,7 +67,8 @@ perguntas, voz, arquivos, cron e tela do bot.
 4. Uma aprovação/pergunta aparece no celular e pode ser respondida.
 5. O OpenCode continua funcionando em `:443`.
 6. O servidor volta sozinho após logout/login (autostart).
-7. Nenhum segredo no Git; nenhuma porta pública.
+7. O Webapp em `:8444` abre, autentica e mostra o workspace (sessões/projetos).
+8. Nenhum segredo no Git; nenhuma porta pública.
 
 ## 5. Glossário
 
@@ -76,13 +84,24 @@ perguntas, voz, arquivos, cron e tela do bot.
 | **Tailnet** | A rede privada WireGuard do Tailscale |
 | **`dashboard.public_url`** | URL pública que liga o login obrigatório no loopback |
 | **scrypt** | Algoritmo de hash de senha usado pelo auth básico do Hermes |
+| **Webapp** | Workspace do Desktop servido pelo gateway em `:8444` |
+| **Mono Hermes** | App Android que usa o renderer do Desktop e o `hermes serve` |
 
-## 6. Por que não o webapp oficial
+## 6. Webapp oficial (habilitado via cópia do renderer)
 
 A instalação da Microsoft Store **não inclui** o bundle
-`apps/desktop/dist-webapp`. O comando `hermes webapp` tentaria compilar o
-renderer a partir de um código-fonte que também não está presente. O Pomelu
-não depende desse bundle: ele usa a API do `hermes serve`.
+`apps/desktop/dist-webapp` nem o código-fonte. O projeto copia o renderer
+que já vem no app (`app.asar.unpacked\dist`) para
+`%LOCALAPPDATA%\HermesMobile\webapp-dist` e aponta `HERMES_WEBAPP_DIST`.
+O gateway injeta `window.__HERMES_UI_SURFACE__="webapp"` e serve o workspace
+completo em `:8444`.
+
+- **Vantagem:** sessões, projetos, arquivos, Git e terminal, alinhado ao
+  servidor 0.23.1.
+- **Manutenção:** após atualizar o Hermes, rodar
+  `Configurar-Webapp.ps1 -Forcar`.
+- **Mono Hermes:** o app v0.4.0 usa a UI 0.22.0; no servidor 0.23.1 mostra
+  um aviso de versão informativo.
 
 Detalhes em [`09-ERROS-E-APRENDIZADOS.md`](09-ERROS-E-APRENDIZADOS.md).
 

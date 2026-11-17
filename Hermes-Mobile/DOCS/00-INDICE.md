@@ -1,6 +1,6 @@
 # 00 — Índice da documentação
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 Este é o ponto de entrada da documentação do **Hermes-Mobile**.
 Leia o [`AGENTS.md`](../AGENTS.md) antes de alterar qualquer coisa.

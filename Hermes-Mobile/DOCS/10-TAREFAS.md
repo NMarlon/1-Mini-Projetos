@@ -1,6 +1,6 @@
 # 10 — Tarefas do projeto
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 > **Para a próxima IA:** encontre a tarefa 🟡, leia o “como proceder” e
 > continue. Atualize o status e faça commit ao terminar.
@@ -137,17 +137,52 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 ---
 
-## Estado final (2026-11-16)
+## Fase 5 — Webapp oficial + gateway estável
+
+**Status:** 🟢
+
+- [x] Copiar renderer do app 0.23.1 para `webapp-dist`.
+- [x] Gravar `HERMES_WEBAPP_DIST` no `.env`.
+- [x] Ligar `webapp.enabled` no gateway (9120) e `public_url` 8444.
+- [x] Instalar o gateway como login item (`Hermes_Gateway.vbs`).
+- [x] Publicar `:8444` no Tailscale Serve.
+- [x] Validar login e HTML do webapp (`__HERMES_UI_SURFACE__`).
+- [x] Atualizar `Status-Diagnostico.ps1` e `Iniciar-Mobile.ps1`.
+- [x] Commit.
+
+**Evidências:** ver `DOCS/12-VERIFICACAO-E-TESTES.md` (2026-11-17 — Fase 5).
+
+---
+
+## Fase 6 — Mono Hermes (opcional)
+
+**Status:** 🟡 (aviso de versão)
+
+- [x] Instalar Mono Hermes v0.4.0 (APK GitHub).
+- [x] Conectar em `:8443` com usuário/senha.
+- [x] Validar login/WebSocket (logs do servidor).
+- [ ] Acompanhar release do app compatível com 0.23.x.
+- [ ] Opcional: usar o Webapp `:8444` para o workspace completo.
+
+**Decisão:** o aviso é informativo; o Webapp é a rota alinhada.
+
+---
+
+## Estado final (2026-11-17)
 
 | Item | Estado |
 |---|---|
 | PC / servidor | 🟢 `hermes serve` em 9119 |
-| Tailscale 8443 | 🟢 ativo |
+| Tailscale 8443 | 🟢 ativo (Pomelu/Mono Hermes) |
+| Tailscale 8444 | 🟢 ativo (Webapp) |
 | Auth | 🟢 basic (scrypt) |
 | OpenCode 443 | 🟢 preservado |
-| Autostart | 🟢 Tarefa Agendada `Running` |
+| Autostart | 🟢 Tarefa `Hermes Mobile - Servidor` + Startup `Hermes_Gateway.vbs` |
+| Gateway | 🟢 `gateway_running: true`, `overall: ok` |
+| Webapp | 🟢 login/HTML/serve 200 |
 | Agente via HTTPS/WSS | 🟢 respondeu `OK` |
-| Pomelu no celular | 🟡 ação humana |
+| Pomelu no celular | 🟢 conectado |
+| Mono Hermes | 🟡 aviso de versão (0.22 vs 0.23) |
 | Plugin de push | ⚪ backlog |
 
 ---

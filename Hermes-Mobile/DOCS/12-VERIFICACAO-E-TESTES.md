@@ -1,6 +1,6 @@
 # 12 — Verificação e testes
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 > Registre aqui **evidências reais** (comando + saída resumida + data).
 > Não declare “pronto” sem testar.
@@ -11,19 +11,23 @@
 
 | # | Teste | Status | Evidência |
 |---|---|---|---|
-| 1 | Hermes instalado e versão | ⚪ | |
-| 2 | `hermes serve` rodando em 9119 | ⚪ | |
-| 3 | `/api/status` local com `auth_required: true` | ⚪ | |
-| 4 | Login local funciona | ⚪ | |
-| 5 | Tailscale Serve `:8443` ativo | ⚪ | |
-| 6 | `/api/status` via HTTPS do tailnet | ⚪ | |
-| 7 | Login via HTTPS | ⚪ | |
-| 8 | OpenCode `:443` intacto | ⚪ | |
-| 9 | Autostart no login | ⚪ | |
-| 10 | Pomelu conecta e lista bots | ⚪ (humano) | |
-| 11 | Prompt no Pomelu recebe resposta | ⚪ (humano) | |
-| 12 | Aprovação/pergunta no Pomelu | ⚪ (humano) | |
-| 13 | Nenhum segredo no Git | ⚪ | |
+| 1 | Hermes instalado e versão | 🟢 | 0.23.1 |
+| 2 | `hermes serve` rodando em 9119 | 🟢 | PID 15672 |
+| 3 | `/api/status` local com `auth_required: true` | 🟢 | HTTP 200 |
+| 4 | Login local funciona | 🟢 | cookies + `/api/profiles` 200 |
+| 5 | Tailscale Serve `:8443` ativo | 🟢 | → 9119 |
+| 6 | `/api/status` via HTTPS do tailnet | 🟢 | HTTP 200 |
+| 7 | Login via HTTPS | 🟢 | 200 + `__Host-` cookies |
+| 8 | OpenCode `:443` intacto | 🟢 | 401 sem auth |
+| 9 | Autostart no login | 🟢 | Tarefa `Hermes Mobile - Servidor` |
+| 10 | Pomelu conecta e lista bots | 🟢 | confirmado pelo Marlon |
+| 11 | Prompt no Pomelu recebe resposta | 🟢 | confirmado pelo Marlon |
+| 12 | Aprovação/pergunta no Pomelu | 🟡 | testar quando aparecer |
+| 13 | Nenhum segredo no Git | 🟢 | `git grep` sem match |
+| 14 | Webapp 9120/8444 | 🟢 | 200 local/público |
+| 15 | Login + HTML do webapp | 🟢 | `__HERMES_UI_SURFACE__` |
+| 16 | Gateway como login item | 🟢 | `Hermes_Gateway.vbs` |
+| 17 | Mono Hermes conecta | 🟢 | aviso de versão (0.22 vs 0.23) |
 
 ---
 
@@ -181,7 +185,11 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 2
 
-- (preencher)
+- Tailscale Serve `:8443 → 127.0.0.1:9119` ativo.
+- `/api/status` via HTTPS → 200; login HTTPS → 200; `/api/profiles` → 200.
+- OpenCode `:443 → 28894` preservado (401 sem auth).
+- WebSocket WSS + `session.create` + prompt "OK" → `complete`.
+- `tailscale serve status` mostrava 443 e 8443.
 
 ### 2026-11-16 — Fase 3
 
@@ -218,11 +226,21 @@ Registrar data/hora e resultado.
 
 ---
 
-## 5. Problemas conhecidos
+## 5. Webapp / gateway (2026-11-17)
+
+- Webapp oficial habilitado em `:8444` (gateway `127.0.0.1:9120`).
+- Gateway instalado como login item (`Hermes_Gateway.vbs`).
+- `HERMES_WEBAPP_DIST` aponta para `%LOCALAPPDATA%\HermesMobile\webapp-dist`.
+- Login público 200; HTML com `__HERMES_UI_SURFACE__`; `/login` 200.
+- **Mono Hermes:** aviso de versão (UI 0.22.0 vs servidor 0.23.1) — informativo.
+- **Pomelu:** conectado; chat/sessões via `:8443`.
+
+## 6. Problemas conhecidos
 
 | Problema | Impacto | Contorno |
 |---|---|---|
 | `install out of sync` | cosmético | não atualizar sem backup |
-| Webapp bundle ausente | não usar webapp | Pomelu |
-| PC dorme | perde acesso | manter acordado manualmente |
-| Pomelu 0.22.2 vs servidor 0.23.1 | possível incompatibilidade | testar; fallback `hermes dashboard` |
+| Webapp renderer copiado | manutenção | `Configurar-Webapp.ps1 -Forcar` após update |
+| Mono Hermes 0.22 vs 0.23 | aviso de versão | usar Webapp `:8444` ou ignorar |
+| PC dorme | perde acesso | manter na tomada / `Manter-Acordado.ps1` |
+| Celular em doze | timeout inicial | Tailscale sem restrição de bateria |

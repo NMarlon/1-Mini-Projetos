@@ -58,6 +58,26 @@ if ($url -and -not $SemTailscale) {
     }
 }
 
+# Webapp oficial (opcional)
+try {
+    $webappRaw = Invoke-Hermes -Arguments @('config', 'get', 'webapp')
+    if ($webappRaw -match 'enabled:\s*true') {
+        $webappPort = 9120
+        if ($webappRaw -match 'port:\s*(\d+)') { $webappPort = [int]$Matches[1] }
+        $webappPublic = ''
+        if ($webappRaw -match 'public_url:\s*(\S+)') { $webappPublic = $Matches[1] }
+
+        $wcode = Test-HttpCode -Url "http://127.0.0.1:$webappPort/api/status"
+        if ($wcode -eq '200') {
+            Write-Ok ("Webapp local OK (porta {0})." -f $webappPort)
+        } else {
+            Write-Warn2 ("Webapp local respondeu HTTP {0}." -f $wcode)
+            Write-Host "  Dica: inicie o gateway com 'hermes gateway start' ou rode Configurar-Webapp.ps1."
+        }
+        if ($webappPublic) { Write-Host ("Webapp  : {0}" -f $webappPublic) }
+    }
+} catch { }
+
 Write-Head "Pronto"
 if ($url) { Write-Host ("URL     : {0}" -f $url) }
 Write-Host ("Usuario : hermes (ou o configurado)")

@@ -1,6 +1,6 @@
 # 08 — Referências
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 ---
 

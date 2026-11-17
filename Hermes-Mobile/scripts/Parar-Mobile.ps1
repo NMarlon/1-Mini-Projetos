@@ -17,7 +17,8 @@
 param(
     [int]$Porta = 9119,
     [switch]$RemoverServe,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$PararGateway
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +53,20 @@ if ($RemoverServe) {
     & "$PSScriptRoot\Configurar-Tailscale.ps1" -Porta $Porta -Remover
 } else {
     Write-Host "Handler :8443 mantido (use -RemoverServe para remover)."
+}
+
+if ($PararGateway) {
+    Write-Step "Parando o gateway (webapp em :9120)..."
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $null = & hermes.exe gateway stop 2>&1
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    Write-Ok "Gateway parado."
+} else {
+    Write-Host "Gateway/webapp em :9120 continua rodando (use -PararGateway para parar)."
 }
 
 Write-Ok "O OpenCode em :443 nao foi tocado."

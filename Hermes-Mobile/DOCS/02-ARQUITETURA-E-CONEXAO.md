@@ -1,6 +1,6 @@
 # 02 — Arquitetura e conexão
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 ---
 
@@ -10,23 +10,21 @@
 ┌──────────────────────────────────────────────┐
 │  Galaxy A32 (Android 10+)                    │
 │  ├─ Tailscale ligado                         │
-│  ├─ Pomelu (se.royan.pomelu)                 │
-│  └─ URL: https://marlon-dell-pc...ts.net:8443│
+│  ├─ Pomelu / Mono Hermes  → :8443            │
+│  └─ Chrome / Hermes-Android → :8444 (webapp) │
 └───────────────────┬──────────────────────────┘
-                    │ 1) Tailnet WireGuard
-                    │ 2) HTTPS/TLS (cert *.ts.net)
+                    │ Tailnet WireGuard + HTTPS
                     ▼
 ┌──────────────────────────────────────────────┐
 │  PC Windows 11 — marlon-dell-pc               │
 │                                              │
-│  Tailscale Serve :443  → 127.0.0.1:28894     │  ← OpenCode (intocado)
-│  Tailscale Serve :8443 → 127.0.0.1:9119      │  ← Hermes (novo)
+│  Tailscale Serve :443  → 127.0.0.1:28894     │  ← OpenCode
+│  Tailscale Serve :8443 → 127.0.0.1:9119      │  ← hermes serve
+│  Tailscale Serve :8444 → 127.0.0.1:9120      │  ← gateway/webapp
 │                                              │
 │  hermes serve (127.0.0.1:9119)               │
-│  ├─ REST  /api/...                           │
-│  ├─ WS    /api/ws                            │
-│  ├─ auth  basic (scrypt)                     │
-│  └─ sessões, ferramentas, arquivos, cron     │
+│  gateway      (127.0.0.1:9120)               │
+│  └─ webapp = renderer copiado do app 0.23.1  │
 └──────────────────────────────────────────────┘
 ```
 
@@ -43,6 +41,10 @@
    - `:8443` → `127.0.0.1:9119` (Hermes, novo).
 5. **Pomelu** — app Flutter. Fala REST + JSON-RPC/WebSocket com o gateway.
    Guarda credenciais no Android Keystore.
+6. **Gateway/Webapp** — processo do gateway em `127.0.0.1:9120`.
+   Serve o renderer do Desktop copiado do app instalado (v0.23.1) com
+   `HERMES_WEBAPP_DIST`; o Tailscale Serve publica em `:8444`.
+   É o workspace completo: sessões, projetos, arquivos, Git e terminal.
 
 ## 3. Fluxo de dados
 
@@ -68,6 +70,7 @@ Usuário escreve no Pomelu
 | Gate | `dashboard.public_url` liga o login mesmo em loopback |
 | Sessão | Token de acesso + refresh; Pomelu renova sozinho |
 | App | Credenciais no Android Keystore |
+| Webapp | Mesmo auth do gateway; `webapp.public_url` liga o gate; renderer copiado com hash no manifesto |
 | Internet pública | **zero** — sem Funnel, sem porta no roteador |
 
 ## 5. ADRs (decisões técnicas)
@@ -120,11 +123,19 @@ Usuário escreve no Pomelu
   `Manter-Acordado.ps1` existe, mas é opcional e manual.
 - **Limitação:** se o PC dormir, o celular perde o acesso até acordar.
 
-### ADR-008 — Não usar o webapp oficial nesta instalação
-- **Decisão:** não depender de `hermes webapp`.
+### ADR-008 — Webapp oficial habilitado via cópia do renderer
+- **Decisão:** copiar `app.asar.unpacked\dist` do app instalado para
+  `%LOCALAPPDATA%\HermesMobile\webapp-dist`, apontar `HERMES_WEBAPP_DIST`
+  e servir no gateway `127.0.0.1:9120` (Tailscale `:8444`).
 - **Por quê:** a instalação MSIX não traz `apps/desktop/dist-webapp` nem o
-  código-fonte; o comando tentaria compilar e falharia.
-- **Se um dia o bundle vier:** o webapp pode ser reavaliado como fallback.
+  código-fonte. O renderer do Desktop é o mesmo produto e funciona no
+  navegador quando o gateway injeta `window.__HERMES_UI_SURFACE__`.
+- **Resultado:** workspace completo (sessões, projetos, arquivos, Git,
+  terminal) alinhado ao servidor 0.23.1.
+- **Manutenção:** após atualizar o Hermes, rodar
+  `Configurar-Webapp.ps1 -Forcar` para recopiar o renderer.
+- **Alternativas descartadas:** compilar `apps/desktop` do zero (sem fonte
+  na Store) ou instalar o Hermes WebUI separado (mais peças).
 
 ### ADR-009 — Não usar Termux
 - **Decisão:** não instalar Hermes no celular.
@@ -136,12 +147,24 @@ Usuário escreve no Pomelu
   relay de terceiros (Royan AB), com mensagens cifradas. Requer avaliação
   de segurança e teste separado.
 
+### ADR-011 — Gateway como login item e Webapp em 8444
+- **Decisão:** instalar o gateway como item de login
+  (`Startup\Hermes_Gateway.vbs`) e publicar o webapp em `:8444`.
+- **Por quê:** o gateway iniciado manualmente parava quando o Desktop ou o
+  terminal fechava, causando o aviso intermitente de Gateway no Desktop e no
+  Mono Hermes. O login item mantém o processo estável.
+- **Portas:** `:8443` continua para Pomelu/Mono Hermes; `:8444` para o webapp;
+  `:443` continua OpenCode.
+- **Segurança:** gateway escuta `127.0.0.1`; Tailscale Serve é tailnet-only.
+
 ## 6. Portas e endereços
 
 | O quê | Valor |
 |---|---|
 | Hermes serve | `http://127.0.0.1:9119` |
+| Gateway/webapp | `http://127.0.0.1:9120` |
 | Tailscale Serve Hermes | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
+| Tailscale Serve Webapp | `https://marlon-dell-pc.tail6ded59.ts.net:8444` |
 | Tailscale Serve OpenCode | `https://marlon-dell-pc.tail6ded59.ts.net` (443) |
 | IP do PC no tailnet | `100.76.44.54` |
 | IP do celular | `100.66.158.57` |
@@ -159,4 +182,6 @@ Usuário escreve no Pomelu
 | B-3 | Porta alternativa (ex.: 9121) | Se 9119 estiver ocupada pelo Desktop |
 | B-4 | Plugin Pomelu de push | Se precisar de notificações com app fechado |
 | B-5 | Telegram gateway | Canal secundário de mensagens |
-| B-6 | Webapp oficial (se o bundle aparecer) | Fallback de UI no navegador |
+| B-6 | Webapp oficial em `:8444` | Workspace completo (já habilitado) |
+| B-7 | Mono Hermes (APK) | Sessões/histórico no Android; UI 0.22.0 |
+| B-8 | Hermes-Android + Webapp `:8444` | Shell nativo do webapp |

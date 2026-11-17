@@ -1,6 +1,6 @@
 # 09 — Erros e aprendizados
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 > Registre aqui **erros reais** (com o comando/saída), não teoria.
 > A próxima IA deve ler do fim para o início.
@@ -314,6 +314,56 @@
 - **Correção:** criar um arquivo **`.url`** (Internet Shortcut) com:
   `[InternetShortcut]`, `URL=...`, `IconFile=...`.
 - **Como evitar:** para sites, usar `.url`; para programas, `.lnk`.
+
+## E024 — `robocopy` com `Start-Process -ArgumentList` quebrou o caminho
+
+- **Data:** 2026-11-17
+- **Contexto:** copiar o renderer para o webapp.
+- **O que aconteceu:** `Start-Process -ArgumentList @($src,$dst,...)` juntou
+  os argumentos sem aspas; o robocopy leu `C:\Program` e falhou com
+  “Parâmetro Inválido #3”.
+- **Causa:** `Start-Process` não cita cada elemento do array.
+- **Correção:** montar a linha com aspas e rodar `cmd.exe /c`:
+  `robocopy "src" "dst" /MIR ...`; checar `$LASTEXITCODE` (0-7 = sucesso).
+- **Como evitar:** para caminhos com espaços, usar `cmd /c` com aspas.
+
+## E025 — Webapp raiz retorna 302 (login), não 200
+
+- **Data:** 2026-11-17
+- **Contexto:** testar `https://...:8444/` com `curl`.
+- **O que aconteceu:** HTTP 302 e “HTML inesperado”.
+- **Causa:** `webapp.public_url` liga o auth gate; a raiz redireciona para
+  `/login` quando não há sessão.
+- **Correção:** testar `/login` (200) ou fazer login e reenviar o cookie;
+  com sessão, `/` retorna 200 e o HTML contém `__HERMES_UI_SURFACE__`.
+- **Como evitar:** no diagnóstico, checar `/login` e `/api/status` (públicos)
+  antes de concluir que o webapp está quebrado.
+
+## E026 — Aviso de versão no Mono Hermes
+
+- **Data:** 2026-11-17
+- **Contexto:** Mono Hermes v0.4.0 conectado ao servidor 0.23.1.
+- **O que aconteceu:** aviso de versão (UI construída para Hermes 0.22.0).
+- **Causa:** o app é comunitário e congela a UI em 0.22.0; não há release
+  mais nova até 17/11/2026.
+- **Correção:** o aviso é informativo; para o workspace completo e alinhado,
+  usar o **Webapp oficial em `:8444`** (renderer 0.23.1). Acompanhar novas
+  releases do Mono Hermes.
+- **Como evitar:** não confundir aviso de versão com falha de gateway; testar
+  `/api/status` e o chat.
+
+## E027 — Gateway manual parava e gerava aviso intermitente
+
+- **Data:** 2026-11-17
+- **Contexto:** Desktop/Mono Hermes mostravam “Gateway” vermelho às vezes.
+- **O que aconteceu:** `hermes gateway status` dizia “Running manually”, e o
+  processo sumia quando o Desktop/terminal fechava.
+- **Causa:** gateway iniciado manualmente, sem serviço/login item.
+- **Correção:** `hermes gateway install --force --start-on-login` (o UAC foi
+  pulado e ele criou `Startup\Hermes_Gateway.vbs`). `/api/status` passou a
+  `gateway_running: true`, `overall: ok`.
+- **Como evitar:** manter o gateway como login item; conferir
+  `hermes gateway status` após logoff/login.
 
 ---
 

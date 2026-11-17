@@ -3,7 +3,7 @@
 > **Arquivo de referência para a próxima IA/dev que continuar este projeto.**
 > Leia na íntegra ANTES de modificar qualquer coisa.
 
-Última atualização: **2026-11-16** (sessão: IA assistindo Marlon)
+Última atualização: **2026-11-17** (sessão: IA assistindo Marlon)
 
 ---
 
@@ -29,7 +29,7 @@ Resultado esperado:
 - ❌ Não gerencia modelos, chaves de provider nem licenças.
 - ❌ Não abre porta no roteador nem usa Tailscale Funnel.
 
-## 3. Estado atual (2026-11-16)
+## 3. Estado atual (2026-11-17)
 
 | Item | Valor |
 |---|---|
@@ -38,14 +38,17 @@ Resultado esperado:
 | Home do Hermes | `C:\Users\Marlon\AppData\Local\hermes` |
 | CLI | `hermes` no PATH (alias da Store); aviso pré-existente `install out of sync` |
 | Servidor | `hermes serve` em `127.0.0.1:9119` (Tarefa Agendada `Hermes Mobile - Servidor`) |
+| Gateway/Webapp | gateway em `127.0.0.1:9120` (login item `Hermes_Gateway.vbs`) |
 | Modelo padrão | `deepseek-v4.1-flash` via OpenCode Go (corrigido de `deepseek-flash`) |
 | Autenticação | `dashboard.basic_auth` via `.env` (usuário + hash scrypt + secret) |
-| URL pública | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
+| URL Pomelu | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
+| URL Webapp | `https://marlon-dell-pc.tail6ded59.ts.net:8444` |
 | Tailscale | v1.104.6; PC `marlon-dell-pc` = `100.76.44.54` |
 | Celular | Galaxy A32 `a32-de-marlon` = `100.66.158.57` |
 | OpenCode | continua em `https://marlon-dell-pc.tail6ded59.ts.net` (443 → 28894) |
-| App Android | **Pomelu** (`se.royan.pomelu`) |
-| Autostart | Tarefa Agendada `Hermes Mobile - Servidor` no login |
+| App Android | **Pomelu** (`se.royan.pomelu`) + **Mono Hermes** (APK, aviso de versão) |
+| Autostart | Tarefa `Hermes Mobile - Servidor` + Startup `Hermes_Gateway.vbs` |
+| Webapp | habilitado em 9120/8444 (renderer copiado do app 0.23.1) |
 | Energia | **não alterada** (decisão do Marlon em 16/11/2026) |
 | Plugin Pomelu | **não instalado** (backlog; ver `DOCS/11-BACKLOG-E-IDEIAS.md`) |
 | Segredos | fora do Git (`.env` + `secrets.json`) |
@@ -208,7 +211,10 @@ comandos e chaves de configuração permanecem em inglês.
 # Primeira instalação (faz TUDO: auth + servidor + Tailscale + autostart)
 powershell -ExecutionPolicy Bypass -File .\scripts\Instalar-Tudo.ps1
 
-# Dia a dia: garantir servidor + Tailscale
+# Webapp completo (workspace do Desktop no navegador/Hermes-Android)
+powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1
+
+# Dia a dia: garantir servidor + Tailscale + checar webapp
 powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Mobile.ps1
 
 # Diagnóstico de saúde (rodar ANTES de assumir qualquer coisa)
@@ -223,7 +229,8 @@ Detalhes em `DOCS/04-SCRIPTS-E-COMANDOS.md`.
 ## 8. 🔒 Resumo da segurança
 
 - Rota: Celular → Tailscale (WireGuard) → Tailscale Serve HTTPS `:8443` →
-  `hermes serve` em `127.0.0.1:9119`.
+  `hermes serve` em `127.0.0.1:9119` (Pomelu/Mono Hermes).
+- Webapp: Tailscale Serve `:8444` → gateway `127.0.0.1:9120`, com login.
 - Servidor escuta **apenas** em `127.0.0.1`.
 - `dashboard.public_url` liga o login obrigatório mesmo em loopback.
 - Auth: usuário + senha com hash **scrypt** + secret de assinatura.

@@ -306,6 +306,78 @@ if ($self3) {
 }
 
 # ---------------------------------------------------------------
+# 11. Webapp oficial (opcional)
+# ---------------------------------------------------------------
+Report ""
+Report "--- 11. Webapp oficial (opcional) ---"
+$webappRaw = ''
+$webappEnabled = $false
+$webappPort = 9120
+$webappPublic = ''
+
+try {
+    $webappRaw = Invoke-Hermes -Arguments @('config', 'get', 'webapp')
+    Report ("     {0}" -f (($webappRaw -replace "`r", ' ') -replace "`n", ' | '))
+    if ($webappRaw -match 'enabled:\s*true') { $webappEnabled = $true }
+    if ($webappRaw -match 'port:\s*(\d+)') { $webappPort = [int]$Matches[1] }
+    if ($webappRaw -match 'public_url:\s*(\S+)') { $webappPublic = $Matches[1] }
+} catch {
+    Report-Warn "Nao consegui ler a configuracao do webapp."
+}
+
+$webappDist = Get-EnvValue -Path $envPath -Key 'HERMES_WEBAPP_DIST'
+if ($webappDist) {
+    if (Test-Path -LiteralPath (Join-Path $webappDist 'index.html')) {
+        Report-Ok ("HERMES_WEBAPP_DIST: {0}" -f $webappDist)
+    } else {
+        Report-Err ("HERMES_WEBAPP_DIST sem index.html: {0}" -f $webappDist)
+    }
+} elseif ($webappEnabled) {
+    Report-Warn "Webapp habilitado, mas HERMES_WEBAPP_DIST esta ausente."
+} else {
+    Report "     Webapp desabilitado."
+}
+
+if ($webappEnabled) {
+    $wlisteners = Get-PortListeners -Port $webappPort
+    if (@($wlisteners).Count -gt 0) {
+        $wsrv = Get-ServerProcessOnPort -Port $webappPort
+        Report-Ok ("Porta {0} escutando (PID {1}, {2})." -f $webappPort, $wsrv.Pid, $wsrv.Name)
+        $wcode = Test-HttpCode -Url "http://127.0.0.1:$webappPort/api/status"
+        if ($wcode -eq '200') {
+            Report-Ok ("GET http://127.0.0.1:{0}/api/status -> 200" -f $webappPort)
+        } else {
+            Report-Warn ("Webapp local -> HTTP {0}" -f $wcode)
+        }
+    } else {
+        Report-Err ("Nada escutando em 127.0.0.1:{0} (webapp)." -f $webappPort)
+    }
+
+    if ($webappPublic) {
+        $wpub = $webappPublic.TrimEnd('/')
+        $wcode2 = Test-HttpCode -Url "$wpub/api/status" -TimeoutSeconds 20
+        if ($wcode2 -eq '200') {
+            Report-Ok ("Webapp publico -> 200 ({0})" -f $webappPublic)
+        } else {
+            Report-Warn ("Webapp publico -> HTTP {0}" -f $wcode2)
+        }
+        $wlogin = Test-HttpCode -Url "$wpub/login" -TimeoutSeconds 20
+        if ($wlogin -eq '200') {
+            Report-Ok "Pagina de login do webapp -> 200"
+        } else {
+            Report-Warn ("Login do webapp -> HTTP {0}" -f $wlogin)
+        }
+    }
+
+    $e8444 = Get-TailscaleServeEntry -Port 8444
+    if ($e8444) {
+        Report-Ok ("Serve 8444 -> {0}" -f $e8444.Proxy)
+    } else {
+        Report-Warn "Serve 8444 ausente (webapp nao chega no celular)."
+    }
+}
+
+# ---------------------------------------------------------------
 # Log
 # ---------------------------------------------------------------
 if ($SalvarEmLog) {

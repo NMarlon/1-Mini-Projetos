@@ -1,6 +1,6 @@
 # 06 — Troubleshooting
 
-Última atualização: **2026-11-16**
+Última atualização: **2026-11-17**
 
 > Antes de qualquer coisa, rode:
 > `powershell -ExecutionPolicy Bypass -File .\scripts\Status-Diagnostico.ps1 -SalvarEmLog`
@@ -236,7 +236,67 @@ Para trocar só a sessão (sem persistir), use o slash command no chat:
   `hermes status`.
 - Não edite `config.yaml` à mão sem backup.
 
-## 8. Logs úteis
+## 8. Webapp (8444) não abre
+
+### Sintoma: 502 / timeout em `https://...:8444`
+
+1. Confira o gateway e o webapp:
+   ```powershell
+   hermes gateway status
+   Get-NetTCPConnection -LocalPort 9120 -State Listen
+   curl.exe -s http://127.0.0.1:9120/api/status
+   tailscale serve status
+   ```
+2. Se 9120 não estiver escutando:
+   ```powershell
+   hermes gateway start
+   # ou
+   powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1
+   ```
+3. Se `HERMES_WEBAPP_DIST` estiver ausente ou sem `index.html`:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Webapp.ps1 -Forcar
+   ```
+4. Veja `%LOCALAPPDATA%\hermes\logs\gateway.log`.
+
+### Sintoma: login funciona, mas a tela fica em branco
+
+- Recopie o renderer (`Configurar-Webapp.ps1 -Forcar`) — pode ser de uma
+  versão anterior do Hermes.
+- Abra o console do Chrome e veja se algum `assets/*.js` deu 404.
+- Se persistir, use o Pomelu em `:8443` e registre em
+  `09-ERROS-E-APRENDIZADOS.md`.
+
+## 9. Aviso de versão no Mono Hermes
+
+O Mono Hermes v0.4.0 foi construído para Hermes **0.22.0**. No servidor
+**0.23.1** ele mostra um aviso de versão (informativo, dispensável). Não há
+release mais nova do app até 17/11/2026.
+
+- Se o chat/sessões funcionarem, ignore o aviso.
+- Para o workspace completo e alinhado, use o **Webapp `:8444`**.
+- Acompanhe novas releases: <https://github.com/Monoperro0207/mono-hermes/releases>
+
+## 10. Gateway intermitente
+
+### Sintoma: “Gateway” vermelho/offline no Desktop ou Mono Hermes
+
+O gateway de mensageria pode estar parado ou rodando manualmente. Confira:
+
+```powershell
+hermes gateway status
+```
+
+Se estiver “Running manually”, instale como item de login:
+
+```powershell
+hermes gateway install --force --start-on-login
+```
+
+Se o UAC for pedido e você não aprovar, o Hermes usa a pasta Startup
+(`Hermes_Gateway.vbs`), o que também resolve.
+
+## 11. Logs úteis
 
 ```powershell
 hermes logs --since 1h
@@ -244,7 +304,7 @@ hermes logs errors
 Get-Content "$env:LOCALAPPDATA\HermesMobile\logs\servidor-*.log" -Tail 100
 ```
 
-## 9. Reset de emergência
+## 12. Reset de emergência
 
 ```powershell
 # Parar só o servidor deste projeto
