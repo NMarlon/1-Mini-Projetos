@@ -304,6 +304,17 @@
 - **Como evitar:** tratar “tarefa Running/Ready” e “servidor de pé” como
   sinais separados.
 
+## E023 — Atalho `.lnk` com URL ficou sem destino
+
+- **Data:** 2026-11-16
+- **Contexto:** criar o atalho "Hermes Mobile" na área de trabalho.
+- **O que aconteceu:** `WScript.Shell.CreateShortcut` com
+  `TargetPath = "https://..."` criou um `.lnk` com target vazio.
+- **Causa:** `.lnk` não é o formato correto para URL.
+- **Correção:** criar um arquivo **`.url`** (Internet Shortcut) com:
+  `[InternetShortcut]`, `URL=...`, `IconFile=...`.
+- **Como evitar:** para sites, usar `.url`; para programas, `.lnk`.
+
 ---
 
 ## Erros a registrar durante a execução

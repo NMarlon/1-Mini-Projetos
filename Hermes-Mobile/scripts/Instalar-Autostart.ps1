@@ -93,12 +93,15 @@ if (-not $SemAtalho) {
         $url = "https://$($self.DnsName):8443"
         try {
             $desktop = [Environment]::GetFolderPath('Desktop')
-            $lnk = Join-Path $desktop 'Hermes Mobile.lnk'
-            $ws2 = New-Object -ComObject WScript.Shell
-            $sc2 = $ws2.CreateShortcut($lnk)
-            $sc2.TargetPath = $url
-            $sc2.Save()
-            Write-Ok ("Atalho criado: {0}" -f $lnk)
+            $urlFile = Join-Path $desktop 'Hermes Mobile.url'
+            $content = "[InternetShortcut]`r`nURL=$url`r`nIconFile=$env:SystemRoot\System32\SHELL32.dll`r`nIconIndex=13`r`n"
+            Write-TextNoBom -Path $urlFile -Content $content
+
+            # Remover .lnk antigo/vazio, se existir
+            $oldLnk = Join-Path $desktop 'Hermes Mobile.lnk'
+            if (Test-Path -LiteralPath $oldLnk) { Remove-Item -LiteralPath $oldLnk -Force }
+
+            Write-Ok ("Atalho criado: {0}" -f $urlFile)
         } catch {
             Write-Warn2 "Nao foi possivel criar o atalho na area de trabalho."
         }

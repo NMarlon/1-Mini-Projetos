@@ -30,10 +30,16 @@ if ($task) {
 }
 
 $desktop = [Environment]::GetFolderPath('Desktop')
+$desktopUrl = Join-Path $desktop 'Hermes Mobile.url'
+if (Test-Path -LiteralPath $desktopUrl) {
+    Remove-Item -LiteralPath $desktopUrl -Force
+    Write-Ok "Atalho .url da area de trabalho removido."
+}
+
 $desktopLnk = Join-Path $desktop 'Hermes Mobile.lnk'
 if (Test-Path -LiteralPath $desktopLnk) {
     Remove-Item -LiteralPath $desktopLnk -Force
-    Write-Ok "Atalho da area de trabalho removido."
+    Write-Ok "Atalho .lnk da area de trabalho removido."
 }
 
 $startup = [Environment]::GetFolderPath('Startup')
