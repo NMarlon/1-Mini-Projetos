@@ -1,7 +1,7 @@
 # 06 — Tarefas
 
-> **Estado atual:** T00 concluída. T01 (ambiente e doctor) é a próxima.
-> **Próximo passo:** criar o `.venv` 3.11, instalar dependências e implementar o `doctor`.
+> **Estado atual:** T01 concluída (ambiente 3.11 + `doctor`). T02 (extração) é a próxima.
+> **Próximo passo:** implementar `extract.py`/`classify.py`/`clean.py` e gerar `content/`.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -11,8 +11,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | ID | Tarefa | Status | Commit |
 |---|---|---|---|
 | T00 | Scaffold, AGENTS.md, DOCS, config, .gitignore | `[x]` | `chore(pdf-tts): scaffold, documentação e regras` |
-| T01 | Ambiente Python 3.11, dependências, doctor | `[~]` | `chore(pdf-tts): ambiente e verificação de dependências` |
-| T02 | Extração + classificação + manuscript | `[ ]` | `feat(pdf-tts): extração e estruturação dos PDFs` |
+| T01 | Ambiente Python 3.11, dependências, doctor | `[x]` | `chore(pdf-tts): ambiente e verificação de dependências` |
+| T02 | Extração + classificação + manuscript | `[~]` | `feat(pdf-tts): extração e estruturação dos PDFs` |
 | T03 | Normalização pt-BR + segmentação S01–S07 | `[ ]` | `feat(pdf-tts): normalização e segmentação por aula` |
 | T04 | Backend Edge TTS, cache, retry, resume | `[ ]` | `feat(pdf-tts): backend edge-tts com cache e retomada` |
 | T05 | Amostras de voz + guia de pronúncia | `[ ]` | `feat(pdf-tts): amostras de voz e guia de pronúncia` |
@@ -54,7 +54,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T01 — Ambiente e doctor
 
-**Status:** `[ ]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - `py -3.11 -m venv .venv`.
@@ -77,7 +77,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T02 — Extração e estruturação
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 **O que fazer:**
 - Implementar `extract.py`, `classify.py`, `clean.py`, `segment.py` (parte de
@@ -279,4 +279,5 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 | Data | Tarefa | Observação |
 |---|---|---|
 | 2026-11-17 | T00 | Scaffold e documentação inicial criados; PDFs movidos para `input/` e ignorados no Git. |
-| 2026-11-17 | T01 | Ambiente 3.11 e doctor em andamento. |
+| 2026-11-17 | T01 | `.venv` 3.11 criado; dependências instaladas; `doctor` OK (20 checks); 4 testes passando. |
+| 2026-11-17 | T02 | Extração em andamento; layout e tabelas investigados com `pdfplumber`. |
