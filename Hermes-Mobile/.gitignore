@@ -1,0 +1,43 @@
+# ============================================================
+# Hermes-Mobile - arquivos que NUNCA devem ir para o Git
+# ============================================================
+
+# --- Segredos e credenciais ---
+secrets/
+*.secret
+*.secret.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+.env.*
+*.env
+credenciais*.json
+credentials*.json
+cookies*.txt
+cookie*.txt
+
+# --- Logs e artefatos locais ---
+logs/
+*.log
+atalhos/
+*.lnk
+qr/
+cache/
+*.tmp
+*.bak
+__write_test.tmp
+
+# --- Sistema operacional ---
+Thumbs.db
+desktop.ini
+Desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# --- Node / build (se algum dia houver) ---
+node_modules/
+dist/
+.bun-cache/
