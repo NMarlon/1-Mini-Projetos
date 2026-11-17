@@ -455,6 +455,8 @@ def encode_m4b(
         str(chapter_index),
         "-map_chapters",
         str(chapter_index),
+        "-dn",
+        "-sn",
         "-c:a",
         "aac",
         "-b:a",
@@ -744,7 +746,7 @@ def run_assemble(selector: str, lesson: str | None = None) -> int:
         results: list[LessonAudio] = []
         for index, (_, data) in enumerate(loaded, start=1):
             print(f"[assemble] {project.key} {data['lesson_id']}…")
-            track = f"{index}/{len(loaded)}" if not lesson else None
+            track = f"{index}/{len(loaded)}"
             result = assemble_lesson(
                 project,
                 data,

@@ -1,7 +1,7 @@
 # 06 — Tarefas
 
-> **Estado atual:** T06 concluída (MKT S01 completa: MP3/M4B/SRT). T07 (QA) e T08 (build completo MKT) são os próximos.
-> **Próximo passo:** revisar qualidade da S01 e iniciar a síntese das S02–S07 em background.
+> **Estado atual:** T07 concluída (QA técnico da S01 aprovado). T08 (build completo MKT 120) em andamento.
+> **Próximo passo:** sintetizar S02–S07, montar o livro MKT completo e validar.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -17,8 +17,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T04 | Backend Edge TTS, cache, retry, resume | `[x]` | `feat(pdf-tts): backend edge-tts com cache e retomada` |
 | T05 | Amostras de voz + guia de pronúncia | `[x]` | `feat(pdf-tts): amostras de voz e guia de pronúncia` |
 | T06 | Primeira aula (MKT S01) ponta a ponta | `[x]` | `feat(pdf-tts): primeira aula completa` |
-| T07 | Ajustes de qualidade (pausas, loudness, joins) | `[~]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
-| T08 | Build completo MKT 120 | `[ ]` | `feat(pdf-tts): build completo do MKT 120` |
+| T07 | Ajustes de qualidade (pausas, loudness, joins) | `[x]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
+| T08 | Build completo MKT 120 | `[~]` | `feat(pdf-tts): build completo do MKT 120` |
 | T09 | Build completo COM 150 | `[ ]` | `feat(pdf-tts): build completo do COM 150` |
 | T10 | Verificação final e manifests | `[ ]` | `chore(pdf-tts): verificação final e manifests` |
 | T11 | Documentação final e handoff | `[ ]` | `docs(pdf-tts): handoff e estado final` |
@@ -189,7 +189,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T07 — Ajustes de qualidade
 
-**Status:** `[~]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Corrigir problemas encontrados na S01: pronúncia, pausas, joins, volume.
@@ -206,7 +206,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T08 — Build completo MKT 120
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 **O que fazer:**
 - Rodar `build --project mkt120 --resume`.
@@ -285,3 +285,4 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 | 2026-11-17 | T04 | Backend Edge com cache/retry/resume; S01 MKT sintetizada (162 chunks, 0 falhas, 2m39s); retomada 100% cache em 1s. |
 | 2026-11-17 | T05 | Amostras geradas: francisca 28,2s; antonio 31,7s; thalita 28,6s; pronúncia 36,7s. |
 | 2026-11-17 | T06 | MKT S01: 23:05, 11 capítulos, 163 cues SRT, -16,46 LUFS / TP -1,46; MP3 11,1 MB; M4B 11,2 MB com capa 1081x1400. |
+| 2026-11-17 | T07 | QA técnico da S01 aprovado: nenhum silêncio >3 s; capítulos/cover/metadata OK; `-dn/-sn` no M4B. |

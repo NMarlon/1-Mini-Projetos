@@ -7,7 +7,7 @@
   "engine": "edge",
   "voice": "pt-BR-FranciscaNeural",
   "rate": "-5%",
-  "generated_at": "2026-11-17T14:23:08+00:00",
+  "generated_at": "2026-11-17T14:25:26+00:00",
   "total_duration_s": 1385.05,
   "lessons": [
     {
@@ -21,8 +21,8 @@
         "mp3": "output/MKT-120/S01.mp3",
         "m4b": "output/MKT-120/S01.m4b",
         "srt": "output/MKT-120/S01.srt",
-        "sha256_mp3": "f0d8f1fee6d282996966d4efb735cc1b5b9a73dc08150887180adc67715e3700",
-        "sha256_m4b": "3e67ff5c3ee1e3f29c39724d9ed343d45a9eab5e24ab4f1dca695efe0f31ba64",
+        "sha256_mp3": "ec35f742a5a493e74341d3026c945f3980c562201386e9ff1daae8bf340812e6",
+        "sha256_m4b": "53bdc14ee865b64f98a5e7f4301bf0c2b8f7ccae62f9e670a8f5db248a4c7434",
         "sha256_srt": "2f97afc142b024024ece80e621585d7250d12a4aaea0e2f5bab6686dc9e910de"
       },
       "chapters": [
