@@ -6,10 +6,10 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 
 ## Estado atual
 
-- T00–T07 concluídas.
-- `MKT 120`: aula **S01** pronta (MP3/M4B/SRT, 23:05, 11 capítulos); build das
-  S02–S07 em andamento.
-- `COM 150`: extração/segmentação prontas; síntese pendente.
+- T00–T08 concluídas.
+- `MKT 120`: **pronto e verificado** — 7 aulas + livro completo (3h39, 68
+  capítulos, MP3/M4B/SRT, ~425 MB).
+- `COM 150`: extração/segmentação prontas; síntese das 3.222 frases em andamento.
 - 43 testes automatizados passando.
 
 O plano completo, as tarefas e o estado de cada etapa estão em

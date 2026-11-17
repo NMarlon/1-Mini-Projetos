@@ -135,3 +135,4 @@ O projeto está pronto quando:
 | Data | Projeto | Resultado | Observações |
 |---|---|---|---|
 | 2026-11-17 | MKT-120 S01 | OK técnico | 23:05; 11 capítulos; 163 cues; -16,46 LUFS; TP -1,46; MP3 11,1 MB; M4B 11,2 MB; capa 1081x1400. |
+| 2026-11-17 | MKT-120 completo | **OK** | 7 aulas + livro 3:39:26; 1.473 cues; 68 capítulos; loudness -16,45/-16,46 LUFS; TP ≤ -0,94; nenhum silêncio >5 s. |

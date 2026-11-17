@@ -1,7 +1,7 @@
 # 06 — Tarefas
 
-> **Estado atual:** T07 concluída (QA técnico da S01 aprovado). T08 (build completo MKT 120) em andamento.
-> **Próximo passo:** sintetizar S02–S07, montar o livro MKT completo e validar.
+> **Estado atual:** T08 concluída (MKT 120 completo e verificado). T09 (build completo COM 150) em andamento.
+> **Próximo passo:** aguardar a síntese das 3.222 frases únicas do COM 150, montar as 7 aulas + livro completo e verificar.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -18,8 +18,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T05 | Amostras de voz + guia de pronúncia | `[x]` | `feat(pdf-tts): amostras de voz e guia de pronúncia` |
 | T06 | Primeira aula (MKT S01) ponta a ponta | `[x]` | `feat(pdf-tts): primeira aula completa` |
 | T07 | Ajustes de qualidade (pausas, loudness, joins) | `[x]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
-| T08 | Build completo MKT 120 | `[~]` | `feat(pdf-tts): build completo do MKT 120` |
-| T09 | Build completo COM 150 | `[ ]` | `feat(pdf-tts): build completo do COM 150` |
+| T08 | Build completo MKT 120 | `[x]` | `feat(pdf-tts): build completo do MKT 120` |
+| T09 | Build completo COM 150 | `[~]` | `feat(pdf-tts): build completo do COM 150` |
 | T10 | Verificação final e manifests | `[ ]` | `chore(pdf-tts): verificação final e manifests` |
 | T11 | Documentação final e handoff | `[ ]` | `docs(pdf-tts): handoff e estado final` |
 
@@ -206,7 +206,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T08 — Build completo MKT 120
 
-**Status:** `[~]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Rodar `build --project mkt120 --resume`.
@@ -214,10 +214,10 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 - Validar todos os arquivos.
 - Atualizar `manifests/MKT-120.json`.
 
-**Progresso (2026-11-17):** S01 já está em cache; build das S02–S07 em
-background (`logs/build-mkt120.log`), ~1.337 textos únicos. Após concluir,
-re-extrair/segmentar por causa do fix E035 (legenda “Tabela6.2”) e remontar.
-Não iniciar outro build Edge enquanto este estiver rodando.
+**Progresso (2026-11-17):** build concluído com **1.337 textos únicos / 0
+falhas**; re-extração aplicou o fix E035; montagem gerou S01–S07 + livro
+completo (3h39, 68 capítulos, ~450 MB). Verificação técnica em andamento.
+Logs: `logs/build-mkt120.log`.
 
 **Critério de aceite:**
 - 7 MP3 + 7 M4B + 7 SRT + completo MP3/M4B.
@@ -229,7 +229,7 @@ Não iniciar outro build Edge enquanto este estiver rodando.
 
 ## T09 — Build completo COM 150
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 **O que fazer:**
 - Rodar `build --project com150 --resume`.
@@ -291,3 +291,4 @@ Não iniciar outro build Edge enquanto este estiver rodando.
 | 2026-11-17 | T05 | Amostras geradas: francisca 28,2s; antonio 31,7s; thalita 28,6s; pronúncia 36,7s. |
 | 2026-11-17 | T06 | MKT S01: 23:05, 11 capítulos, 163 cues SRT, -16,46 LUFS / TP -1,46; MP3 11,1 MB; M4B 11,2 MB com capa 1081x1400. |
 | 2026-11-17 | T07 | QA técnico da S01 aprovado: nenhum silêncio >3 s; capítulos/cover/metadata OK; `-dn/-sn` no M4B. |
+| 2026-11-17 | T08 | MKT completo: 7 aulas + livro (3:39:26), 1.473 cues, 68 capítulos, 425 MB; verify 100% OK (-16,45 LUFS; TP ≤ -0,94; sem silêncios >5 s). |

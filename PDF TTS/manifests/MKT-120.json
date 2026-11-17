@@ -7,23 +7,23 @@
   "engine": "edge",
   "voice": "pt-BR-FranciscaNeural",
   "rate": "-5%",
-  "generated_at": "2026-11-17T14:25:26+00:00",
-  "total_duration_s": 1385.05,
+  "generated_at": "2026-11-17T14:57:24+00:00",
+  "total_duration_s": 13166.37,
   "lessons": [
     {
       "id": "S01",
       "title": "Noções Básicas de Marketing",
       "start_page": 6,
       "end_page": 17,
-      "duration_s": 1385.05,
+      "duration_s": 1385.07,
       "chunks": 163,
       "files": {
         "mp3": "output/MKT-120/S01.mp3",
         "m4b": "output/MKT-120/S01.m4b",
         "srt": "output/MKT-120/S01.srt",
-        "sha256_mp3": "ec35f742a5a493e74341d3026c945f3980c562201386e9ff1daae8bf340812e6",
-        "sha256_m4b": "53bdc14ee865b64f98a5e7f4301bf0c2b8f7ccae62f9e670a8f5db248a4c7434",
-        "sha256_srt": "2f97afc142b024024ece80e621585d7250d12a4aaea0e2f5bab6686dc9e910de"
+        "sha256_mp3": "cf08e87469d2ba4a8e16ecec79d38b1765bf1f6b16d1e471fee1184b0fa7f890",
+        "sha256_m4b": "70d3f0c76d057ded16523ab5a23ac3e26b446e9fcaf4f182676ca6e81351874f",
+        "sha256_srt": "11eb816548d78f25fffb202b5e16a4337f012fcf002e248440e524a815f8c066"
       },
       "chapters": [
         {
@@ -34,54 +34,464 @@
         {
           "title": "Introdução",
           "start": 80.004,
-          "end": 513.256
+          "end": 513.28
         },
         {
           "title": "Etapa 3: Entregue Alto Valor ao Cliente",
-          "start": 513.256,
-          "end": 745.518
+          "start": 513.28,
+          "end": 745.542
         },
         {
           "title": "Verificação de Conhecimento",
-          "start": 745.518,
-          "end": 772.132
+          "start": 745.542,
+          "end": 772.156
         },
         {
           "title": "O que é um Plano de Marketing?",
-          "start": 772.132,
-          "end": 910.908
+          "start": 772.156,
+          "end": 910.932
         },
         {
           "title": "Tarefa do Plano de Marketing por semana:",
-          "start": 910.908,
-          "end": 935.666
+          "start": 910.932,
+          "end": 935.69
         },
         {
           "title": "Conclusão",
-          "start": 935.666,
-          "end": 1001.694
+          "start": 935.69,
+          "end": 1001.718
         },
         {
           "title": "Lista de Vocabulário",
-          "start": 1001.694,
-          "end": 1072.966
+          "start": 1001.718,
+          "end": 1072.99
         },
         {
           "title": "S01 Participação",
-          "start": 1072.966,
-          "end": 1153.71
+          "start": 1072.99,
+          "end": 1153.734
         },
         {
           "title": "A Mão do Senhor",
-          "start": 1153.71,
-          "end": 1230.01
+          "start": 1153.734,
+          "end": 1230.034
         },
         {
           "title": "S01 Plano de Marketing: Perfil da Empresa",
-          "start": 1230.01,
-          "end": 1385.048
+          "start": 1230.034,
+          "end": 1385.072
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Necessidades e Desejos dos Clientes",
+      "start_page": 18,
+      "end_page": 33,
+      "duration_s": 1695.88,
+      "chunks": 190,
+      "files": {
+        "mp3": "output/MKT-120/S02.mp3",
+        "m4b": "output/MKT-120/S02.m4b",
+        "srt": "output/MKT-120/S02.srt",
+        "sha256_mp3": "5dd4cbb0889efd4aa0626e3a6abeca30950052463434ed51fb3747cfa84911a4",
+        "sha256_m4b": "2d0a10b5c92020c9e91a86fd235aa8b57a80e9f3ec022b8882ee7290ca77bfe0",
+        "sha256_srt": "f6e8cf823a91e3c22ada7bc15fb37b3eee9e7a3f8baf8cd5f63280c7e4ba8220"
+      },
+      "chapters": [
+        {
+          "title": "Semana 2 — Necessidades e Desejos dos Clientes",
+          "start": 0.0,
+          "end": 66.978
+        },
+        {
+          "title": "Introdução",
+          "start": 66.978,
+          "end": 646.276
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 646.276,
+          "end": 675.578
+        },
+        {
+          "title": "Identificando seu Cliente Ideal",
+          "start": 675.578,
+          "end": 1191.112
+        },
+        {
+          "title": "Dicas para ser um Estudante Online de Sucesso",
+          "start": 1191.112,
+          "end": 1224.994
+        },
+        {
+          "title": "Conclusão",
+          "start": 1224.994,
+          "end": 1270.79
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 1270.79,
+          "end": 1389.152
+        },
+        {
+          "title": "S02 Participação",
+          "start": 1389.152,
+          "end": 1540.732
+        },
+        {
+          "title": "S02 Plano de Marketing: Fatores de Compra e Segmentação",
+          "start": 1540.732,
+          "end": 1695.876
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Análise SWOT",
+      "start_page": 34,
+      "end_page": 46,
+      "duration_s": 1518.65,
+      "chunks": 175,
+      "files": {
+        "mp3": "output/MKT-120/S03.mp3",
+        "m4b": "output/MKT-120/S03.m4b",
+        "srt": "output/MKT-120/S03.srt",
+        "sha256_mp3": "7685246235042718737b1a47684aefd5e37fda196fec47c068f82837601f765e",
+        "sha256_m4b": "60e6e27ba9265eb592ce4bafedc1f0611d60738e37676cbda99d5c43c13f2060",
+        "sha256_srt": "fb167946a33113e772b9e500df46e2e51e9c0c24ad7333ecf522039360255e7b"
+      },
+      "chapters": [
+        {
+          "title": "Semana 3 — Análise SWOT",
+          "start": 0.0,
+          "end": 53.874
+        },
+        {
+          "title": "Introdução",
+          "start": 53.874,
+          "end": 613.434
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 613.434,
+          "end": 634.696
+        },
+        {
+          "title": "Mapas de Posicionamento Perceptual",
+          "start": 634.696,
+          "end": 1008.648
+        },
+        {
+          "title": "Conclusão",
+          "start": 1008.648,
+          "end": 1102.208
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 1102.208,
+          "end": 1192.804
+        },
+        {
+          "title": "S03 Participação",
+          "start": 1192.804,
+          "end": 1340.616
+        },
+        {
+          "title": "S03 Plano de Marketing: SWOT e Mapa de Percepção",
+          "start": 1340.616,
+          "end": 1518.65
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Pesquisa de Marketing",
+      "start_page": 47,
+      "end_page": 65,
+      "duration_s": 2095.11,
+      "chunks": 243,
+      "files": {
+        "mp3": "output/MKT-120/S04.mp3",
+        "m4b": "output/MKT-120/S04.m4b",
+        "srt": "output/MKT-120/S04.srt",
+        "sha256_mp3": "e7e64126104c2344a823ec59da8dd31154770520346be7d53989aa5a8ae32737",
+        "sha256_m4b": "381def0fabd2543e5a6c576c2d6a0bb1c68ed5419912986625510114b19d7b9b",
+        "sha256_srt": "9e47265afab6ac3bc39990062b5619a1798e4ae07e6e28f51ad87bb70d6f9ded"
+      },
+      "chapters": [
+        {
+          "title": "Semana 4 — Pesquisa de Marketing",
+          "start": 0.0,
+          "end": 54.69
+        },
+        {
+          "title": "Introdução",
+          "start": 54.69,
+          "end": 632.272
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 632.272,
+          "end": 659.63
+        },
+        {
+          "title": "Desenvolver o Plano de Pesquisa",
+          "start": 659.63,
+          "end": 1164.982
+        },
+        {
+          "title": "Preparar o Relatório de Pesquisa",
+          "start": 1164.982,
+          "end": 1530.43
+        },
+        {
+          "title": "Conclusão",
+          "start": 1530.43,
+          "end": 1596.746
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 1596.746,
+          "end": 1764.07
+        },
+        {
+          "title": "S04 Participação",
+          "start": 1764.07,
+          "end": 1841.856
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 1841.856,
+          "end": 1918.156
+        },
+        {
+          "title": "S04 Plano de Marketing: Perguntas e Análises da Pesquisa",
+          "start": 1918.156,
+          "end": 2095.11
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Desempenho de Marketing",
+      "start_page": 66,
+      "end_page": 79,
+      "duration_s": 1637.16,
+      "chunks": 198,
+      "files": {
+        "mp3": "output/MKT-120/S05.mp3",
+        "m4b": "output/MKT-120/S05.m4b",
+        "srt": "output/MKT-120/S05.srt",
+        "sha256_mp3": "1eccbd5b4c8542750422e0c95ab4c8c0e2a47c7f6f4b41afccd803131fbd0962",
+        "sha256_m4b": "8bcc9c66b3670b1a44a5aa14891c61ea27433defd15249cd3d6b542e9be0872a",
+        "sha256_srt": "1634917b05d46b13360b2956d7e99058298a25f38012c75790b3282305f0cfe5"
+      },
+      "chapters": [
+        {
+          "title": "Semana 5 — Desempenho de Marketing",
+          "start": 0.0,
+          "end": 63.186
+        },
+        {
+          "title": "Introdução",
+          "start": 63.186,
+          "end": 510.368
+        },
+        {
+          "title": "Receita de Vendas Nova/Incremental",
+          "start": 510.368,
+          "end": 811.082
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 811.082,
+          "end": 836.712
+        },
+        {
+          "title": "Valor de longo prazo do Cliente (CLV)",
+          "start": 836.712,
+          "end": 1145.776
+        },
+        {
+          "title": "Conclusão",
+          "start": 1145.776,
+          "end": 1201.316
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 1201.316,
+          "end": 1308.404
+        },
+        {
+          "title": "S05 Participação",
+          "start": 1308.404,
+          "end": 1407.574
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 1407.574,
+          "end": 1483.874
+        },
+        {
+          "title": "S05 Plano de Marketing: Metas e Métricas",
+          "start": 1483.874,
+          "end": 1637.16
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "title": "Mix de Promoção",
+      "start_page": 80,
+      "end_page": 100,
+      "duration_s": 3328.7,
+      "chunks": 330,
+      "files": {
+        "mp3": "output/MKT-120/S06.mp3",
+        "m4b": "output/MKT-120/S06.m4b",
+        "srt": "output/MKT-120/S06.srt",
+        "sha256_mp3": "1c345186e0a8bdb316316d87adb9bf56b1ff2f4ab160ba0d6afd5fd4416440a8",
+        "sha256_m4b": "e2d3cda4d12abc4a25d5af22de852b7f15d01d0883905fbfce60537a14a0b213",
+        "sha256_srt": "fec6991a48ddc37b8b967988e010eaf499b50bfd33982ef10a46af761db6d671"
+      },
+      "chapters": [
+        {
+          "title": "Semana 6 — Mix de Promoção",
+          "start": 0.0,
+          "end": 45.57
+        },
+        {
+          "title": "Introdução",
+          "start": 45.57,
+          "end": 813.512
+        },
+        {
+          "title": "Vantagens e Desvantagens dos Tipos de Promoção",
+          "start": 813.512,
+          "end": 1047.836
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 1047.836,
+          "end": 1074.498
+        },
+        {
+          "title": "A Importância do Mix de Promoção",
+          "start": 1074.498,
+          "end": 1583.386
+        },
+        {
+          "title": "Marketing de Relacionamento",
+          "start": 1583.386,
+          "end": 2018.37
+        },
+        {
+          "title": "Marketing Viral",
+          "start": 2018.37,
+          "end": 2503.836
+        },
+        {
+          "title": "Marketing Boca a Boca",
+          "start": 2503.836,
+          "end": 2865.804
+        },
+        {
+          "title": "Conclusão",
+          "start": 2865.804,
+          "end": 2959.614
+        },
+        {
+          "title": "S06 Participação",
+          "start": 2959.614,
+          "end": 3043.842
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 3043.842,
+          "end": 3120.142
+        },
+        {
+          "title": "S06 Plano de Marketing: Tipos de Promoção e Anúncios",
+          "start": 3120.142,
+          "end": 3328.704
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "title": "Estratégia de Vendas",
+      "start_page": 101,
+      "end_page": 113,
+      "duration_s": 1493.8,
+      "chunks": 174,
+      "files": {
+        "mp3": "output/MKT-120/S07.mp3",
+        "m4b": "output/MKT-120/S07.m4b",
+        "srt": "output/MKT-120/S07.srt",
+        "sha256_mp3": "12fceb18511c28e856926eb107a82f6f10bd66ac6caf9e25b37850f119734af0",
+        "sha256_m4b": "52b9b1738999feaf003f50fa10e0f1a8bdc6c3b32c3e8c6a4ff6474ee638525d",
+        "sha256_srt": "2ca34e42b4f6459d3716e4cc5ab88746480badc695c898ba9ac7e73edffdce91"
+      },
+      "chapters": [
+        {
+          "title": "Semana 7 — Estratégia de Vendas",
+          "start": 0.0,
+          "end": 69.282
+        },
+        {
+          "title": "Introdução",
+          "start": 69.282,
+          "end": 554.77
+        },
+        {
+          "title": "Estágio 3: Avaliação de Alternativas",
+          "start": 554.77,
+          "end": 879.176
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 879.176,
+          "end": 901.158
+        },
+        {
+          "title": "Conclusão",
+          "start": 901.158,
+          "end": 962.242
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 962.242,
+          "end": 1171.966
+        },
+        {
+          "title": "S07 Participação",
+          "start": 1171.966,
+          "end": 1317.556
+        },
+        {
+          "title": "S07 Plano de Marketing: Resumo Executivo",
+          "start": 1317.556,
+          "end": 1493.802
         }
       ]
     }
-  ]
+  ],
+  "full": {
+    "mp3": {
+      "path": "output/MKT-120/MKT-120-completo.mp3",
+      "sha256": "d95fe243156bfbf4e87d0292e640d29b176d58eef8777a553f5b1942ca7094ae",
+      "size": 105331875
+    },
+    "m4b": {
+      "path": "output/MKT-120/MKT-120-completo.m4b",
+      "sha256": "c2cb94f6c4b86bc743167cf7e6b2892a94e59b9b81522311827935a92c62caba",
+      "size": 106626659
+    },
+    "srt": {
+      "path": "output/MKT-120/MKT-120-completo.srt",
+      "sha256": "7a91f48dde46a60e3345498db35b27716733e3dfd0f92cad7e153f4ba8c7f9b1",
+      "size": 237829
+    }
+  }
 }
