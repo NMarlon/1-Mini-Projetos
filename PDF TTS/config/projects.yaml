@@ -1,0 +1,103 @@
+version: 1
+
+defaults:
+  engine: edge
+  voice: pt-BR-FranciscaNeural
+  rate: "-5%"
+  volume: "+0%"
+  pitch: "+0Hz"
+  language: pt-BR
+  output_formats: [mp3, m4b, srt]
+  concurrency: 3
+  include:
+    exercises: true
+    quizzes: true
+    references: false
+    front_matter: false
+    urls: false
+  audio:
+    sample_rate: 24000
+    channels: 1
+    mp3_bitrate: "64k"
+    aac_bitrate: "64k"
+    loudness_i: -16.0
+    loudness_tp: -1.5
+    loudness_lra: 11.0
+  chunk:
+    min_chars: 80
+    max_chars: 1200
+
+projects:
+  mkt120:
+    title: "Fundamentos de Marketing"
+    short_title: "MKT 120"
+    slug: "MKT-120"
+    pdf: "input/MKT 120.pdf"
+    output_dir: "output/MKT-120"
+    language: pt-BR
+    weeks:
+      - week: 1
+        start_page: 6
+        end_page: 17
+        title: "Noções Básicas de Marketing"
+      - week: 2
+        start_page: 18
+        end_page: 33
+        title: "Necessidades e Desejos dos Clientes"
+      - week: 3
+        start_page: 34
+        end_page: 46
+        title: "Análise SWOT"
+      - week: 4
+        start_page: 47
+        end_page: 65
+        title: "Pesquisa de Marketing"
+      - week: 5
+        start_page: 66
+        end_page: 79
+        title: "Desempenho de Marketing"
+      - week: 6
+        start_page: 80
+        end_page: 100
+        title: "Mix de Promoção"
+      - week: 7
+        start_page: 101
+        end_page: 113
+        title: "Estratégia de Vendas"
+
+  com150:
+    title: "Comunicação Interpessoal: Teoria e Prática"
+    short_title: "COM 150"
+    slug: "COM-150"
+    pdf: "input/Livro texto COM 150-1.pdf"
+    output_dir: "output/COM-150"
+    language: pt-BR
+    weeks:
+      - week: 1
+        start_page: 7
+        end_page: 31
+        title: "Fundamentos da Comunicação Interpessoal"
+      - week: 2
+        start_page: 32
+        end_page: 62
+        title: "Autocomunicação"
+      - week: 3
+        start_page: 63
+        end_page: 94
+        title: "Habilidades de Comunicação"
+      - week: 4
+        start_page: 95
+        end_page: 137
+        title: "Relacionamentos"
+      - week: 5
+        start_page: 138
+        end_page: 170
+        title: "Percepção"
+      - week: 6
+        start_page: 171
+        end_page: 210
+        title: "Conflito"
+      - week: 7
+        start_page: 211
+        end_page: 220
+        title: "Conclusão"

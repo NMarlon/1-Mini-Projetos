@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-tts"
+version = "0.1.0"
+description = "Pipeline local de PDF para audiolivro em pt-BR com Edge TTS"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pdfplumber>=0.11.0",
+    "pypdf>=5.0.0",
+    "pypdfium2>=4.30.0",
+    "edge-tts>=7.3.1,<8",
+    "num2words>=0.5.13",
+    "PyYAML>=6.0.1",
+    "tqdm>=4.66.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.6.0",
+]
+
+[project.scripts]
+pdf-tts = "pdf_tts.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

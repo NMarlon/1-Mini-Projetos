@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Conteúdo-fonte e conteúdo derivado (copyright / tamanho)
+# Os PDFs ficam em input/ apenas na máquina local. Veja input/README.md.
+input/*
+!input/README.md
+content/*
+!content/README.md
+
+# Artefatos gerados (áudio, cache, logs)
+output/
+cache/
+logs/
+*.log
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

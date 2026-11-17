@@ -1,0 +1,104 @@
+version: 1
+
+# Regras de detecção de estrutura e limpeza.
+# A fonte de verdade das páginas das semanas é config/projects.yaml.
+# Este arquivo controla como o texto dentro de cada semana vira blocos/seções.
+
+body:
+  # Título se o tamanho da fonte >= body_size * heading_ratio.
+  heading_ratio: 1.15
+  # Linha em negrito com tamanho >= body_size * bold_heading_ratio também é título.
+  bold_heading_ratio: 1.03
+  min_heading_chars: 3
+  max_heading_chars: 140
+
+week:
+  pattern: '^Semana\s*0?(\d+)\s*[:\-–—]'
+  min_ratio: 1.12
+
+sections:
+  # A ordem importa: o primeiro padrão que casar define o tipo.
+  patterns:
+    - name: sxx
+      regex: '^S0\d\b'
+      chapter: true
+    - name: introduction
+      regex: '^Introdução\b'
+      chapter: true
+    - name: conclusion
+      regex: '^Conclusão\b'
+      chapter: true
+    - name: summary
+      regex: '^Resumo\b'
+      chapter: true
+    - name: vocabulary
+      regex: '^(Vocabulário|Glossário)\b'
+      chapter: true
+    - name: study_tips
+      regex: '^Dicas de [Ee]studo\b'
+      chapter: true
+    - name: exercises
+      regex: '^Exercícios\b'
+      chapter: true
+    - name: quiz
+      regex: '^Verificação de Conhecimento\b'
+      chapter: true
+    - name: project
+      regex: '^Projeto Final\b'
+      chapter: true
+    - name: case_study
+      regex: '^Estudo de [Cc]aso\b'
+      chapter: true
+    - name: discussion
+      regex: '^Discussão\b'
+      chapter: true
+    - name: task
+      regex: '^Tarefa\b'
+      chapter: true
+    - name: spiritual
+      regex: '^(A Mão do Senhor|Mantenha o Ím[ée]to Espiritual)\b'
+      chapter: true
+    - name: references
+      regex: '^(Referências|Bibliografia)\b'
+      drop: true
+
+skip:
+  line_patterns:
+    - '^This publication is currently unlisted'
+    - '^Filter content'
+    - '^Acesso gratuito em'
+  urls: true
+  page_number: true
+  references: true
+  front_matter: true
+
+references:
+  # Heurística para listas de bibliografia sem título explícito.
+  min_citation_score: 2
+  size_ratio_max: 0.98
+  patterns:
+    - '\b(19|20)\d{2}\b'
+    - '\b(pág|pp?\.|ed\.|vol\.|no\.)\b'
+    - '\b(Journal|Press|Publishing|University|SAGE|Pearson|Allyn|Bacon|Routledge)\b'
+    - '\bConferência Geral\b'
+    - 'https?://'
+    - '\bISBN\b'
+    - '\b(trans\.|Eds?\.)\b'
+
+tables:
+  enabled: true
+  min_rows: 2
+  min_cols: 2
+  max_page_area_ratio: 0.85
+
+chunking:
+  min_chars: 80
+  max_chars: 1200
+
+pauses_ms:
+  paragraph: 350
+  list_item: 250
+  heading: 700
+  section: 1200
+  week: 1800
+  full_book_lesson: 2000

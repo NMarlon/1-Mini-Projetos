@@ -1,0 +1,85 @@
+version: 1
+
+# Substituições aplicadas ANTES da conversão de números.
+# Sintaxe: regex Python, case-insensitive por padrão.
+# A ordem importa; padrões mais específicos primeiro.
+#
+# Dica: use `\b` para não substituir dentro de palavras. Para pronúncia de
+# siglas, soletrar com espaços costuma ser mais claro no áudio.
+
+replacements:
+  # Nomes de curso e disciplinas
+  - pattern: '\bMKT\s*120\b'
+    replace: 'M K T, cento e vinte'
+  - pattern: '\bCOM\s*150\b'
+    replace: 'C O M, cento e cinquenta'
+
+  # Seções S01..S07 (o segmentador também normaliza; mantido por segurança)
+  - pattern: '\bS0(\d)\b'
+    replace: 'Semana \1'
+
+  # Siglas frequentes
+  - pattern: '\bSWOT\b'
+    replace: 'S U O T'
+  - pattern: '\bCRM\b'
+    replace: 'C R M'
+  - pattern: '\bROI\b'
+    replace: 'R O I'
+  - pattern: '\bKPI\b'
+    replace: 'K P I'
+  - pattern: '\bTTS\b'
+    replace: 'T T S'
+  - pattern: '\bPDF\b'
+    replace: 'P D F'
+  - pattern: '\bIA\b'
+    replace: 'I A'
+  - pattern: '\bLGPD\b'
+    replace: 'L G P D'
+  - pattern: '\bRH\b'
+    replace: 'R H'
+  - pattern: '\bTI\b'
+    replace: 'T I'
+  - pattern: '\bONG\b'
+    replace: 'O N G'
+  - pattern: '\bPIB\b'
+    replace: 'P I B'
+  - pattern: '\bUSP\b'
+    replace: 'U S P'
+  - pattern: '\bSEBRAE\b'
+    replace: 'Sebrae'
+
+  # Nomes próprios e plataformas
+  - pattern: '\bWhatsApp\b'
+    replace: 'Uátis Ápi'
+  - pattern: '\bCanvas\b'
+    replace: 'Cânvas'
+  - pattern: '\bOpenStax\b'
+    replace: 'Open Stax'
+  - pattern: '\bQuizlet\b'
+    replace: 'Quizlet'
+
+# Termos que NÃO devem ser convertidos em número (ex.: "1.1" de figura).
+number_exceptions:
+  - '\b\d+\.\d+\b'
+
+# Abreviações convertidas para a forma falada.
+abbreviations:
+  'p.ex.': 'por exemplo'
+  'P.ex.': 'por exemplo'
+  'etc.': 'etcétera'
+  'vs.': 'versus'
+  'i.e.': 'isto é'
+  'e/ou': 'e ou'
+  'nº': 'número'
+  'n°': 'número'
+  'Dr.': 'doutor'
+  'Dra.': 'doutora'
+  'Sr.': 'senhor'
+  'Sra.': 'senhora'
+  'Prof.': 'professor'
+  'Profa.': 'professora'
+  'pág.': 'página'
+  'pág': 'página'
+  'pp.': 'páginas'
+  'art.': 'artigo'
+  '§': 'seção'
