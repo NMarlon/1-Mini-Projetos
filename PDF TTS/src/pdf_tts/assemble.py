@@ -667,7 +667,6 @@ def _assemble_full_book(
     total_duration = _wav_duration(full_wav)
 
     chapters: list[dict[str, Any]] = []
-    timeline: list[TimelineEntry] = []
     offset = 0.0
     for index, lesson in enumerate(lessons):
         if index:
@@ -680,7 +679,6 @@ def _assemble_full_book(
                     "end": float(chapter["end"]) + offset,
                 }
             )
-        timeline.extend(lesson.timeline)
         offset += lesson.duration
 
     metadata = {
@@ -733,9 +731,9 @@ def _assemble_full_book(
 
 
 def run_assemble(selector: str, lesson: str | None = None) -> int:
-    _, projects = load_projects()
+    defaults, projects = load_projects()
     settings = load_settings()
-    audio_settings = settings.get("audio", {})
+    audio_settings = defaults.get("audio", settings.get("audio", {}))
     for project in resolve_projects(projects, selector):
         output_dir = ROOT / "output" / project.slug
         work_dir = project.cache_dir / "work"

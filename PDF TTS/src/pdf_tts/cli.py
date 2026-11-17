@@ -6,10 +6,11 @@ import argparse
 import sys
 
 from pdf_tts.assemble import run_assemble
-from pdf_tts.build import BuildOptions, run_build, run_samples, run_status
+from pdf_tts.build import BuildOptions, run_all, run_build, run_samples, run_status
 from pdf_tts.doctor import run_doctor
 from pdf_tts.lessons import run_segment
 from pdf_tts.segment import run_extract, run_resegment
+from pdf_tts.verify import run_verify
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,14 +29,23 @@ def build_parser() -> argparse.ArgumentParser:
         ("assemble", "Monta MP3/M4B/SRT a partir dos chunks sintetizados."),
         ("samples", "Gera amostras de voz."),
         ("status", "Mostra o estado do build."),
-        ("all", "Executa extract + segment + build de tudo."),
+        ("verify", "Verifica MP3/M4B/SRT/capítulos/loudness."),
+        ("all", "Executa extract + segment + build + verify de tudo."),
     ]:
         cmd = sub.add_parser(name, help=help_text)
         cmd.add_argument("--project", choices=["all", "mkt120", "com150"], default="all")
-        if name in {"build", "assemble", "all"}:
+        if name in {"build", "assemble", "all", "verify"}:
             cmd.add_argument("--lesson", default=None, help="Ex.: S01")
+        if name in {"build", "assemble", "all"}:
             cmd.add_argument("--force", action="store_true", help="Re-sintetiza mesmo com cache.")
             cmd.add_argument("--resume", action="store_true", default=True, help="Retoma (padrão).")
+        if name == "all":
+            cmd.add_argument("--voice", default=None)
+            cmd.add_argument("--rate", default=None)
+            cmd.add_argument("--concurrency", type=int, default=None)
+        if name == "verify":
+            cmd.add_argument("--no-loudness", action="store_true")
+            cmd.add_argument("--no-silence", action="store_true")
 
     build = sub.add_parser("build", help="Sintetiza e monta o áudio.")
     build.add_argument("--project", choices=["all", "mkt120", "com150"], default="all")
@@ -81,6 +91,21 @@ def main(argv: list[str] | None = None) -> int:
         return run_samples()
     if args.command == "assemble":
         return run_assemble(args.project, args.lesson)
+    if args.command == "verify":
+        return run_verify(
+            args.project,
+            lesson=args.lesson,
+            check_loudness=not args.no_loudness,
+            check_silence=not args.no_silence,
+        )
+    if args.command == "all":
+        return run_all(
+            args.project,
+            lesson=args.lesson,
+            voice=args.voice,
+            rate=args.rate,
+            concurrency=args.concurrency,
+        )
 
     print(f"'{args.command}' ainda não implementado nesta etapa.")
     print("Veja DOCS/06-TASKS.md para o próximo passo.")

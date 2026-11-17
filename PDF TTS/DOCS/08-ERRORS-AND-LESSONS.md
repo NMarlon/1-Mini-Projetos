@@ -356,6 +356,17 @@ ajuste os índices.
 
 ---
 
+## E034 — Não rodar dois builds Edge em paralelo
+
+**Risco:** dois processos com 3 conexões cada = 6 conexões simultâneas ao
+serviço não oficial, aumentando 429/1006 e falhas em cascata.
+**Regra:** um build por vez. Para paralelizar, aumente `--concurrency` no
+máximo até 4, nunca dois processos.
+**Sintoma:** `NoAudioReceived`/WebSocket 1006 em sequência; o cache preserva o
+que já foi feito.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

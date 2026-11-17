@@ -51,14 +51,14 @@ manifests/<slug>.json
 | `segment.py` | Atribui blocos a semanas/seções; gera `structure.json` e `manuscript.md` |
 | `normalize.py` | Converte texto para fala (números, abreviações, siglas, `S01`…) |
 | `chunking.py` | Divide em sentenças com limites de tamanho e pausas |
+| `lessons.py` | Monta os chunks por seção/aula e grava `lessons/S01.json` |
 | `tts/base.py` | Protocolo `TTSBackend` |
 | `tts/edge.py` | Edge TTS com cache por hash, retry, validação e concorrência |
-| `tts/fake.py` | Backend de teste (gera WAV sintético, sem rede) |
-| `audio.py` | `ffprobe`, silêncio WAV, concatenação, loudnorm, encode |
-| `chapters.py` | Metadados de capítulos (ffmetadata) para M4B |
-| `srt.py` | Geração de SRT a partir da timeline |
-| `manifest.py` | Lê/escreve manifests e calcula hashes |
+| `build.py` | Orquestra síntese, cache, status e amostras |
 | `state.py` | SQLite de status dos chunks (resume) |
+| `assemble.py` | WAV, loudnorm, MP3/M4B, capítulos, capa, SRT, manifest |
+| `verify.py` | Verificação de MP3/M4B/SRT/capítulos/loudness/silêncios |
+| `audio.py` | `ffprobe`, validação, ffmpeg/ffprobe paths |
 | `doctor.py` | Checagens de ambiente |
 
 ## Modelo de dados

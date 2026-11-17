@@ -222,6 +222,38 @@ def run_status(selector: str) -> int:
     return 0
 
 
+def run_all(
+    project: str,
+    lesson: str | None = None,
+    voice: str | None = None,
+    rate: str | None = None,
+    concurrency: int | None = None,
+) -> int:
+    from pdf_tts.lessons import run_segment
+    from pdf_tts.segment import run_extract
+    from pdf_tts.verify import run_verify
+
+    code = run_extract(project)
+    if code:
+        return code
+    code = run_segment(project)
+    if code:
+        return code
+    code = run_build(
+        BuildOptions(
+            project=project,
+            lesson=lesson,
+            voice=voice,
+            rate=rate,
+            concurrency=concurrency,
+            no_assemble=False,
+        )
+    )
+    if code:
+        return code
+    return run_verify(project, lesson=lesson)
+
+
 def run_samples() -> int:
     samples_dir = ROOT / "samples"
     samples_dir.mkdir(parents=True, exist_ok=True)

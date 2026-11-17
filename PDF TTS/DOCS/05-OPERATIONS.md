@@ -108,9 +108,23 @@ Opções:
 ### Montagem
 
 ```powershell
+python -m pdf_tts assemble --project mkt120 --lesson S01
 python -m pdf_tts assemble --project mkt120
 python -m pdf_tts assemble --project all
 ```
+
+Gera `output/<SLUG>/S01.mp3`, `.m4b`, `.srt`, `cover.jpg`, `manifest.json` e
+`README.md`; sem `--lesson`, gera também o livro completo.
+
+### Verificação
+
+```powershell
+python -m pdf_tts verify --project mkt120 --lesson S01
+python -m pdf_tts verify --project all
+```
+
+Confere MP3/M4B, duração, capítulos, capa, SRT, loudness e silêncios > 5 s.
+Use `--no-loudness`/`--no-silence` para acelerar.
 
 ### Status
 
@@ -120,6 +134,15 @@ python -m pdf_tts status --project all
 
 Mostra: chunks totais, done/failed/pending, duração estimada, arquivos
 existentes.
+
+### Pipeline completo
+
+```powershell
+python -m pdf_tts all --project all
+```
+
+Executa `extract` → `segment` → `build` → `assemble` → `verify`. É retomável
+(os chunks em cache são reaproveitados).
 
 ### Amostras
 

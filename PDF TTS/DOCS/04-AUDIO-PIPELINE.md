@@ -216,6 +216,14 @@ Próxima frase.
 }
 ```
 
+## Tempos medidos (2026-11-17)
+
+- S01 MKT: 162 chunks únicos em **2m39s** (~1,02 chunk/s, 3 concorrentes).
+- Retomada com tudo em cache: **~1 s** para 162 chunks.
+- Montagem S01 (21–23 min de áudio): concatenação + loudnorm + MP3/M4B/SRT em
+  poucos minutos (a maior parte é I/O e encode).
+- Áudio final S01: MP3 11,1 MB (64 kbps), M4B 11,2 MB com capa e 11 capítulos.
+
 ## Verificação automatizada
 
 - `ffprobe` em todos os MP3/M4B: codec, sample rate, canais, duração.

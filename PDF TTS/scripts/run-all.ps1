@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Executa o pipeline completo, retomando de onde parou.
+  Executa o pipeline completo (extract, segment, build, assemble, verify).
 #>
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
@@ -18,19 +18,7 @@ Set-Location $root
 & $python -m pdf_tts doctor
 if ($LASTEXITCODE -ne 0) { throw "doctor falhou" }
 
-& $python -m pdf_tts extract --project all
-if ($LASTEXITCODE -ne 0) { throw "extract falhou" }
-
-& $python -m pdf_tts segment --project all
-if ($LASTEXITCODE -ne 0) { throw "segment falhou" }
-
-& $python -m pdf_tts samples
-if ($LASTEXITCODE -ne 0) { throw "samples falhou" }
-
-& $python -m pdf_tts build --project mkt120 --lesson S01
-if ($LASTEXITCODE -ne 0) { throw "build S01 falhou" }
-
-& $python -m pdf_tts all --project all --resume
-if ($LASTEXITCODE -ne 0) { throw "build completo falhou" }
+& $python -m pdf_tts all --project all
+if ($LASTEXITCODE -ne 0) { throw "pipeline falhou" }
 
 Write-Host "Pipeline concluido. Veja output\ e manifests\."

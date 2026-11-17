@@ -6,8 +6,14 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 
 ## Estado atual
 
-> Em desenvolvimento. O plano completo, as tarefas e o estado de cada etapa
-> estão em [`DOCS/06-TASKS.md`](DOCS/06-TASKS.md).
+- T00–T07 concluídas.
+- `MKT 120`: aula **S01** pronta (MP3/M4B/SRT, 23:05, 11 capítulos); build das
+  S02–S07 em andamento.
+- `COM 150`: extração/segmentação prontas; síntese pendente.
+- 43 testes automatizados passando.
+
+O plano completo, as tarefas e o estado de cada etapa estão em
+[`DOCS/06-TASKS.md`](DOCS/06-TASKS.md).
 
 ## Fonte dos PDFs
 
@@ -52,8 +58,15 @@ python -m pdf_tts samples
 # Gera o áudio de uma aula (primeiro teste)
 python -m pdf_tts build --project mkt120 --lesson S01
 
+# Monta uma aula/livro a partir dos chunks já sintetizados
+python -m pdf_tts assemble --project mkt120 --lesson S01
+python -m pdf_tts assemble --project mkt120
+
+# Verifica MP3/M4B/SRT/capítulos/loudness
+python -m pdf_tts verify --project mkt120 --lesson S01
+
 # Gera tudo (pode rodar por horas; é retomável)
-python -m pdf_tts all --project all --resume
+python -m pdf_tts all --project all
 ```
 
 Os áudios ficam em `output/<SLUG>/`. O áudio **não é versionado**; os manifests
