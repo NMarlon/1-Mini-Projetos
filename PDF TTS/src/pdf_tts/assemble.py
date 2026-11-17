@@ -490,9 +490,52 @@ def _metadata(project: ProjectConfig, lesson: dict[str, Any], track: str | None 
     return metadata
 
 
+def _existing_lesson_audio(
+    project: ProjectConfig,
+    lesson: dict[str, Any],
+    lesson_path: Path,
+    entries: list[TimelineEntry],
+    chapters: list[dict[str, Any]],
+    duration: float,
+    output_dir: Path,
+    work_dir: Path,
+) -> LessonAudio | None:
+    lesson_id = str(lesson["lesson_id"])
+    mp3 = output_dir / f"{lesson_id}.mp3"
+    m4b = output_dir / f"{lesson_id}.m4b"
+    srt = output_dir / f"{lesson_id}.srt"
+    norm_wav = work_dir / f"{lesson_id}_norm.wav"
+    required = [mp3, m4b, srt, norm_wav]
+    if not all(path.exists() for path in required):
+        return None
+    if min(path.stat().st_mtime for path in required) < lesson_path.stat().st_mtime:
+        return None
+    for path in (mp3, m4b):
+        valid, _, _ = validate_audio(path)
+        if not valid:
+            return None
+    return LessonAudio(
+        lesson_id=lesson_id,
+        title=str(lesson["title"]),
+        start_page=int(lesson["start_page"]),
+        end_page=int(lesson["end_page"]),
+        timeline=entries,
+        chapters=chapters,
+        duration=duration,
+        mp3=mp3,
+        m4b=m4b,
+        srt=srt,
+        wav_norm=norm_wav,
+        mp3_sha256=_sha256(mp3),
+        m4b_sha256=_sha256(m4b),
+        srt_sha256=_sha256(srt),
+    )
+
+
 def assemble_lesson(
     project: ProjectConfig,
     lesson: dict[str, Any],
+    lesson_path: Path,
     output_dir: Path,
     work_dir: Path,
     wav_cache: Path,
@@ -516,6 +559,20 @@ def assemble_lesson(
         mp3_paths.append(mp3)
     _prepare_wavs(mp3_paths, wav_cache)
     entries, chapters, duration = build_timeline(project, lesson, backend, wav_cache)
+
+    existing = _existing_lesson_audio(
+        project,
+        lesson,
+        lesson_path,
+        entries,
+        chapters,
+        duration,
+        output_dir,
+        work_dir,
+    )
+    if existing is not None:
+        print(f"  {lesson_id}: reaproveitando arquivos existentes")
+        return existing
 
     raw_wav = work_dir / f"{lesson_id}.wav"
     norm_wav = work_dir / f"{lesson_id}_norm.wav"
@@ -753,12 +810,13 @@ def run_assemble(selector: str, lesson: str | None = None) -> int:
         cover = render_cover(project, output_dir / "cover.jpg")
         loaded = _load_lessons(project, lesson)
         results: list[LessonAudio] = []
-        for index, (_, data) in enumerate(loaded, start=1):
+        for index, (lesson_path, data) in enumerate(loaded, start=1):
             print(f"[assemble] {project.key} {data['lesson_id']}…")
             track = f"{index}/{len(loaded)}"
             result = assemble_lesson(
                 project,
                 data,
+                lesson_path,
                 output_dir,
                 work_dir,
                 wav_cache,

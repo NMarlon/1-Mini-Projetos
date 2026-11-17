@@ -1,7 +1,7 @@
 # 06 — Tarefas
 
-> **Estado atual:** T08 concluída (MKT 120 completo e verificado). T09 (build completo COM 150) em andamento.
-> **Próximo passo:** aguardar a síntese das 3.222 frases únicas do COM 150, montar as 7 aulas + livro completo e verificar.
+> **Estado atual:** T09 concluída (COM 150 completo e verificado). T10 (verificação final) e T11 (handoff) são os próximos.
+> **Próximo passo:** rodada final de verificação dos dois livros, revisão do Git e documentação de handoff.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -19,8 +19,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T06 | Primeira aula (MKT S01) ponta a ponta | `[x]` | `feat(pdf-tts): primeira aula completa` |
 | T07 | Ajustes de qualidade (pausas, loudness, joins) | `[x]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
 | T08 | Build completo MKT 120 | `[x]` | `feat(pdf-tts): build completo do MKT 120` |
-| T09 | Build completo COM 150 | `[~]` | `feat(pdf-tts): build completo do COM 150` |
-| T10 | Verificação final e manifests | `[ ]` | `chore(pdf-tts): verificação final e manifests` |
+| T09 | Build completo COM 150 | `[x]` | `feat(pdf-tts): build completo do COM 150` |
+| T10 | Verificação final e manifests | `[~]` | `chore(pdf-tts): verificação final e manifests` |
 | T11 | Documentação final e handoff | `[ ]` | `docs(pdf-tts): handoff e estado final` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
@@ -229,13 +229,18 @@ Logs: `logs/build-mkt120.log`.
 
 ## T09 — Build completo COM 150
 
-**Status:** `[~]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Rodar `build --project com150 --resume`.
 - Gerar S01…S07 + livro completo.
 - Validar todos os arquivos.
 - Atualizar `manifests/COM-150.json`.
+
+**Progresso (2026-11-17):** build concluído com **3.222 textos únicos / 0
+falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
+`verify` 100% OK (-16,45 LUFS; TP ≤ -0,79; sem silêncios >5 s). Log:
+`logs/build-com150.log`.
 
 **Critério de aceite:**
 - 7 MP3 + 7 M4B + 7 SRT + completo MP3/M4B.
@@ -247,7 +252,7 @@ Logs: `logs/build-mkt120.log`.
 
 ## T10 — Verificação final
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 **O que fazer:**
 - Rodar `pytest`.
@@ -292,3 +297,4 @@ Logs: `logs/build-mkt120.log`.
 | 2026-11-17 | T06 | MKT S01: 23:05, 11 capítulos, 163 cues SRT, -16,46 LUFS / TP -1,46; MP3 11,1 MB; M4B 11,2 MB com capa 1081x1400. |
 | 2026-11-17 | T07 | QA técnico da S01 aprovado: nenhum silêncio >3 s; capítulos/cover/metadata OK; `-dn/-sn` no M4B. |
 | 2026-11-17 | T08 | MKT completo: 7 aulas + livro (3:39:26), 1.473 cues, 68 capítulos, 425 MB; verify 100% OK (-16,45 LUFS; TP ≤ -0,94; sem silêncios >5 s). |
+| 2026-11-17 | T09 | COM completo: 7 aulas + livro (7:50:42), 3.457 cues, 92 capítulos; verify 100% OK (-16,45 LUFS; TP ≤ -0,79; sem silêncios >5 s). |

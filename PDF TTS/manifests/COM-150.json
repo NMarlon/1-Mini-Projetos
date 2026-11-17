@@ -1,0 +1,617 @@
+{
+  "project": "com150",
+  "title": "Comunicação Interpessoal: Teoria e Prática",
+  "slug": "COM-150",
+  "source_pdf": "input/Livro texto COM 150-1.pdf",
+  "source_sha256": "aca653ac0049d373df3ecce00c24e026ecc4808fff67f8dfd712d2bcf3c7dd42",
+  "engine": "edge",
+  "voice": "pt-BR-FranciscaNeural",
+  "rate": "-5%",
+  "generated_at": "2026-11-17T16:40:04+00:00",
+  "total_duration_s": 28241.77,
+  "lessons": [
+    {
+      "id": "S01",
+      "title": "Fundamentos da Comunicação Interpessoal",
+      "start_page": 7,
+      "end_page": 31,
+      "duration_s": 3229.86,
+      "chunks": 420,
+      "files": {
+        "mp3": "output/COM-150/S01.mp3",
+        "m4b": "output/COM-150/S01.m4b",
+        "srt": "output/COM-150/S01.srt",
+        "sha256_mp3": "e60fc5f153df82fcc9324bf826b944ebec056335bdcc2b1817f98ecaf61992e2",
+        "sha256_m4b": "afbf6f1a411c23c8de9137a56d1fd2d9429924a09208f5fd4ec6d1203e7cfe65",
+        "sha256_srt": "9a2ad75c76aa9c552bf1ceb167b1e7ab4f3eb8321238eeb49ea5db449193a025"
+      },
+      "chapters": [
+        {
+          "title": "Semana 1 — Fundamentos da Comunicação Interpessoal",
+          "start": 0.0,
+          "end": 95.666
+        },
+        {
+          "title": "Introdução",
+          "start": 95.666,
+          "end": 565.68
+        },
+        {
+          "title": "Sucesso no trabalho",
+          "start": 565.68,
+          "end": 1021.102
+        },
+        {
+          "title": "Tipos de ruído",
+          "start": 1021.102,
+          "end": 1773.452
+        },
+        {
+          "title": "Estabeleça metas para mudanças",
+          "start": 1773.452,
+          "end": 1897.794
+        },
+        {
+          "title": "Conclusão",
+          "start": 1897.794,
+          "end": 2132.304
+        },
+        {
+          "title": "Dicas de estudo",
+          "start": 2132.304,
+          "end": 2156.63
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 2156.63,
+          "end": 2273.724
+        },
+        {
+          "title": "S01 Estudo de caso: Boas-vindas ao Palácio das Bicicletas",
+          "start": 2273.724,
+          "end": 2752.756
+        },
+        {
+          "title": "S01 Discussão: Inscrição no WhatsApp e postagem inicial",
+          "start": 2752.756,
+          "end": 2875.402
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 2875.402,
+          "end": 2988.354
+        },
+        {
+          "title": "S01 Tarefa: Conceitos de Comunicação",
+          "start": 2988.354,
+          "end": 3229.864
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Autocomunicação",
+      "start_page": 32,
+      "end_page": 62,
+      "duration_s": 4210.21,
+      "chunks": 538,
+      "files": {
+        "mp3": "output/COM-150/S02.mp3",
+        "m4b": "output/COM-150/S02.m4b",
+        "srt": "output/COM-150/S02.srt",
+        "sha256_mp3": "62eab7f779ccd065434bcc854c80a3f48d5ca999ee9cefff59d120c91ec2e7e5",
+        "sha256_m4b": "b369e47930d0a3f6aa8888a5f9fd879f9348c8b0f9bd9a350fbc5f6f3923a689",
+        "sha256_srt": "ed3e93daea8f0ec1da2bedf366cb5b038ee631772674a9304c6f97dd922ffc3b"
+      },
+      "chapters": [
+        {
+          "title": "Semana 2 — Autocomunicação",
+          "start": 0.0,
+          "end": 69.704
+        },
+        {
+          "title": "Introdução",
+          "start": 69.704,
+          "end": 551.036
+        },
+        {
+          "title": "Autoestima",
+          "start": 551.036,
+          "end": 1055.042
+        },
+        {
+          "title": "Autocontrole",
+          "start": 1055.042,
+          "end": 1513.882
+        },
+        {
+          "title": "Habilidades Intrapessoais",
+          "start": 1513.882,
+          "end": 2063.106
+        },
+        {
+          "title": "Lidando com críticas",
+          "start": 2063.106,
+          "end": 2556.766
+        },
+        {
+          "title": "Conclusão",
+          "start": 2556.766,
+          "end": 2856.504
+        },
+        {
+          "title": "Dicas de estudo",
+          "start": 2856.504,
+          "end": 2880.734
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 2880.734,
+          "end": 3009.756
+        },
+        {
+          "title": "S02 Estudo de caso: A grande ideia de Joseph",
+          "start": 3009.756,
+          "end": 3358.058
+        },
+        {
+          "title": "S02 Discussão: Show de Talentos Virtual",
+          "start": 3358.058,
+          "end": 3591.894
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 3591.894,
+          "end": 3668.026
+        },
+        {
+          "title": "S02 Tarefa: Dez Qualidades",
+          "start": 3668.026,
+          "end": 4142.48
+        },
+        {
+          "title": "Seja Alegre",
+          "start": 4142.48,
+          "end": 4210.212
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Habilidades de Comunicação",
+      "start_page": 63,
+      "end_page": 94,
+      "duration_s": 4706.31,
+      "chunks": 577,
+      "files": {
+        "mp3": "output/COM-150/S03.mp3",
+        "m4b": "output/COM-150/S03.m4b",
+        "srt": "output/COM-150/S03.srt",
+        "sha256_mp3": "8b2ea7a4361c983ccefb872422b870ed77adab917384ccf25524186f3e32331b",
+        "sha256_m4b": "25d10ce40d5b8bc7d5c33e3322b6a93c31c2ca7ceb2ac7cba926c525b90ecf27",
+        "sha256_srt": "933c444bf277db756808b7278078ca258780382bc3e59cd06773a01520f3e3c8"
+      },
+      "chapters": [
+        {
+          "title": "Semana 3 — Habilidades de Comunicação",
+          "start": 0.0,
+          "end": 71.778
+        },
+        {
+          "title": "Introdução",
+          "start": 71.778,
+          "end": 546.684
+        },
+        {
+          "title": "Barreiras para uma escuta eficaz",
+          "start": 546.684,
+          "end": 988.186
+        },
+        {
+          "title": "Ouvir",
+          "start": 988.186,
+          "end": 1208.536
+        },
+        {
+          "title": "Resumo sobre o processo de escuta",
+          "start": 1208.536,
+          "end": 1983.602
+        },
+        {
+          "title": "Cinésica (movimentos corporais e postura)",
+          "start": 1983.602,
+          "end": 2675.614
+        },
+        {
+          "title": "“Ouve-O\"",
+          "start": 2675.614,
+          "end": 2772.16
+        },
+        {
+          "title": "Conclusão",
+          "start": 2772.16,
+          "end": 3154.08
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 3154.08,
+          "end": 3252.762
+        },
+        {
+          "title": "S03 Estudo de caso: A Reunião",
+          "start": 3252.762,
+          "end": 3614.418
+        },
+        {
+          "title": "S03 Discussão: Escutar Online",
+          "start": 3614.418,
+          "end": 4064.01
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 4064.01,
+          "end": 4140.142
+        },
+        {
+          "title": "S03 Tarefa: Habilidades de Escutar",
+          "start": 4140.142,
+          "end": 4625.83
+        },
+        {
+          "title": "Fortaleça sua Fundação Espiritual",
+          "start": 4625.83,
+          "end": 4706.306
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Relacionamentos",
+      "start_page": 95,
+      "end_page": 137,
+      "duration_s": 5667.62,
+      "chunks": 665,
+      "files": {
+        "mp3": "output/COM-150/S04.mp3",
+        "m4b": "output/COM-150/S04.m4b",
+        "srt": "output/COM-150/S04.srt",
+        "sha256_mp3": "3b0146988aeac43fa4155f2c5de30bd05267b9b7e3307ca5fefaaa88dc5de2a8",
+        "sha256_m4b": "e754b69c15597e39a8edfd1e5db64f79cdf5719ee2b459187066d2122a336def",
+        "sha256_srt": "9c1683f13c608f163ba0a88a1cf0899837bdb0c4930c24c5710ddfff32a0fca6"
+      },
+      "chapters": [
+        {
+          "title": "Semana 4 — Relacionamentos",
+          "start": 0.0,
+          "end": 56.298
+        },
+        {
+          "title": "Introdução",
+          "start": 56.298,
+          "end": 520.32
+        },
+        {
+          "title": "Experimentação",
+          "start": 520.32,
+          "end": 943.402
+        },
+        {
+          "title": "Circunscrição",
+          "start": 943.402,
+          "end": 1545.272
+        },
+        {
+          "title": "Amizades no local de trabalho",
+          "start": 1545.272,
+          "end": 2067.532
+        },
+        {
+          "title": "Relações de trabalho negativas",
+          "start": 2067.532,
+          "end": 2575.772
+        },
+        {
+          "title": "Conversa com clientes/consumidores/partes interessadas",
+          "start": 2575.772,
+          "end": 3286.75
+        },
+        {
+          "title": "Reuniões",
+          "start": 3286.75,
+          "end": 3813.476
+        },
+        {
+          "title": "Conclusão",
+          "start": 3813.476,
+          "end": 4182.428
+        },
+        {
+          "title": "Dicas de estudo",
+          "start": 4182.428,
+          "end": 4206.274
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 4206.274,
+          "end": 4309.602
+        },
+        {
+          "title": "S04 Estudo de caso: Eu me demito",
+          "start": 4309.602,
+          "end": 4705.06
+        },
+        {
+          "title": "S04 Discussão: Relações no local de trabalho - melhores, piores e virtuais",
+          "start": 4705.06,
+          "end": 5113.464
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 5113.464,
+          "end": 5189.596
+        },
+        {
+          "title": "S04 Tarefa: Apresentação de relacionamentos no trabalho",
+          "start": 5189.596,
+          "end": 5667.62
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Percepção",
+      "start_page": 138,
+      "end_page": 170,
+      "duration_s": 4381.98,
+      "chunks": 518,
+      "files": {
+        "mp3": "output/COM-150/S05.mp3",
+        "m4b": "output/COM-150/S05.m4b",
+        "srt": "output/COM-150/S05.srt",
+        "sha256_mp3": "2a21216e176363212e4845f587ce8deda202101656b0bdc78a3434676485dc02",
+        "sha256_m4b": "120086a7a147061c4fb8f5e360a31498daed70e5043dd9c380f8a1caf1705ed3",
+        "sha256_srt": "0e56f3c535c01a66f207c38a0170e94c59a5c83ed6fa34d9d9912108ef659f8d"
+      },
+      "chapters": [
+        {
+          "title": "Semana 5 — Percepção",
+          "start": 0.0,
+          "end": 70.76
+        },
+        {
+          "title": "Introdução",
+          "start": 70.76,
+          "end": 616.804
+        },
+        {
+          "title": "Interpretação de informações",
+          "start": 616.804,
+          "end": 1107.842
+        },
+        {
+          "title": "Impressões e interpretação",
+          "start": 1107.842,
+          "end": 1808.924
+        },
+        {
+          "title": "Gênero",
+          "start": 1808.924,
+          "end": 2296.178
+        },
+        {
+          "title": "Pratique a autorreflexão",
+          "start": 2296.178,
+          "end": 2655.41
+        },
+        {
+          "title": "Conclusão",
+          "start": 2655.41,
+          "end": 2923.014
+        },
+        {
+          "title": "Dicas de estudo",
+          "start": 2923.014,
+          "end": 2946.86
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 2946.86,
+          "end": 3080.12
+        },
+        {
+          "title": "S05 Estudo de caso: Alguém será demitido",
+          "start": 3080.12,
+          "end": 3350.94
+        },
+        {
+          "title": "S05 Discussão: Eu não sou daqui",
+          "start": 3350.94,
+          "end": 3681.734
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 3681.734,
+          "end": 3757.866
+        },
+        {
+          "title": "S05 Tarefa: Método do travesseiro",
+          "start": 3757.866,
+          "end": 4316.802
+        },
+        {
+          "title": "Mantenha o Ímpeto Espiritual",
+          "start": 4316.802,
+          "end": 4381.976
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "title": "Conflito",
+      "start_page": 171,
+      "end_page": 210,
+      "duration_s": 4791.75,
+      "chunks": 592,
+      "files": {
+        "mp3": "output/COM-150/S06.mp3",
+        "m4b": "output/COM-150/S06.m4b",
+        "srt": "output/COM-150/S06.srt",
+        "sha256_mp3": "f74429ec949f54561f1491f2ef72cdb38efcd11c6f11194d7f8c803ce38db85e",
+        "sha256_m4b": "39e03bb0c24f3eb7da8b3ae8add06d70deed865f05abb76bc040c9347344375d",
+        "sha256_srt": "05addb7d2868dd249fda36983b2ac4c24708505a7902b0b0852c3961b9b3cf20"
+      },
+      "chapters": [
+        {
+          "title": "Semana 6 — Conflito",
+          "start": 0.0,
+          "end": 62.226
+        },
+        {
+          "title": "Introdução",
+          "start": 62.226,
+          "end": 507.394
+        },
+        {
+          "title": "Resultados negativos podem surgir se os conflitos não forem abordados",
+          "start": 507.394,
+          "end": 1032.556
+        },
+        {
+          "title": "Acomodação",
+          "start": 1032.556,
+          "end": 1463.41
+        },
+        {
+          "title": "Pense",
+          "start": 1463.41,
+          "end": 1954.55
+        },
+        {
+          "title": "Irritação cumulativa",
+          "start": 1954.55,
+          "end": 2380.824
+        },
+        {
+          "title": "Pré-negociação",
+          "start": 2380.824,
+          "end": 2842.014
+        },
+        {
+          "title": "Conclusão",
+          "start": 2842.014,
+          "end": 2878.796
+        },
+        {
+          "title": "Vocabulário",
+          "start": 2878.796,
+          "end": 3092.722
+        },
+        {
+          "title": "Dicas de estudo",
+          "start": 3092.722,
+          "end": 3116.568
+        },
+        {
+          "title": "Exercícios de vocabulário",
+          "start": 3116.568,
+          "end": 3240.728
+        },
+        {
+          "title": "S06 Estudo de caso: O Fim do Palácio das Bicicletas",
+          "start": 3240.728,
+          "end": 3593.598
+        },
+        {
+          "title": "S06 Discussão: Onde encontrar a paz?",
+          "start": 3593.598,
+          "end": 4042.16
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 4042.16,
+          "end": 4119.468
+        },
+        {
+          "title": "S06 Tarefa: Cartas quentes",
+          "start": 4119.468,
+          "end": 4615.342
+        },
+        {
+          "title": "IMPLEMENTAR RESOLUÇÃO DE CONFLITO:",
+          "start": 4615.342,
+          "end": 4791.752
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "title": "Conclusão",
+      "start_page": 211,
+      "end_page": 220,
+      "duration_s": 1242.04,
+      "chunks": 147,
+      "files": {
+        "mp3": "output/COM-150/S07.mp3",
+        "m4b": "output/COM-150/S07.m4b",
+        "srt": "output/COM-150/S07.srt",
+        "sha256_mp3": "7b30512afd1652247e7079fb28af531bf7585425159d9bfca236a5e948e54174",
+        "sha256_m4b": "ae6ff0cc602e7939d37d3327675a482abb0189956c2c0478ad9e8f54f963d753",
+        "sha256_srt": "32a925728a0cf2b6603a415945be97f9b39dd240db98767436dd409f81d315c2"
+      },
+      "chapters": [
+        {
+          "title": "Semana 7 — Conclusão",
+          "start": 0.0,
+          "end": 69.45
+        },
+        {
+          "title": "Introdução",
+          "start": 69.45,
+          "end": 279.34
+        },
+        {
+          "title": "Conclusão",
+          "start": 279.34,
+          "end": 369.012
+        },
+        {
+          "title": "S07 Discussão: Mudança definitiva",
+          "start": 369.012,
+          "end": 659.31
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 659.31,
+          "end": 736.09
+        },
+        {
+          "title": "S07 Projeto Final",
+          "start": 736.09,
+          "end": 1188.668
+        },
+        {
+          "title": "Rubrica para o projeto final",
+          "start": 1188.668,
+          "end": 1242.042
+        }
+      ]
+    }
+  ],
+  "full": {
+    "mp3": {
+      "path": "output/COM-150/COM-150-completo.mp3",
+      "sha256": "985ee4edc07f09951f6253c9348d84c1f58311cc0203c6304ff65e48dfd84619",
+      "size": 225935265
+    },
+    "m4b": {
+      "path": "output/COM-150/COM-150-completo.m4b",
+      "sha256": "6e28b49b8e643875b6180b50a156a74d7ea91a63c56197780591238c4c86dc6e",
+      "size": 228121280
+    },
+    "srt": {
+      "path": "output/COM-150/COM-150-completo.srt",
+      "sha256": "28961094abaf68e7d45e067e187d76c423944150f04adff679120b0b2a192248",
+      "size": 526675
+    }
+  }
+}
