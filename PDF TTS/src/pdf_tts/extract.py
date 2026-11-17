@@ -367,7 +367,7 @@ def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block
     text = strip_urls(clean_text(block.text))
     # Remove números de nota de rodapé colados ao fim de frases: "melhor.6",
     # 'isso." 12', "favor.11 Essas".
-    text = re.sub(r'([.!?"”’])\s*\d{1,3}\b(?=\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ“"\'(\[]|$)', r"\1", text)
+    text = re.sub(r'(?<!\d)([.!?"”’])\s*\d{1,3}\b(?=\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ“"\'(\[]|$)', r"\1", text)
     kind = "paragraph"
     level = 3
     drop_reason: str | None = None

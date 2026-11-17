@@ -135,8 +135,8 @@ def _ensure_wav(mp3: Path, wav: Path) -> Path:
     return wav
 
 
-def _prepare_wavs(entries: list[TimelineEntry], wav_dir: Path) -> None:
-    unique = {entry.mp3 for entry in entries}
+def _prepare_wavs(mp3_paths: list[Path], wav_dir: Path) -> None:
+    unique = set(mp3_paths)
     wav_dir.mkdir(parents=True, exist_ok=True)
 
     def convert(mp3: Path) -> None:
@@ -504,6 +504,17 @@ def assemble_lesson(
     rate = str(lesson.get("rate") or project.settings.get("rate", "-5%"))
     backend = EdgeBackend(voice=voice, rate=rate, cache_root=ROOT / "cache" / "edge", concurrency=1)
     lesson_id = str(lesson["lesson_id"])
+    mp3_paths: list[Path] = []
+    for chunk in lesson["chunks"]:
+        key = chunk.get("cache_key") or backend.cache_key(chunk["spoken"])
+        mp3 = backend.cache_path(key)
+        if not mp3.exists():
+            raise FileNotFoundError(
+                f"Chunk sem áudio: {chunk['id']} ({mp3}). "
+                f"Rode `build --project {project.key} --lesson {lesson_id}`."
+            )
+        mp3_paths.append(mp3)
+    _prepare_wavs(mp3_paths, wav_cache)
     entries, chapters, duration = build_timeline(project, lesson, backend, wav_cache)
 
     raw_wav = work_dir / f"{lesson_id}.wav"

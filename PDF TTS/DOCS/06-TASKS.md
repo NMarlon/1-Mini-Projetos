@@ -214,6 +214,11 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 - Validar todos os arquivos.
 - Atualizar `manifests/MKT-120.json`.
 
+**Progresso (2026-11-17):** S01 já está em cache; build das S02–S07 em
+background (`logs/build-mkt120.log`), ~1.337 textos únicos. Após concluir,
+re-extrair/segmentar por causa do fix E035 (legenda “Tabela6.2”) e remontar.
+Não iniciar outro build Edge enquanto este estiver rodando.
+
 **Critério de aceite:**
 - 7 MP3 + 7 M4B + 7 SRT + completo MP3/M4B.
 - Nenhum chunk falhado.

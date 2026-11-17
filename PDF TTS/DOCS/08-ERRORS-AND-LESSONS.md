@@ -367,6 +367,17 @@ que já foi feito.
 
 ---
 
+## E035 — Remoção de nota de rodapé comeu o “.2” de “Tabela6.2”
+
+**Erro:** a legenda “Tabela6.2” virava “Tabela6.” e o áudio dizia “Tabela seis.”
+**Causa:** a regex de nota de rodapé `([.!?])\s*\d{1,3}` casou com o `.2` de
+“Tabela6.2”, interpretando como nota.
+**Solução:** exigir que o sinal de pontuação **não** seja precedido por dígito:
+`(?<!\d)([.!?"”’])\s*\d{1,3}...`.
+**Evitar:** testar legendas com numeração decimal (`Tabela 6.2`, `Imagem 1.1`).
+
+---
+
 ## Modelo para novos registros
 
 ```markdown
