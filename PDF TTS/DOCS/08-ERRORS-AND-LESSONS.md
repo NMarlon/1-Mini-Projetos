@@ -212,6 +212,67 @@ do repositório.
 
 ---
 
+## E022 — `resegment` leu blocos já mutados
+
+**Erro:** depois de transformar “Conclusão” em subseção, o `resegment` não a
+reconhecia mais como seção, porque o `blocks.jsonl` já estava com `kind=heading`.
+**Causa:** a segmentação mutava `block.kind` e gravava o bloco mutado.
+**Solução:** adicionar `original_kind`/`original_level` ao `Block`; a segmentação
+restaura a classificação original antes de reestruturar.
+**Evitar:** nunca usar o campo mutável como fonte de verdade para reprocessar.
+Mantenha o “cru” separado do “renderizado”.
+
+---
+
+## E023 — Falsos positivos de tabela em listas/quizzes
+
+**Erro:** `page.find_tables()` detectou “tabelas” de 1 coluna nos quizzes,
+listas de vocabulário e respostas.
+**Causa:** o detector infere tabelas por alinhamento de texto.
+**Solução:** aceitar apenas tabelas com ≥ 2 colunas **efetivas** (células
+preenchidas) e ≥ 2 linhas. Tabelas reais (p52, p72, p86) têm 3–4 colunas.
+**Evitar:** sempre inspecionar `table.extract()` antes de usar; ignorar tabelas
+de 1 coluna.
+
+---
+
+## E024 — `small_print` dropava conteúdo com “Fonte:”
+
+**Erro:** legendas como “Percepção é como... Fonte: Pexels.com” eram descartadas
+inteiras.
+**Causa:** a regra dropava qualquer texto pequeno que contivesse “Fonte:”.
+**Solução:** dropar apenas linhas que **começam** com Fonte/Atributo/etc.;
+quando o crédito está no fim, remover só o crédito (`strip_attribution`).
+**Evitar:** separar “é crédito?” de “contém crédito?”.
+
+---
+
+## E025 — Modo de referência dropava instruções seguintes
+
+**Erro:** em p169, o parágrafo “Compartilhe sua opinião...” foi classificado
+como referência e removido; em outros casos, instruções após uma citação eram
+descartadas.
+**Causa:** score de referência alto por “Conferência Geral” + ano; modo de
+referência agressivo.
+**Solução:** parágrafos com ≥ 2 frases ou > 300 chars não são referência;
+modo de referência só continua para fragmentos de citação (curtos, minúsculos,
+publisher/periódico). Caso contrário, encerra o modo.
+**Evitar:** testar páginas com citações no meio de exercícios (COM 169, 158).
+
+---
+
+## E026 — Deduplicação global de títulos juntou seções diferentes
+
+**Erro:** “Introdução” da semana e “Introdução” de uma tarefa foram fundidas,
+puxando o conteúdo da tarefa para a introdução.
+**Causa:** deduplicação por título em toda a semana.
+**Solução:** não deduplicar títulos globalmente; remover apenas seções vazias e
+tratar “Introdução/Conclusão” dentro de tarefa/estudo de caso como subseção.
+**Evitar:** títulos genéricos podem se repetir legitimamente; use contexto
+(tipo da seção + página) em vez de texto puro.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

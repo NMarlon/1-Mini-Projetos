@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from pdf_tts.doctor import run_doctor
+from pdf_tts.segment import run_extract, run_resegment
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, help_text in [
         ("extract", "Extrai e limpa o texto dos PDFs."),
+        ("resegment", "Reestrutura a partir de blocks.jsonl (debug, sem reabrir PDFs)."),
         ("segment", "Normaliza e divide o texto em aulas S01..S07."),
         ("assemble", "Monta MP3/M4B/SRT a partir dos chunks sintetizados."),
         ("samples", "Gera amostras de voz."),
@@ -51,6 +53,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "doctor":
         return run_doctor()
+    if args.command == "extract":
+        return run_extract(args.project)
+    if args.command == "resegment":
+        return run_resegment(args.project)
 
     print(f"'{args.command}' ainda não implementado nesta etapa.")
     print("Veja DOCS/06-TASKS.md para o próximo passo.")

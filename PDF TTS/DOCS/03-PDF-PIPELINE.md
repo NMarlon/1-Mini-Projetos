@@ -234,10 +234,38 @@ Antes de sintetizar um projeto novo:
 ## Testes
 
 - `tests/test_clean.py`: ligaduras, PUA, URLs, cabeçalhos, hifenização.
-- `tests/test_extract_layout.py` (futuro): páginas sintéticas com título,
-  parágrafo e rodapé.
+- `tests/test_classify.py`: títulos, opções, small print, referências e tabelas.
 - Validação nos PDFs reais:
   - contagem de caracteres por semana próxima da tabela acima;
   - nenhum bloco com PUA ou ligadura;
   - títulos das 7 semanas corretos;
   - `skipped.jsonl` com motivos.
+
+## Aprendizados da implementação (2026-11-17)
+
+- `page.chars` + agrupamento por `top` funciona bem; os espaços já vêm nos
+  chars, mas uma regra de gap (`> 0.45 * size`) corrige células grudadas.
+- Corpo é 9,0 pt; títulos 15–25,7 pt; `Roboto-Black` em 9,0 pt é **ênfase**
+  (termo de vocabulário, cabeçalho de tabela), não título.
+- Cabeçalho de página: `top≈21.7`, 8 pt Helvetica; rodapé: `top≈757.7`.
+- `find_tables()` acha tabelas reais e falsos positivos; o filtro de ≥2 colunas
+  efetivas resolve (falsos positivos são de 1 coluna).
+- Tabelas reais sem borda são reconstruídas bem por `extract_tables()`:
+  p52 (pesquisa), p72 (CLV), p86 (mix de promoção), p93/106 etc.
+- Células com quebra de linha: se a linha seguinte começa com `-`, é item de
+  lista (`; `); caso contrário, é continuação (` `). Isso deixou as tabelas
+  legíveis.
+- Legendas de figura em 7,2 pt são conteúdo; só descartar créditos que
+  **começam** com Fonte/Atributo/etc. Se o crédito está no fim, remover apenas
+  o crédito.
+- Bibliografias sem título são detectadas por score (ano, editora, Conferência
+  Geral, “pág.”, autor). Um parágrafo com ≥2 frases não é referência.
+- Após a primeira referência, só descartar fragmentos de citação; uma citação
+  isolada não deve “engolir” as instruções seguintes.
+- Títulos genéricos (“Introdução”, “Conclusão”) podem se repetir dentro de
+  tarefas; não deduplicar globalmente. Tratar como subseção quando estão na
+  mesma página de uma tarefa/estudo de caso/discussão.
+- Seções muito longas (>6.000 chars) são divididas em títulos nível 1, para
+  gerar capítulos de tamanho razoável.
+- O `blocks.jsonl` guarda `original_kind`/`original_level` para que
+  `resegment` seja idempotente.
