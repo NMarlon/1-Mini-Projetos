@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from pdf_tts.build import BuildOptions, run_build, run_samples, run_status
 from pdf_tts.doctor import run_doctor
 from pdf_tts.lessons import run_segment
 from pdf_tts.segment import run_extract, run_resegment
@@ -60,6 +61,23 @@ def main(argv: list[str] | None = None) -> int:
         return run_resegment(args.project)
     if args.command == "segment":
         return run_segment(args.project)
+    if args.command == "build":
+        return run_build(
+            BuildOptions(
+                project=args.project,
+                lesson=args.lesson,
+                voice=args.voice,
+                rate=args.rate,
+                concurrency=args.concurrency,
+                force=args.force,
+                dry_run=args.dry_run,
+                no_assemble=args.no_assemble,
+            )
+        )
+    if args.command == "status":
+        return run_status(args.project)
+    if args.command == "samples":
+        return run_samples()
 
     print(f"'{args.command}' ainda não implementado nesta etapa.")
     print("Veja DOCS/06-TASKS.md para o próximo passo.")

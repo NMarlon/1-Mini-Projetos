@@ -42,6 +42,15 @@ Saída:
 O texto é sintético (não é conteúdo do curso) e inclui números, siglas, datas,
 `S01`, `MKT 120`, termos em inglês e lacunas.
 
+Amostras geradas em 2026-11-17:
+
+| Arquivo | Voz | Duração |
+|---|---|---|
+| `samples/francisca.mp3` | `pt-BR-FranciscaNeural` | 28,2 s |
+| `samples/antonio.mp3` | `pt-BR-AntonioNeural` | 31,7 s |
+| `samples/thalita.mp3` | `pt-BR-ThalitaMultilingualNeural` | 28,6 s |
+| `samples/pronunciation-test.mp3` | `pt-BR-FranciscaNeural` | 36,7 s |
+
 ## Como trocar de voz
 
 ```powershell

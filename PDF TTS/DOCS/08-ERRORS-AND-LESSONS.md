@@ -321,6 +321,17 @@ dígitos crus.
 
 ---
 
+## E031 — Cache de `-5%` e `5%` colidiria
+
+**Erro:** `sanitize_component("-5%")` removia o sinal e virava `5pct`; `"5%"`
+também viraria `5pct`.
+**Causa:** `.strip("._-")` removeu o hífen inicial.
+**Solução:** prefixar `neg` quando o valor começa com `-`; `-5%` → `neg5pct` e
+`+5%` → `p5pct`.
+**Evitar:** nunca remover sinais de taxas/velocidades ao gerar nomes de pasta.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown
