@@ -1,7 +1,7 @@
 # 06 — Tarefas
 
-> **Estado atual:** T02 concluída (extração + manuscript). T03 (normalização e chunking) é a próxima.
-> **Próximo passo:** implementar `normalize.py`/`chunking.py`, gerar `lessons/S01..S07.json` e testar números/siglas.
+> **Estado atual:** T03 concluída (normalização + chunking + lessons). T04 (backend Edge TTS) é a próxima.
+> **Próximo passo:** implementar `tts/edge.py`, cache por hash, retry, validação e estado SQLite.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -13,8 +13,8 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T00 | Scaffold, AGENTS.md, DOCS, config, .gitignore | `[x]` | `chore(pdf-tts): scaffold, documentação e regras` |
 | T01 | Ambiente Python 3.11, dependências, doctor | `[x]` | `chore(pdf-tts): ambiente e verificação de dependências` |
 | T02 | Extração + classificação + manuscript | `[x]` | `feat(pdf-tts): extração e estruturação dos PDFs` |
-| T03 | Normalização pt-BR + segmentação S01–S07 | `[~]` | `feat(pdf-tts): normalização e segmentação por aula` |
-| T04 | Backend Edge TTS, cache, retry, resume | `[ ]` | `feat(pdf-tts): backend edge-tts com cache e retomada` |
+| T03 | Normalização pt-BR + segmentação S01–S07 | `[x]` | `feat(pdf-tts): normalização e segmentação por aula` |
+| T04 | Backend Edge TTS, cache, retry, resume | `[~]` | `feat(pdf-tts): backend edge-tts com cache e retomada` |
 | T05 | Amostras de voz + guia de pronúncia | `[ ]` | `feat(pdf-tts): amostras de voz e guia de pronúncia` |
 | T06 | Primeira aula (MKT S01) ponta a ponta | `[ ]` | `feat(pdf-tts): primeira aula completa` |
 | T07 | Ajustes de qualidade (pausas, loudness, joins) | `[ ]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
@@ -102,7 +102,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T03 — Normalização e segmentação
 
-**Status:** `[~]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Implementar `normalize.py` e `chunking.py`.
@@ -126,7 +126,7 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## T04 — Backend Edge TTS
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 **O que fazer:**
 - Implementar `tts/base.py`, `tts/edge.py`, `tts/fake.py`, `state.py`.
@@ -281,4 +281,4 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 | 2026-11-17 | T00 | Scaffold e documentação inicial criados; PDFs movidos para `input/` e ignorados no Git. |
 | 2026-11-17 | T01 | `.venv` 3.11 criado; dependências instaladas; `doctor` OK (20 checks); 4 testes passando. |
 | 2026-11-17 | T02 | Extração concluída: MKT 179.597 chars / 901 blocos; COM 389.692 chars / 2.103 blocos; 7 semanas cada; PUA/URLs zero; tabelas formatadas; referências removidas. |
-| 2026-11-17 | T03 | Normalização e chunking em andamento. |
+| 2026-11-17 | T03 | 1.473 chunks MKT / 3.457 COM; 35 testes; sem dígitos/S01 nos textos falados; duração estimada 3h22 + 7h11. |

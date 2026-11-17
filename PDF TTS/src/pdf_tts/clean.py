@@ -135,14 +135,11 @@ def is_small_print_drop(text: str) -> bool:
 
 
 def strip_attribution(text: str) -> str:
-    """Remove créditos/licenças no fim de legendas, preservando o conteúdo."""
-    text = re.sub(
-        r"\s*(CC BY[^.]*\.?|Wikimedia Commons[^.]*\.?|Fonte:\s*\S+.*|Atributo:.*|Pexels[^.]*\.?|Pixabay[^.]*\.?|Unsplash[^.]*\.?)$",
-        "",
-        text,
-        flags=re.IGNORECASE,
-    )
-    return re.sub(r"\s{2,}", " ", text).strip(" .")
+    """Remove créditos/licenças de legendas, preservando o conteúdo."""
+    text = re.sub(r"\s*\bCC BY[^.]*\.?", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*\bWikimedia Commons[^.]*\.?", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*(Fonte:\s*\S+.*|Atributo:.*|Pexels[^.]*\.?|Pixabay[^.]*\.?|Unsplash[^.]*\.?)$", "", text, flags=re.IGNORECASE)
+    return re.sub(r"\s{2,}", " ", text).strip(" .-")
 
 
 def is_section_heading(text: str) -> tuple[bool, str]:
@@ -252,15 +249,22 @@ def reference_score(text: str) -> int:
 
 def looks_like_reference(text: str) -> bool:
     stripped = text.strip()
+    if re.match(
+        r"^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.\s*\d{1,2},?\s*(19|20)\d{2}\)?\.?$",
+        stripped,
+        re.IGNORECASE,
+    ):
+        return True
     if len(stripped) > 300:
-        return False
-    # Um parágrafo com duas ou mais frases é conteúdo, não uma entrada de bibliografia.
-    if len(re.findall(r"[.!?]\s+", stripped)) >= 2:
         return False
     score = reference_score(stripped)
     starts_number = bool(re.match(r"^\d{1,2}\s", stripped))
+    # Entradas numeradas de bibliografia são referências mesmo com vários pontos.
     if starts_number and score >= 3:
         return True
+    # Um parágrafo com duas ou mais frases é conteúdo, não uma entrada de bibliografia.
+    if len(re.findall(r"[.!?]\s+", stripped)) >= 2:
+        return False
     return score >= 4 and len(stripped) <= 250
 
 

@@ -273,6 +273,54 @@ tratar “Introdução/Conclusão” dentro de tarefa/estudo de caso como subse�
 
 ---
 
+## E027 — “COM” case-insensitive virava “com”
+
+**Erro:** “Preencha ________ com cuidado” virou “Preencha lacuna C O M cuidado”.
+**Causa:** a substituição de siglas usava `re.IGNORECASE`; `\bCOM\b` casou com
+“com”.
+**Solução:** `case_sensitive: true` nas siglas; o normalizador respeita o campo.
+**Evitar:** qualquer sigla curta (COM, TI, IA, RH) deve ser case-sensitive.
+
+---
+
+## E028 — Notas de rodapé colavam no texto
+
+**Erro:** “melhor.6” → “melhor. seis.”; “Tusler10” → “Tusler10”; “favor.11
+Essas” → “favor.onze”.
+**Causa:** números de nota no fim/início de frases e anexados a palavras.
+**Solução:**
+- remover `([.!?"”’])\s*\d{1,3}` quando seguido de espaço+maiúscula/fim;
+- remover dígitos anexados a palavra minúscula antes de pontuação/espaço;
+- separar letra+número (`Week4` → `Week 4`) **depois** das notas e antes dos
+  números.
+**Evitar:** testar páginas com notas de rodapé (COM 36, 47, 151, 196, 221).
+
+---
+
+## E029 — Fragmentos de frase viravam chunks isolados
+
+**Erro:** chunks “Essa.”, “Peço que.”, “Uma pequena.”, “A fórmula é.”.
+**Causa:** o PDF quebra a frase em blocos por layout; o chunker tratava cada
+bloco como independente.
+**Solução:** pós-processar a seção: fragmentos < 30 chars são fundidos com o
+**próximo** chunk; se terminam em palavra funcional (`que`, `é`, `uma`…),
+remover o ponto artificial e minusculizar a continuação.
+**Evitar:** não fundir com o anterior (o fragmento costuma iniciar a frase
+seguinte).
+
+---
+
+## E030 — Datas inválidas (frações) ficavam com dígitos
+
+**Erro:** “13/75” virava “13 ou 75” com dígitos.
+**Causa:** a regex de data protegia “13/75” e `_date` devolvia o texto original
+quando dia/mês inválidos; os números não eram convertidos.
+**Solução:** data inválida vira “treze dividido por setenta e cinco”.
+**Evitar:** toda função de proteção deve devolver texto já normalizado, nunca
+dígitos crus.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

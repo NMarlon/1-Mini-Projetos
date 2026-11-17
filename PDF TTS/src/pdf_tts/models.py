@@ -80,6 +80,46 @@ class Block:
 
 
 @dataclass
+class Chunk:
+    id: str
+    lesson_id: str
+    section_id: str
+    block_id: str
+    kind: str
+    text: str
+    spoken: str
+    gap_before_ms: int
+    cache_key: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "lesson_id": self.lesson_id,
+            "section_id": self.section_id,
+            "block_id": self.block_id,
+            "kind": self.kind,
+            "text": self.text,
+            "spoken": self.spoken,
+            "gap_before_ms": self.gap_before_ms,
+            "cache_key": self.cache_key,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Chunk:
+        return cls(
+            id=str(data["id"]),
+            lesson_id=str(data["lesson_id"]),
+            section_id=str(data["section_id"]),
+            block_id=str(data["block_id"]),
+            kind=str(data["kind"]),
+            text=str(data["text"]),
+            spoken=str(data["spoken"]),
+            gap_before_ms=int(data.get("gap_before_ms", 0)),
+            cache_key=str(data.get("cache_key", "")),
+        )
+
+
+@dataclass
 class Section:
     id: str
     title: str

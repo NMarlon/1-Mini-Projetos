@@ -32,7 +32,7 @@ def test_option_marker() -> None:
 
 def test_small_print_content_and_source() -> None:
     source = classify_block(_block("Fonte: Pexels.com", size=7.2), 9.0, "x")
-    assert source.drop_reason == "small_print"
+    assert source.drop_reason in {"source", "small_print"}
     content = classify_block(_block("Uma frase de conteúdo. Fonte: Pexels.com", size=7.2), 9.0, "x")
     assert content.drop_reason is None
     assert "Fonte" not in content.text

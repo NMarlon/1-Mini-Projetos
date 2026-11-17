@@ -73,3 +73,4 @@ def test_reference_heuristics() -> None:
         "Compartilhe uma percepção do livro didático. Citações formais não são necessárias."
     )
     assert reference_score("Conferência Geral de 2023") >= 4
+    assert looks_like_reference("Jan. 13, 2008).")

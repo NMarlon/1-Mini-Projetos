@@ -16,37 +16,80 @@ replacements:
 
   # Seções S01..S07 (o segmentador também normaliza; mantido por segurança)
   - pattern: '\bS0(\d)\b'
-    replace: 'Semana \1'
+    replace: 'Semana \1.'
 
-  # Siglas frequentes
+  # Numeração de imagens/tabelas/capítulos
+  - pattern: '\b(Tabela|Imagem|Figura|Quadro|Gráfico)\s*(\d)'
+    replace: '\1 \2'
+  - pattern: '\bCapítulo\s*(\d)'
+    replace: 'Capítulo \1'
+
+  # Siglas frequentes (case-sensitive para não afetar palavras comuns como "com")
   - pattern: '\bSWOT\b'
     replace: 'S U O T'
+    case_sensitive: true
   - pattern: '\bCRM\b'
     replace: 'C R M'
+    case_sensitive: true
   - pattern: '\bROI\b'
     replace: 'R O I'
+    case_sensitive: true
   - pattern: '\bKPI\b'
     replace: 'K P I'
+    case_sensitive: true
   - pattern: '\bTTS\b'
     replace: 'T T S'
+    case_sensitive: true
   - pattern: '\bPDF\b'
     replace: 'P D F'
+    case_sensitive: true
   - pattern: '\bIA\b'
     replace: 'I A'
+    case_sensitive: true
   - pattern: '\bLGPD\b'
     replace: 'L G P D'
+    case_sensitive: true
   - pattern: '\bRH\b'
     replace: 'R H'
+    case_sensitive: true
   - pattern: '\bTI\b'
     replace: 'T I'
+    case_sensitive: true
   - pattern: '\bONG\b'
     replace: 'O N G'
+    case_sensitive: true
   - pattern: '\bPIB\b'
     replace: 'P I B'
+    case_sensitive: true
   - pattern: '\bUSP\b'
     replace: 'U S P'
+    case_sensitive: true
   - pattern: '\bSEBRAE\b'
     replace: 'Sebrae'
+  - pattern: '\bCLV\b'
+    replace: 'C L V'
+    case_sensitive: true
+  - pattern: '\bASL\b'
+    replace: 'A S L'
+    case_sensitive: true
+  - pattern: '\bB2B\b'
+    replace: 'B dois B'
+    case_sensitive: true
+  - pattern: '\bB2C\b'
+    replace: 'B dois C'
+    case_sensitive: true
+  - pattern: '\bONU\b'
+    replace: 'O N U'
+    case_sensitive: true
+  - pattern: '\bEUA\b'
+    replace: 'E U A'
+    case_sensitive: true
+  - pattern: '\bMKT\b'
+    replace: 'M K T'
+    case_sensitive: true
+  - pattern: '\bCOM\b'
+    replace: 'C O M'
+    case_sensitive: true
 
   # Nomes próprios e plataformas
   - pattern: '\bWhatsApp\b'

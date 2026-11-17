@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from pdf_tts.doctor import run_doctor
+from pdf_tts.lessons import run_segment
 from pdf_tts.segment import run_extract, run_resegment
 
 
@@ -57,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_extract(args.project)
     if args.command == "resegment":
         return run_resegment(args.project)
+    if args.command == "segment":
+        return run_segment(args.project)
 
     print(f"'{args.command}' ainda não implementado nesta etapa.")
     print("Veja DOCS/06-TASKS.md para o próximo passo.")

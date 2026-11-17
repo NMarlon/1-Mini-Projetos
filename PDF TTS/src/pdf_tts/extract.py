@@ -365,6 +365,9 @@ def _looks_like_heading_block(block: RawBlock) -> bool:
 
 def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block:
     text = strip_urls(clean_text(block.text))
+    # Remove números de nota de rodapé colados ao fim de frases: "melhor.6",
+    # 'isso." 12', "favor.11 Essas".
+    text = re.sub(r'([.!?"”’])\s*\d{1,3}\b(?=\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ“"\'(\[]|$)', r"\1", text)
     kind = "paragraph"
     level = 3
     drop_reason: str | None = None
@@ -391,6 +394,16 @@ def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block
         drop_reason = "boilerplate"
     elif is_url_only(text):
         drop_reason = "url"
+    elif block.size <= body_size * 0.82 and re.search(r"\bCC BY\b|Wikimedia Commons", text, re.IGNORECASE):
+        drop_reason = "license"
+    elif is_small_print_drop(text):
+        drop_reason = "source"
+    elif len(text) <= 40 and re.match(
+        r"^(\d{1,2}\s+)?(D&C|Éter|Mateus|Marcos|Lucas|João|Provérbios|Néfi|Gênesis|Êxodo|Isaías|Salmos)\s+\d+[:.]\d+",
+        text,
+        re.IGNORECASE,
+    ):
+        drop_reason = "scripture_ref"
     elif block.size <= body_size * 0.82:
         if is_small_print_drop(text):
             drop_reason = "small_print"
@@ -455,9 +468,16 @@ def _is_reference_continuation(text: str) -> bool:
     if re.match(r"^[A-Z]{3,}\.?$", stripped):
         return True
     if re.match(
-        r"^(HEALTH|Oxford|Cambridge|Publications|Press|Journal|Erlbaum|In\s+[A-Z]|Omdahl|Behavior)\b",
+        r"^(HEALTH|Oxford|Cambridge|Publications|Press|Journal|Erlbaum|In\s+[A-Z]|Omdahl|Behavior)"
+        r"|^(Psychology|Performance|Communication|Studies|Quarterly|Review|Ethnicity|Outcomes|Social Issues)\b"
+        r"|^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.",
         stripped,
         re.IGNORECASE,
+    ):
+        return True
+    if any(
+        term in stripped
+        for term in ("Journal", "Ethnicity", "Outcomes", "Social Issues", "no. ", "pp. ")
     ):
         return True
     if re.search(r"\b(Eds?\.|ed\.|pág|pp?\.|Press|Journal|University|Publishing)\b", stripped, re.IGNORECASE):
@@ -516,6 +536,29 @@ def extract_page(
     return blocks
 
 
+def _merge_cross_page_continuations(blocks: list[Block]) -> None:
+    """Junta fragmentos minúsculos que continuam uma frase da página anterior."""
+    for index, current in enumerate(blocks):
+        if current.is_dropped or current.kind != "paragraph":
+            continue
+        if not current.text[:1].islower() or len(current.text.split()) > 8:
+            continue
+        previous = None
+        for candidate in reversed(blocks[:index]):
+            if candidate.is_dropped:
+                continue
+            previous = candidate
+            break
+        if previous is None or previous.kind != "paragraph":
+            continue
+        if current.page > previous.page + 1:
+            continue
+        if previous.text.rstrip().endswith((".", "!", "?", ":", ";")):
+            continue
+        previous.text = f"{previous.text.rstrip()} {current.text.lstrip()}"
+        current.drop_reason = "continuation"
+
+
 def extract_project(project: ProjectConfig) -> tuple[list[Block], float]:
     if not project.pdf.exists():
         raise FileNotFoundError(
@@ -529,6 +572,7 @@ def extract_project(project: ProjectConfig) -> tuple[list[Block], float]:
     for block in blocks:
         block.project = project.key
         block.id = block.id.replace("pending", project.key)
+    _merge_cross_page_continuations(blocks)
     return blocks, body_size
 
 
