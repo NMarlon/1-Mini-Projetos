@@ -1,7 +1,9 @@
 # 06 — Tarefas
 
-> **Estado atual:** T09 concluída (COM 150 completo e verificado). T10 (verificação final) e T11 (handoff) são os próximos.
-> **Próximo passo:** rodada final de verificação dos dois livros, revisão do Git e documentação de handoff.
+> **Estado atual:** **T00–T11 concluídas.** Os dois livros estão montados e
+> verificados. Áudios em `output/MKT-120/` e `output/COM-150/`.
+> **Próximo passo:** ouvir as amostras/S01 e, se necessário, ajustar pronúncia
+> ou voz; o backlog lista melhorias opcionais.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -20,10 +22,71 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T07 | Ajustes de qualidade (pausas, loudness, joins) | `[x]` | `fix(pdf-tts): ajustes de qualidade de áudio` |
 | T08 | Build completo MKT 120 | `[x]` | `feat(pdf-tts): build completo do MKT 120` |
 | T09 | Build completo COM 150 | `[x]` | `feat(pdf-tts): build completo do COM 150` |
-| T10 | Verificação final e manifests | `[~]` | `chore(pdf-tts): verificação final e manifests` |
-| T11 | Documentação final e handoff | `[ ]` | `docs(pdf-tts): handoff e estado final` |
+| T10 | Verificação final e manifests | `[x]` | `chore(pdf-tts): verificação final e manifests` |
+| T11 | Documentação final e handoff | `[x]` | `docs(pdf-tts): handoff e estado final` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
+
+---
+
+## Estado final (2026-11-17)
+
+### Entregas
+
+| Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
+|---|---|---|---|---|---|
+| MKT 120 | S01–S07 | 03:39:26 | 68 | 1.473 | ~425 MB |
+| COM 150 | S01–S07 | 07:50:42 | 92 | 3.457 | ~910 MB |
+| **Total** | **14** | **11:30:08** | **160** | **4.930** | **1,335 GB** |
+
+Arquivos em:
+
+- `output/MKT-120/` — S01…S07 `.mp3`/`.m4b`/`.srt`, `MKT-120-completo.*`, `cover.jpg`, `manifest.json`, `README.md`.
+- `output/COM-150/` — o mesmo para o COM 150.
+
+Os manifests versionados estão em `manifests/MKT-120.json` e
+`manifests/COM-150.json`.
+
+### Verificação
+
+- `python -m pdf_tts verify --project all` → **tudo OK**.
+- Loudness: **-16,45 LUFS**; true peak entre **-1,36 e -0,79 dB**.
+- Nenhum silêncio > 5 s.
+- Capítulos e capa presentes em todos os M4B.
+- SRT termina dentro da duração de cada áudio.
+- 43 testes automatizados (`pytest`) passando.
+- Nenhum PDF/texto/áudio versionado no Git.
+
+### Limitações conhecidas
+
+- A IA não ouviu o áudio subjetivamente; a aprovação foi **técnica**. Ouça as
+  amostras e a S01 e reporte pronúncias estranhas (página/trecho) para ajustar o
+  léxico.
+- Alguns textos de tabelas/diagramas podem soar truncados; os rótulos dentro de
+  imagens não passam por OCR.
+- SRT é por frase, não palavra a palavra.
+- Edge TTS é um serviço não oficial; o cache e o `--resume` protegem o build.
+- Áudio/texto/PDFs ficam fora do Git por direitos autorais e tamanho.
+
+### Como ouvir
+
+1. Abra `output/MKT-120/S01.m4b` no Apple Books/VLC/Android (capítulos por seção).
+2. Ou use os MP3 por aula em qualquer player.
+3. Para legendas, carregue o `.srt` de mesmo nome no VLC.
+4. Para comparar vozes, ouça `samples/francisca.mp3`, `antonio.mp3` e
+   `thalita.mp3`.
+
+### Se precisar regerar
+
+```powershell
+python -m pdf_tts build --project mkt120 --lesson S01 --force
+python -m pdf_tts assemble --project mkt120 --lesson S01
+python -m pdf_tts verify --project mkt120 --lesson S01
+```
+
+Para mudar pronúncia, edite `config/pronunciation.pt-BR.yaml`, rode
+`segment`/`build`/`assemble` do escopo afetado e registre em
+`DOCS/09-DECISIONS.md`.
 
 ---
 
@@ -252,7 +315,7 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 
 ## T10 — Verificação final
 
-**Status:** `[~]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Rodar `pytest`.
@@ -269,7 +332,7 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 
 ## T11 — Documentação final e handoff
 
-**Status:** `[ ]`
+**Status:** `[x]` (2026-11-17)
 
 **O que fazer:**
 - Atualizar `README.md`, `05-OPERATIONS.md`, `06-TASKS.md`.
@@ -298,3 +361,5 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 | 2026-11-17 | T07 | QA técnico da S01 aprovado: nenhum silêncio >3 s; capítulos/cover/metadata OK; `-dn/-sn` no M4B. |
 | 2026-11-17 | T08 | MKT completo: 7 aulas + livro (3:39:26), 1.473 cues, 68 capítulos, 425 MB; verify 100% OK (-16,45 LUFS; TP ≤ -0,94; sem silêncios >5 s). |
 | 2026-11-17 | T09 | COM completo: 7 aulas + livro (7:50:42), 3.457 cues, 92 capítulos; verify 100% OK (-16,45 LUFS; TP ≤ -0,79; sem silêncios >5 s). |
+| 2026-11-17 | T10 | Verificação final dos dois livros: 54 arquivos, 1,335 GB, 14 aulas + 2 completos; tudo OK. |
+| 2026-11-17 | T11 | Documentação final, README e handoff atualizados. |

@@ -6,13 +6,19 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 
 ## Estado atual
 
-- T00–T09 concluídas.
-- `MKT 120`: **pronto e verificado** — 7 aulas + livro completo (3h39, 68
-  capítulos, MP3/M4B/SRT, ~425 MB).
-- `COM 150`: **pronto e verificado** — 7 aulas + livro completo (7h51, 92
-  capítulos, MP3/M4B/SRT).
-- Total: **11h30** de áudio; 43 testes automatizados passando.
+**T00–T11 concluídas.** Os dois livros estão montados e verificados.
+
+| Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
+|---|---|---|---|---|---|
+| `MKT 120` | S01–S07 | 03:39:26 | 68 | 1.473 | ~425 MB |
+| `COM 150` | S01–S07 | 07:50:42 | 92 | 3.457 | ~910 MB |
+| **Total** | **14** | **11:30:08** | **160** | **4.930** | **1,335 GB** |
+
+- 43 testes automatizados passando.
+- `verify --project all`: MP3/M4B/SRT/capítulos/capa/loudness **OK**; nenhum
+  silêncio > 5 s.
 - Áudios em `output/MKT-120/` e `output/COM-150/` (não versionados).
+- Comece ouvindo `samples/francisca.mp3` e `output/MKT-120/S01.m4b`.
 
 O plano completo, as tarefas e o estado de cada etapa estão em
 [`DOCS/06-TASKS.md`](DOCS/06-TASKS.md).
@@ -71,8 +77,16 @@ python -m pdf_tts verify --project mkt120 --lesson S01
 python -m pdf_tts all --project all
 ```
 
-Os áudios ficam em `output/<SLUG>/`. O áudio **não é versionado**; os manifests
-em `manifests/` registram o que foi gerado, com durações e hashes.
+Os áudios ficam em `output/<SLUG>/`:
+
+- `S01.mp3`…`S07.mp3` — uma aula por arquivo;
+- `S01.m4b`…`S07.m4b` — capítulos por seção, capa embutida;
+- `S01.srt`…`S07.srt` — legendas;
+- `<SLUG>-completo.mp3/.m4b/.srt` — livro inteiro;
+- `cover.jpg`, `manifest.json`, `README.md`.
+
+O áudio **não é versionado**; os manifests em `manifests/` registram o que foi
+gerado, com durações e hashes.
 
 ## Documentação
 

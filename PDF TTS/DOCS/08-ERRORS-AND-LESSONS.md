@@ -378,6 +378,22 @@ que já foi feito.
 
 ---
 
+## E036 — Montagem do COM 150 estourou 30 min
+
+**Erro:** `assemble --project com150` foi interrompido por timeout de 30 min
+depois de montar S01–S05 e iniciar S06.
+**Causa:** cada aula leva ~5–6 min (decodificar chunks, concatenar WAV,
+loudnorm em duas passadas e encodar MP3/M4B); 7 aulas + livro completo passam
+de 30 min.
+**Solução:** `assemble_lesson` agora reaproveita `Sxx.mp3/.m4b/.srt/_norm.wav`
+quando são mais novos que o JSON da aula; rerun retomou de S06/S07 e montou o
+livro completo. Use timeout de 60 min para o primeiro build do COM.
+**Evitar:** para livros longos, rode `assemble` em background ou por aula;
+não mate o processo se os arquivos anteriores já existem — o skip evita
+re-trabalho.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

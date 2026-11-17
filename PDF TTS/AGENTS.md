@@ -170,8 +170,11 @@ python -m pdf_tts extract --project all
 python -m pdf_tts segment --project all
 python -m pdf_tts samples
 python -m pdf_tts build --project mkt120 --lesson S01
-python -m pdf_tts all --project all --resume
+python -m pdf_tts all --project all
 ```
+
+O estado final (2026-11-17) está em `DOCS/06-TASKS.md`: MKT 120 (3:39:26) e
+COM 150 (7:50:42) montados e verificados. Áudios em `output/` (não versionados).
 
 Detalhes em [`DOCS/05-OPERATIONS.md`](DOCS/05-OPERATIONS.md).
 
