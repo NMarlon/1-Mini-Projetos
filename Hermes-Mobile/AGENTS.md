@@ -192,6 +192,7 @@ comandos e chaves de configuração permanecem em inglês.
 | 📌 **Tarefas do projeto** | `DOCS/10-TAREFAS.md` |
 | 📌 Ideias / TODO futuro | `DOCS/11-BACKLOG-E-IDEIAS.md` |
 | 📌 Testes e evidências | `DOCS/12-VERIFICACAO-E-TESTES.md` |
+| 📌 Checklist do celular (humano) | `DOCS/13-CHECKLIST-CELULAR.md` |
 
 ## 6. 🧭 Primeira ação de uma sessão nova
 

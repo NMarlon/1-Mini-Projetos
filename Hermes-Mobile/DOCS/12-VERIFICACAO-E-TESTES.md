@@ -201,7 +201,20 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 4
 
-- (preencher)
+- Teste final via **HTTPS + WSS** (`wss://marlon-dell-pc.tail6ded59.ts.net:8443/api/ws`):
+  - login 200, ws-ticket 200, `gateway.ready` recebido.
+  - `session.create` → modelo `deepseek-v4.1-flash`.
+  - `prompt.submit` → `message.complete status=complete`, texto `OK`.
+- `Ver-Credenciais.ps1 -Revelar` retornou senha de **32 caracteres**
+  (valor não registrado em log).
+- ACL do `secrets.json`: somente `DESKTOP-P05PR2E\Marlon:(F)`.
+- Tarefa `Hermes Mobile - Servidor`: estado `Running`.
+- `tailscale serve status`: `:443 → 28894` e `:8443 → 9119`.
+- Verificação de segredos: `git grep -F -f <padrões>` em `Hermes-Mobile`
+  → **nenhum segredo encontrado**.
+- `git ls-files Hermes-Mobile` → nenhum `.env`/`secret`/cookie versionado.
+- `Status-Diagnostico.ps1 -SalvarEmLog` executado com sucesso.
+- **Pendente (humano):** instalar o Pomelu no celular e conectar.
 
 ---
 

@@ -160,8 +160,11 @@ Get-ScheduledTaskInfo -TaskName "Hermes Mobile - Servidor"
 ```
 
 - `State` deve ser `Ready`/`Running`.
-- Veja o log em `%LOCALAPPDATA%\HermesMobile\logs\`.
+- Veja o log em `logs/task-servidor-*.log`.
 - Rode `Instalar-Autostart.ps1` de novo se a tarefa sumiu.
+- **Atenção:** a tarefa pode ficar `Running` enquanto o servidor roda.
+  `Stop-ScheduledTask` não garante matar o processo filho; use
+  `Parar-Mobile.ps1` para parar pelo PID da porta.
 
 ### Sintoma: a tarefa roda mas o servidor não sobe
 

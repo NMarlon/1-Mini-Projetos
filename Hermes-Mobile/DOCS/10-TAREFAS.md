@@ -121,17 +121,34 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 ## Fase 4 — Validação no celular e fechamento
 
-**Status:** ⚪
+**Status:** 🟢 (PC) / 🟡 (celular — ação humana pendente)
 
-- [ ] Gerar checklist do Pomelu (`DOCS/03-GUIA-RAPIDO.md`).
-- [ ] Testar a URL no Chrome do PC (tela de login).
-- [ ] Preencher `DOCS/12-VERIFICACAO-E-TESTES.md` com evidências.
-- [ ] Atualizar `DOCS/09-ERROS-E-APRENDIZADOS.md`.
-- [ ] Atualizar `DOCS/01-VISAO-GERAL.md` (estado atual).
-- [ ] Atualizar `AGENTS.md` (data/estado).
-- [ ] Commit final.
+- [x] Gerar checklist do Pomelu (`DOCS/13-CHECKLIST-CELULAR.md`).
+- [x] Testar a URL no PC (HTTPS + WebSocket + agente).
+- [x] Preencher `DOCS/12-VERIFICACAO-E-TESTES.md` com evidências.
+- [x] Atualizar `DOCS/09-ERROS-E-APRENDIZADOS.md`.
+- [x] Atualizar `DOCS/01-VISAO-GERAL.md` (estado atual).
+- [x] Atualizar `AGENTS.md` (data/estado).
+- [x] Verificar que não há segredo no Git.
+- [ ] **Ação humana:** instalar o Pomelu no celular e conectar.
+- [x] Commit final.
 
-**Ação humana necessária:** instalar o Pomelu no celular e conectar.
+**Próximo passo humano:** seguir `DOCS/13-CHECKLIST-CELULAR.md`.
+
+---
+
+## Estado final (2026-11-16)
+
+| Item | Estado |
+|---|---|
+| PC / servidor | 🟢 `hermes serve` em 9119 |
+| Tailscale 8443 | 🟢 ativo |
+| Auth | 🟢 basic (scrypt) |
+| OpenCode 443 | 🟢 preservado |
+| Autostart | 🟢 Tarefa Agendada `Running` |
+| Agente via HTTPS/WSS | 🟢 respondeu `OK` |
+| Pomelu no celular | 🟡 ação humana |
+| Plugin de push | ⚪ backlog |
 
 ---
 

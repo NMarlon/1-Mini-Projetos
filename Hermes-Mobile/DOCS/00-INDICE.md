@@ -37,6 +37,8 @@ Leia o [`AGENTS.md`](../AGENTS.md) antes de alterar qualquer coisa.
 11. [`12-VERIFICACAO-E-TESTES.md`](12-VERIFICACAO-E-TESTES.md) — testes e
     evidências.
 12. [`08-REFERENCIAS.md`](08-REFERENCIAS.md) — links, versões, fontes.
+13. [`13-CHECKLIST-CELULAR.md`](13-CHECKLIST-CELULAR.md) — passo a passo
+    no celular (ação humana).
 
 ---
 
