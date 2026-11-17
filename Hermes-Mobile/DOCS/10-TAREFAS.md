@@ -36,18 +36,21 @@
 
 ## Fase 1 — Auth + `hermes serve` local
 
-**Status:** 🟡
+**Status:** 🟢
 
-- [ ] Criar `scripts/lib/common.ps1`.
-- [ ] Criar `scripts/Configurar-Hermes.ps1`.
-- [ ] Gerar usuário/senha/hash/secret.
-- [ ] Gravar no `.env` com backup e ACL.
-- [ ] Definir `dashboard.public_url`.
-- [ ] Subir `hermes serve` em `127.0.0.1:9119`.
-- [ ] Validar `/api/status` com `auth_required: true` e `auth_providers`.
-- [ ] Validar login local.
-- [ ] Criar `scripts/Status-Diagnostico.ps1`.
-- [ ] Commit.
+- [x] Criar `scripts/lib/common.ps1`.
+- [x] Criar `scripts/Configurar-Hermes.ps1`.
+- [x] Gerar usuário/senha/hash/secret.
+- [x] Gravar no `.env` com backup e ACL.
+- [x] Definir `dashboard.public_url`.
+- [x] Subir `hermes serve` em `127.0.0.1:9119`.
+- [x] Validar `/api/status` com `auth_required: true` e `auth_providers`.
+- [x] Validar login local.
+- [x] Criar `scripts/Status-Diagnostico.ps1`.
+- [x] Corrigir `model.default` de `deepseek-flash` para `deepseek-v4.1-flash`.
+- [x] Commit.
+
+**Evidências:** ver `DOCS/12-VERIFICACAO-E-TESTES.md` (2026-11-16 — Fase 1).
 
 **Critério de aceite:**
 

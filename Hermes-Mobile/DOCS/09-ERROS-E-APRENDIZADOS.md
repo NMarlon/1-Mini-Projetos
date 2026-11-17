@@ -184,6 +184,88 @@
 - **Como evitar:** para árvores grandes, usar `cmd /c dir /s /b` ou
   `Get-ChildItem | ForEach-Object { $_.FullName }`.
 
+## E013 — `$HOME` é read-only no PowerShell
+
+- **Data:** 2026-11-16
+- **Contexto:** `Configurar-Hermes.ps1` usava `$home = Get-HermesHome`.
+- **O que aconteceu:** `SessionStateUnauthorizedAccessException`: a variável
+  `HOME` é automática e somente leitura.
+- **Causa:** colisão com a variável automática `$HOME`.
+- **Correção:** renomear para `$hermesHome`.
+- **Como evitar:** nunca usar `$home`, `$pid`, `$host` etc. como variáveis
+  próprias em scripts PowerShell.
+
+## E014 — `Get-HermesPython` escolheu o Python errado
+
+- **Data:** 2026-11-16
+- **Contexto:** gerar o hash scrypt.
+- **O que aconteceu:** a função pegou o Python do store
+  (`tools\python-3.14.9...`) em vez do Python do venv staged; o store não
+  tem `httpx`, e o import de `plugins.dashboard_auth.basic` falhou.
+- **Causa:** ordenação por `LastWriteTime` misturando as duas árvores.
+- **Correção:** preferir sempre `installs\*\environments\*\venv\Scripts\python.exe`;
+  o Python do store é apenas fallback.
+- **Como evitar:** o hash scrypt depende das dependências do venv do Hermes.
+
+## E015 — JSON com aspas quebrado ao passar para `curl.exe`
+
+- **Data:** 2026-11-16
+- **Contexto:** testar `POST /auth/password-login` no PowerShell 5.1.
+- **O que aconteceu:** `422 JSON decode error` porque o PowerShell removeu as
+  aspas do JSON ao passar `-d $body` para o `curl.exe`.
+- **Causa:** parsing de argumentos do PowerShell 5.1 para comandos nativos.
+- **Correção:** gravar o JSON num arquivo temporário e usar
+  `curl.exe --data-binary "@arquivo"`.
+- **Como evitar:** para JSON em comandos nativos, usar arquivo; ou usar
+  `Invoke-RestMethod`.
+
+## E016 — `icacls /grant:r` mangled pelo PowerShell
+
+- **Data:** 2026-11-16
+- **Contexto:** restringir a ACL do `secrets.json`.
+- **O que aconteceu:** `icacls.exe` retornou “Parâmetro inválido
+  `/grant:r`” quando chamado direto; via `cmd /c` funcionou.
+- **Causa:** o PowerShell 5.1 interpreta/mangleia o argumento `/grant:r`.
+- **Correção:** montar a linha e executar com `cmd.exe /c`.
+- **Como evitar:** para `icacls`, usar `cmd /c` com a linha completa.
+
+## E017 — Modelo padrão `deepseek-flash` rejeitado pelo OpenCode Go
+
+- **Data:** 2026-11-16
+- **Contexto:** primeiro teste de prompt pelo WebSocket.
+- **O que aconteceu:** o agente respondeu com erro:
+  `HTTP 400: Model deepseek-flash isn't included in OpenCode Go`.
+- **Causa:** o `model.default` estava `deepseek-flash`; o `model.main_model`
+  já era `deepseek-v4.1-flash`. O provider não aceita o alias antigo.
+- **Correção:** backup do `config.yaml` e
+  `hermes config set model.default deepseek-v4.1-flash`. Teste repetido
+  retornou `OK`.
+- **Como evitar:** após trocar de provider/plano, validar o modelo com um
+  prompt curto; ver `06-TROUBLESHOOTING.md` seção 9.
+
+## E018 — `Get-TailscaleServeEntry` acessava `HTTPS` inexistente
+
+- **Data:** 2026-11-16
+- **Contexto:** diagnóstico do Tailscale.
+- **O que aconteceu:** `PropertyNotFoundException: HTTPS` sob
+  `Set-StrictMode`; os handlers 443/8443 eram reportados como ausentes.
+- **Causa:** o JSON do `tailscale serve status` tem `TCP.443.HTTPS`, não
+  `Web["host:443"].HTTPS`.
+- **Correção:** remover o campo `Https` do objeto e criar
+  `Test-TailscaleFunnelEnabled` lendo `AllowFunnel`.
+- **Como evitar:** não acessar propriedades opcionais sem
+  `PSObject.Properties.Match()`.
+
+## E019 — `.Count` em objeto único
+
+- **Data:** 2026-11-16
+- **Contexto:** `Get-NetTCPConnection` retornou um único listener.
+- **O que aconteceu:** `PropertyNotFoundException: Count` sob StrictMode.
+- **Causa:** um único objeto não tem `.Count` (no PS 5.1).
+- **Correção:** usar `@($listeners).Count`.
+- **Como evitar:** sempre envolver resultados de cmdlets em `@()` antes de
+  medir/count.
+
 ---
 
 ## Erros a registrar durante a execução

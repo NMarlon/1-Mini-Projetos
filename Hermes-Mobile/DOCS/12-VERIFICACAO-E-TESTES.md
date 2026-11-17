@@ -162,7 +162,22 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 1
 
-- (preencher)
+- `hermes serve` rodando em `127.0.0.1:9119` (PID 15668 no momento do teste).
+- `GET /api/status` → HTTP 200:
+  `{"version":"0.23.1","auth_required":true,"auth_providers":["basic"],"auth_flows":["cookie","native_pkce"],"profiles":["default","conversa","manager-developer-hermes","matematico","neuroia"]}`
+- Login local: `POST /auth/password-login` → HTTP 200; cookies
+  `hermes_session_at`, `hermes_session_rt`, `hermes_session_provider`.
+- `GET /api/profiles` com Bearer → HTTP 200 (5 perfis).
+- WebSocket `ws://127.0.0.1:9119/api/ws`:
+  - `gateway.ready` recebido.
+  - `profiles.list` retornou os perfis.
+- Teste de agente: `session.create` + `prompt.submit`
+  ("Responda apenas com a palavra OK.") → `message.complete status=complete`,
+  texto `OK`.
+- Modelo: `deepseek-flash` foi rejeitado pelo OpenCode Go; trocado
+  `model.default` para `deepseek-v4.1-flash` (backup em
+  `%LOCALAPPDATA%\HermesMobile\backups\config-20261116-212349.yaml`).
+- `Status-Diagnostico.ps1` executado com sucesso.
 
 ### 2026-11-16 — Fase 2
 

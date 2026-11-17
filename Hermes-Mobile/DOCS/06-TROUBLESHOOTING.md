@@ -187,7 +187,53 @@ Após atualizar o Hermes:
 3. Se o Pomelu recusar a versão, veja se há atualização do app.
 4. Se o protocolo mudou, registre em `09-ERROS-E-APRENDIZADOS.md`.
 
-## 7. Logs úteis
+## 7. Modelo rejeitado pelo provider
+
+### Sintoma
+
+O agente responde com erro parecido com:
+
+```text
+HTTP 400: Model deepseek-flash isn't included in OpenCode Go.
+```
+
+### Causa
+
+O `model.default` do `config.yaml` aponta para um alias que o provider não
+aceita mais (ex.: `deepseek-flash` em vez de `deepseek-v4.1-flash`).
+
+### Correção
+
+```powershell
+# Backup
+Copy-Item "$env:LOCALAPPDATA\hermes\config.yaml" `
+  "$env:LOCALAPPDATA\HermesMobile\backups\config-$(Get-Date -Format yyyyMMdd-HHmmss).yaml"
+
+# Ajustar o padrão
+hermes config set model.default deepseek-v4.1-flash
+
+# Conferir
+hermes config get model
+hermes status
+```
+
+Depois reinicie o `hermes serve` (`Parar-Mobile.ps1` + `Iniciar-Mobile.ps1`)
+e teste um prompt curto.
+
+Para trocar só a sessão (sem persistir), use o slash command no chat:
+
+```text
+/model deepseek-v4.1-flash --provider opencode-go
+```
+
+### Como evitar
+
+- Após trocar de plano/provider, valide com um prompt curto.
+- O `Status-Diagnostico.ps1` mostra o modelo atual? Ainda não; veja
+  `hermes status`.
+- Não edite `config.yaml` à mão sem backup.
+
+## 8. Logs úteis
 
 ```powershell
 hermes logs --since 1h
@@ -195,7 +241,7 @@ hermes logs errors
 Get-Content "$env:LOCALAPPDATA\HermesMobile\logs\servidor-*.log" -Tail 100
 ```
 
-## 8. Reset de emergência
+## 9. Reset de emergência
 
 ```powershell
 # Parar só o servidor deste projeto
