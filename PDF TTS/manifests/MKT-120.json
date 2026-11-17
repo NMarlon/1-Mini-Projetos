@@ -1,0 +1,87 @@
+{
+  "project": "mkt120",
+  "title": "Fundamentos de Marketing",
+  "slug": "MKT-120",
+  "source_pdf": "input/MKT 120.pdf",
+  "source_sha256": "ea08d740bcc68ec1317ad3ce8d1c6a5c07a706c9821f1e62c02062fdaac242f1",
+  "engine": "edge",
+  "voice": "pt-BR-FranciscaNeural",
+  "rate": "-5%",
+  "generated_at": "2026-11-17T14:23:08+00:00",
+  "total_duration_s": 1385.05,
+  "lessons": [
+    {
+      "id": "S01",
+      "title": "Noções Básicas de Marketing",
+      "start_page": 6,
+      "end_page": 17,
+      "duration_s": 1385.05,
+      "chunks": 163,
+      "files": {
+        "mp3": "output/MKT-120/S01.mp3",
+        "m4b": "output/MKT-120/S01.m4b",
+        "srt": "output/MKT-120/S01.srt",
+        "sha256_mp3": "f0d8f1fee6d282996966d4efb735cc1b5b9a73dc08150887180adc67715e3700",
+        "sha256_m4b": "3e67ff5c3ee1e3f29c39724d9ed343d45a9eab5e24ab4f1dca695efe0f31ba64",
+        "sha256_srt": "2f97afc142b024024ece80e621585d7250d12a4aaea0e2f5bab6686dc9e910de"
+      },
+      "chapters": [
+        {
+          "title": "Semana 1 — Noções Básicas de Marketing",
+          "start": 0.0,
+          "end": 80.004
+        },
+        {
+          "title": "Introdução",
+          "start": 80.004,
+          "end": 513.256
+        },
+        {
+          "title": "Etapa 3: Entregue Alto Valor ao Cliente",
+          "start": 513.256,
+          "end": 745.518
+        },
+        {
+          "title": "Verificação de Conhecimento",
+          "start": 745.518,
+          "end": 772.132
+        },
+        {
+          "title": "O que é um Plano de Marketing?",
+          "start": 772.132,
+          "end": 910.908
+        },
+        {
+          "title": "Tarefa do Plano de Marketing por semana:",
+          "start": 910.908,
+          "end": 935.666
+        },
+        {
+          "title": "Conclusão",
+          "start": 935.666,
+          "end": 1001.694
+        },
+        {
+          "title": "Lista de Vocabulário",
+          "start": 1001.694,
+          "end": 1072.966
+        },
+        {
+          "title": "S01 Participação",
+          "start": 1072.966,
+          "end": 1153.71
+        },
+        {
+          "title": "A Mão do Senhor",
+          "start": 1153.71,
+          "end": 1230.01
+        },
+        {
+          "title": "S01 Plano de Marketing: Perfil da Empresa",
+          "start": 1230.01,
+          "end": 1385.048
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from pdf_tts.assemble import run_assemble
 from pdf_tts.build import BuildOptions, run_build, run_samples, run_status
 from pdf_tts.doctor import run_doctor
 from pdf_tts.lessons import run_segment
@@ -78,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_status(args.project)
     if args.command == "samples":
         return run_samples()
+    if args.command == "assemble":
+        return run_assemble(args.project, args.lesson)
 
     print(f"'{args.command}' ainda não implementado nesta etapa.")
     print("Veja DOCS/06-TASKS.md para o próximo passo.")

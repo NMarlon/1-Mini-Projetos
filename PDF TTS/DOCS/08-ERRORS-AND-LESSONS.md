@@ -332,6 +332,30 @@ também viraria `5pct`.
 
 ---
 
+## E032 — Montagem exige que o build tenha gravado os `cache_key`
+
+**Erro:** se você rodar `segment` e depois `assemble` sem `build`, a aula não
+tem `cache_key`/áudio e a montagem falha com “Chunk sem áudio”.
+**Causa:** a montagem lê os MP3 do cache; o `build` é quem sintetiza e grava as
+chaves no JSON da aula.
+**Solução:** rodar `build --project … --lesson …` antes de `assemble`; o build
+com `--no-assemble` já deixa tudo pronto.
+**Evitar:** o `assemble` calcula a chave a partir do texto como fallback, mas o
+arquivo ainda precisa existir no cache.
+
+---
+
+## E033 — `loudnorm` e capítulos no M4B
+
+**Observação:** o comando `ffmpeg -f ipod` com `-map_metadata`/`-map_chapters`
+funcionou; a capa `mjpeg` foi embutida como `attached_pic` e os capítulos
+aparecem em `ffprobe -show_chapters`.
+**Cuidado:** `-map_metadata`/`-map_chapters` precisam apontar para o **índice**
+do arquivo de capítulos (1 sem capa, 2 com capa). Se mudar a ordem dos `-i`,
+ajuste os índices.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

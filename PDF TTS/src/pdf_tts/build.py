@@ -188,7 +188,9 @@ def run_build(options: BuildOptions) -> int:
             print("  Rode novamente com `--resume` (padrão) para tentar só o que faltou.")
             return 1
         if not options.no_assemble:
-            print("  Montagem (MP3/M4B/SRT) entra na T06; chunks prontos.")
+            from pdf_tts.assemble import run_assemble
+
+            return run_assemble(options.project, options.lesson)
     return 0
 
 
