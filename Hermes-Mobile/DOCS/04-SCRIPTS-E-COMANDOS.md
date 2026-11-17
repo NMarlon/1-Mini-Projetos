@@ -14,6 +14,7 @@ Nunca use `pwsh` nem recursos do PowerShell 7.
 | `Instalar-Tudo.ps1` | Configura auth + servidor + Tailscale + autostart | Primeira instalação ou PC novo |
 | `Configurar-Hermes.ps1` | Gera credenciais e define `dashboard.public_url` | Reconfigurar auth |
 | `Configurar-Tailscale.ps1` | Cria/remove o handler `:8443` | Publicar ou reverter |
+| `Iniciar-Servidor.ps1` | Garante o `hermes serve` (background ou `-Foreground`) | Chamado pelo `Iniciar-Mobile` e pela Tarefa Agendada |
 | `Iniciar-Mobile.ps1` | Garante servidor + Tailscale e mostra URL | Dia a dia |
 | `Parar-Mobile.ps1` | Para o servidor e remove o handler | Manutenção |
 | `Instalar-Autostart.ps1` | Tarefa Agendada no login + atalho | Quer acesso após reiniciar |
@@ -89,7 +90,29 @@ O script:
   intacto.
 - Se o HTTPS falhar, tenta `--http=8443` e avisa.
 
-## 5. `Iniciar-Mobile.ps1`
+## 5. `Iniciar-Servidor.ps1`
+
+```powershell
+# Background (dia a dia; o Iniciar-Mobile chama este)
+powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Servidor.ps1
+
+# Outra porta
+powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Servidor.ps1 -Porta 9121
+
+# Foreground (usado pela Tarefa Agendada)
+powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Servidor.ps1 -Foreground
+```
+
+- Se já existe um `hermes serve` na porta, não sobe outro.
+- Se a porta estiver ocupada por outro processo, **não** mata; pede para
+  usar `-Porta`.
+- No modo background, gera um VBS em
+  `%LOCALAPPDATA%\HermesMobile\Iniciar-HermesServe-<porta>.vbs` e o executa
+  destacado (sem segurar o terminal).
+- No modo `-Foreground`, roda `hermes serve` no processo atual e grava o log
+  em `logs/task-servidor-<data>.log`. É o modo da Tarefa Agendada.
+
+## 6. `Iniciar-Mobile.ps1`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Mobile.ps1
@@ -97,13 +120,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Mobile.ps1
 
 O que faz:
 
-1. Verifica se já existe um `hermes serve` na porta 9119.
-2. Se não, sobe em background com log em `logs/servidor-*.log`.
-3. Aguarda `/api/status` responder (até 60 s).
-4. Garante o Tailscale Serve `:8443`.
-5. Mostra URL, status e como ver as credenciais.
+1. Chama `Iniciar-Servidor.ps1`.
+2. Chama `Configurar-Tailscale.ps1`.
+3. Verifica `/api/status` local e via HTTPS.
+4. Mostra URL e como obter as credenciais.
 
-## 6. `Parar-Mobile.ps1`
+Opções: `-Porta`, `-PortaPublica`, `-SemTailscale`, `-AbrirNavegador`.
+
+## 7. `Parar-Mobile.ps1`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Parar-Mobile.ps1
@@ -115,7 +139,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Parar-Mobile.ps1
 - Remove o handler `:8443` (opcional; por padrão mantém).
 - **Nunca** roda `hermes serve --stop` (que pararia o Desktop também).
 
-## 7. `Instalar-Autostart.ps1`
+## 8. `Instalar-Autostart.ps1`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Instalar-Autostart.ps1
@@ -124,14 +148,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Instalar-Autostart.ps1
 Cria a Tarefa Agendada **`Hermes Mobile - Servidor`**:
 
 - Gatilho: logon do usuário atual.
-- Ação: `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<pasta>\scripts\Iniciar-Servidor.ps1"`.
+- Ação: `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<pasta>\scripts\Iniciar-Servidor.ps1" -Porta 9119 -Foreground`.
 - Sem limite de tempo; reinicia em caso de falha.
+- Log da tarefa: `logs/task-servidor-<data>.log`.
 - Roda com o usuário atual (sem UAC/admin).
+
+Se o Task Scheduler recusar, o script cria um fallback na pasta Startup
+(atalho para um VBS) e avisa. O `Remover-Autostart.ps1` limpa os dois.
 
 Também cria um atalho **“Hermes Mobile”** na área de trabalho que abre a URL
 do tailnet no navegador.
 
-## 8. `Remover-Autostart.ps1`
+## 9. `Remover-Autostart.ps1`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Remover-Autostart.ps1
@@ -139,7 +167,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Remover-Autostart.ps1
 
 Remove a Tarefa Agendada e o atalho. Não para o servidor em execução.
 
-## 9. `Ver-Credenciais.ps1`
+## 10. `Ver-Credenciais.ps1`
 
 ```powershell
 # Mostra URL e usuário; senha oculta
@@ -154,7 +182,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Ver-Credenciais.ps1 -Revelar 
 
 Lê `%LOCALAPPDATA%\HermesMobile\secrets.json`.
 
-## 10. `Status-Diagnostico.ps1`
+## 11. `Status-Diagnostico.ps1`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Status-Diagnostico.ps1
@@ -174,7 +202,7 @@ Checa:
 9. Tarefa Agendada.
 10. Salva log em `logs/` se `-SalvarEmLog`.
 
-## 11. `Manter-Acordado.ps1`
+## 12. `Manter-Acordado.ps1`
 
 **Opcional. Não rodar sem pedido do Marlon (REGRA 14).**
 
@@ -188,7 +216,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Manter-Acordado.ps1 -Reverter
 
 Backup em `%LOCALAPPDATA%\HermesMobile\energia-backup.json`.
 
-## 12. Comandos úteis (sem script)
+## 13. Comandos úteis (sem script)
 
 ```powershell
 # Ver status do servidor

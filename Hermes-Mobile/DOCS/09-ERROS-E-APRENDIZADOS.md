@@ -266,6 +266,44 @@
 - **Como evitar:** sempre envolver resultados de cmdlets em `@()` antes de
   medir/count.
 
+## E020 — `Register-ScheduledTask -Task` é ambíguo
+
+- **Data:** 2026-11-16
+- **Contexto:** criar a Tarefa Agendada do autostart.
+- **O que aconteceu:** erro “parâmetro 'Task' é ambíguo; candidatos
+  -TaskName -TaskPath”.
+- **Causa:** o parâmetro do objeto é `-InputObject`, não `-Task`, nesta
+  versão do módulo ScheduledTasks.
+- **Correção:** `Register-ScheduledTask -TaskName ... -InputObject $task`.
+- **Como evitar:** conferir `Get-Command Register-ScheduledTask`.
+
+## E021 — `Start-Process` com redirecionamento segura o terminal
+
+- **Data:** 2026-11-16
+- **Contexto:** subir o `hermes serve` em background pelo script.
+- **O que aconteceu:** o script imprimia “servidor ativo” mas o comando
+  demorava/hangava no shell do agente; o servidor ficava rodando.
+- **Causa:** os handles de stdout/stderr redirecionados ficavam abertos no
+  processo filho, e o job do terminal esperava.
+- **Correção:** gerar um VBS (`Iniciar-HermesServe-<porta>.vbs`) e iniciar
+  via `wscript.exe`, destacado. O modo `-Foreground` (Tarefa Agendada) usa
+  `hermes serve` direto e grava em `logs/task-servidor-*.log`.
+- **Como evitar:** para processos de longa duração, não usar
+  `Start-Process` com redirecionamento no mesmo terminal; usar VBS/serviço.
+
+## E022 — `Stop-ScheduledTask` não mata o servidor destacado
+
+- **Data:** 2026-11-16
+- **Contexto:** testar o autostart.
+- **O que aconteceu:** a tarefa ficou `Ready`, mas o `hermes serve` continuou
+  escutando em 9119.
+- **Causa:** o `hermes.exe` (alias) destaca o processo; parar a tarefa não
+  garante matar o filho.
+- **Correção:** verificar a porta/HTTP, não só o estado da tarefa; parar com
+  `Parar-Mobile.ps1` (PID da porta).
+- **Como evitar:** tratar “tarefa Running/Ready” e “servidor de pé” como
+  sinais separados.
+
 ---
 
 ## Erros a registrar durante a execução

@@ -41,6 +41,7 @@ perguntas, voz, arquivos, cron e tela do bot.
 | Hermes | v0.23.1 stable (Microsoft Store/MSIX) |
 | Home | `C:\Users\Marlon\AppData\Local\hermes` |
 | Servidor | `hermes serve` em `127.0.0.1:9119` |
+| Modelo padrão | `deepseek-v4.1-flash` (OpenCode Go) |
 | Auth | usuário + hash scrypt + secret (via `.env`) |
 | URL pública | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
 | Tailscale | PC `marlon-dell-pc` (`100.76.44.54`), celular `a32-de-marlon` (`100.66.158.57`) |

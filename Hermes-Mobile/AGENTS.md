@@ -37,7 +37,8 @@ Resultado esperado:
 | Hermes | **v0.23.1 stable**, instalado via Microsoft Store/MSIX |
 | Home do Hermes | `C:\Users\Marlon\AppData\Local\hermes` |
 | CLI | `hermes` no PATH (alias da Store); aviso pré-existente `install out of sync` |
-| Servidor | `hermes serve` em `127.0.0.1:9119` |
+| Servidor | `hermes serve` em `127.0.0.1:9119` (Tarefa Agendada `Hermes Mobile - Servidor`) |
+| Modelo padrão | `deepseek-v4.1-flash` via OpenCode Go (corrigido de `deepseek-flash`) |
 | Autenticação | `dashboard.basic_auth` via `.env` (usuário + hash scrypt + secret) |
 | URL pública | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
 | Tailscale | v1.104.6; PC `marlon-dell-pc` = `100.76.44.54` |

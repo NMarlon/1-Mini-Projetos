@@ -23,6 +23,7 @@ param(
     [string]$Senha = '',
     [int]$TtlDias = 7,
     [string]$UrlPublica = '',
+    [switch]$Rotacionar,
     [switch]$Revelar
 )
 
@@ -66,15 +67,28 @@ $UrlPublica = $UrlPublica.TrimEnd('/')
 Write-Ok ("URL publica: {0}" -f $UrlPublica)
 
 # --- 3. Credenciais --------------------------------------------------
-if (-not $Senha) {
-    $Senha = New-RandomToken -Bytes 24
-    Write-Ok "Senha forte gerada."
-}
-$secret = New-RandomToken -Bytes 32
+$existing = Read-SecretFile
+$existingHash = Get-EnvValue -Path $envPath -Key 'HERMES_DASHBOARD_BASIC_AUTH_PASSWORD_HASH'
+$existingSecret = Get-EnvValue -Path $envPath -Key 'HERMES_DASHBOARD_BASIC_AUTH_SECRET'
+$reused = $false
 
-Write-Step "Calculando hash scrypt (pode levar alguns segundos)..."
-$hash = Get-PasswordHash -Password $Senha
-Write-Ok "Hash scrypt gerado."
+if (-not $Senha -and -not $Rotacionar -and $existing -and $existing.password -and $existingHash -and $existingSecret) {
+    $Senha = "$($existing.password)"
+    $hash = $existingHash
+    $secret = $existingSecret
+    $reused = $true
+    Write-Ok "Credenciais existentes reutilizadas (use -Rotacionar para trocar)."
+} else {
+    if (-not $Senha) {
+        $Senha = New-RandomToken -Bytes 24
+        Write-Ok "Senha forte gerada."
+    }
+    $secret = New-RandomToken -Bytes 32
+
+    Write-Step "Calculando hash scrypt (pode levar alguns segundos)..."
+    $hash = Get-PasswordHash -Password $Senha
+    Write-Ok "Hash scrypt gerado."
+}
 
 $ttlSeconds = $TtlDias * 86400
 
@@ -118,6 +132,7 @@ Write-Head "Configuracao concluida"
 Write-Host ("Usuario : {0}" -f $Usuario)
 Write-Host ("URL     : {0}" -f $UrlPublica)
 Write-Host ("TTL     : {0} dias" -f $TtlDias)
+if ($reused) { Write-Host "Modo    : credenciais existentes reutilizadas" } else { Write-Host "Modo    : credenciais novas" }
 if ($Revelar) {
     Write-Host ("Senha   : {0}" -f $Senha) -ForegroundColor Yellow
 } else {

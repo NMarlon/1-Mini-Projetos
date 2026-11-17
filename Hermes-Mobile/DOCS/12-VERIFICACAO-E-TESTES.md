@@ -185,7 +185,19 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 3
 
-- (preencher)
+- `Instalar-Autostart.ps1` criou a Tarefa Agendada
+  `Hermes Mobile - Servidor` (estado `Running`).
+- O log `logs/task-servidor-20261116-213711.log` mostra:
+  `HERMES_BACKEND_READY port=9119` e `HERMES_DASHBOARD_READY port=9119`.
+- `Parar-Mobile.ps1` parou somente o PID do `hermes serve`; porta livre;
+  `:443` do OpenCode preservado.
+- `Iniciar-Servidor.ps1` (background via VBS) subiu o servidor (PID 17060)
+  e respondeu HTTP 200.
+- `Iniciar-Mobile.ps1` confirmou servidor local e URL pública.
+- `Instalar-Tudo.ps1 -Sim -SemAutostart` completou configuração, subida,
+  Tailscale e diagnóstico.
+- `Ver-Credenciais.ps1` (sem `-Revelar`) mostrou URL/usuário.
+- `Manter-Acordado.ps1` **não foi executado** (decisão do Marlon).
 
 ### 2026-11-16 — Fase 4
 

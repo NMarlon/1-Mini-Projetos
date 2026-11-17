@@ -96,18 +96,20 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 ## Fase 3 — Autostart + scripts operacionais
 
-**Status:** ⚪
+**Status:** 🟢
 
-- [ ] Criar `scripts/Iniciar-Servidor.ps1`.
-- [ ] Criar `scripts/Iniciar-Mobile.ps1`.
-- [ ] Criar `scripts/Parar-Mobile.ps1`.
-- [ ] Criar `scripts/Instalar-Autostart.ps1`.
-- [ ] Criar `scripts/Remover-Autostart.ps1`.
-- [ ] Criar `scripts/Ver-Credenciais.ps1`.
-- [ ] Criar `scripts/Manter-Acordado.ps1` (não rodar).
-- [ ] Criar `scripts/Instalar-Tudo.ps1`.
-- [ ] Testar parar/subir e autostart.
-- [ ] Commit.
+- [x] Criar `scripts/Iniciar-Servidor.ps1`.
+- [x] Criar `scripts/Iniciar-Mobile.ps1`.
+- [x] Criar `scripts/Parar-Mobile.ps1`.
+- [x] Criar `scripts/Instalar-Autostart.ps1`.
+- [x] Criar `scripts/Remover-Autostart.ps1`.
+- [x] Criar `scripts/Ver-Credenciais.ps1`.
+- [x] Criar `scripts/Manter-Acordado.ps1` (não rodar).
+- [x] Criar `scripts/Instalar-Tudo.ps1`.
+- [x] Testar parar/subir e autostart.
+- [x] Commit.
+
+**Evidências:** ver `DOCS/12-VERIFICACAO-E-TESTES.md` (2026-11-16 — Fase 3).
 
 **Critério de aceite:**
 

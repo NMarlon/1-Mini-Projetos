@@ -468,6 +468,27 @@ function Stop-ServerOnPort {
     return $true
 }
 
+function Start-HermesServeDetached {
+    param([Parameter(Mandatory)][int]$Port)
+
+    $exe = Get-HermesExe
+    if (-not $exe) { throw "hermes.exe nao encontrado." }
+
+    $hermesHome = Get-HermesHome
+    $mobileDir = Ensure-Dir (Get-HermesMobileDir)
+    $vbs = Join-Path $mobileDir ("Iniciar-HermesServe-{0}.vbs" -f $Port)
+
+    $content = @"
+Set sh = CreateObject("WScript.Shell")
+sh.CurrentDirectory = "$hermesHome"
+sh.Run """$exe"" serve --host 127.0.0.1 --port $Port --skip-build", 0, False
+"@
+
+    Write-TextNoBom -Path $vbs -Content ($content -replace "`r?`n", "`r`n")
+    $p = Start-Process -FilePath 'wscript.exe' -ArgumentList @("`"$vbs`"") -WindowStyle Hidden -PassThru
+    return [pscustomobject]@{ Vbs = $vbs; WscriptPid = $p.Id }
+}
+
 function Test-HttpCode {
     param(
         [Parameter(Mandatory)][string]$Url,
