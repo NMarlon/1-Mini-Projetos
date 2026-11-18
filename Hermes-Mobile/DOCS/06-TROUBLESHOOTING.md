@@ -24,8 +24,8 @@
 ```powershell
 tailscale status
 tailscale serve status
-Get-NetTCPConnection -LocalPort 9119 -State Listen
-curl.exe -s http://127.0.0.1:9119/api/status
+Get-NetTCPConnection -LocalPort 80 -State Listen
+curl.exe -s http://127.0.0.1:80/api/status
 curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 ```
 
@@ -95,15 +95,15 @@ Causas comuns:
 | Erro | Causa | Correção |
 |---|---|---|
 | `auth provider required` | `dashboard.public_url` setado sem auth | Rode `Configurar-Hermes.ps1` |
-| `address already in use` | Porta 9119 ocupada | Use `-Porta 9121` ou pare o processo |
+| `address already in use` | Porta 80 ocupada | Use `-Porta 9121` ou pare o processo |
 | `Webapp build failed` | `--skip-build` ausente | Use `--skip-build` (o script já usa) |
 | `install out of sync` | Aviso pré-existente da Store | Não impede; não rode update sem backup |
 
-### Sintoma: porta 9119 ocupada pelo Desktop
+### Sintoma: porta 80 ocupada pelo Desktop
 
 ```powershell
 hermes serve --status
-Get-NetTCPConnection -LocalPort 9119 -State Listen
+Get-NetTCPConnection -LocalPort 80 -State Listen
 ```
 
 - Se for o Desktop, **não mate**. Use outra porta:
@@ -129,7 +129,7 @@ tailscale serve status --json
 Fallback privado (ainda dentro do tailnet):
 
 ```powershell
-tailscale serve --bg --http=8443 http://127.0.0.1:9119
+tailscale serve --bg --http=8443 http://127.0.0.1:80
 ```
 
 A URL fica `http://marlon-dell-pc.tail6ded59.ts.net:8443` (sem TLS). O

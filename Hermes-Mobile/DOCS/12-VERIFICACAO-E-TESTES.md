@@ -12,10 +12,10 @@
 | # | Teste | Status | Evidência |
 |---|---|---|---|
 | 1 | Hermes instalado e versão | 🟢 | 0.23.1 |
-| 2 | `hermes serve` rodando em 9119 | 🟢 | PID 15672 |
+| 2 | `hermes serve` rodando em 80 | 🟢 | PID 15672 |
 | 3 | `/api/status` local com `auth_required: true` | 🟢 | HTTP 200 |
 | 4 | Login local funciona | 🟢 | cookies + `/api/profiles` 200 |
-| 5 | Tailscale Serve `:8443` ativo | 🟢 | → 9119 |
+| 5 | Tailscale Serve `:8443` ativo | 🟢 | → 80 |
 | 6 | `/api/status` via HTTPS do tailnet | 🟢 | HTTP 200 |
 | 7 | Login via HTTPS | 🟢 | 200 + `__Host-` cookies |
 | 8 | OpenCode `:443` intacto | 🟢 | 401 sem auth |
@@ -45,15 +45,15 @@ hermes config get dashboard.basic_auth
 ### 2.2. Porta e processo
 
 ```powershell
-Get-NetTCPConnection -LocalPort 9119 -State Listen |
+Get-NetTCPConnection -LocalPort 80 -State Listen |
   Select-Object LocalAddress,LocalPort,OwningProcess
 ```
 
 ### 2.3. Saúde local
 
 ```powershell
-curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:9119/api/status
-curl.exe -s http://127.0.0.1:9119/api/status
+curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:80/api/status
+curl.exe -s http://127.0.0.1:80/api/status
 ```
 
 Esperado:
@@ -82,7 +82,7 @@ Esperado no `serve status`:
 https://marlon-dell-pc.tail6ded59.ts.net (tailnet only)
 |-- / proxy http://127.0.0.1:28894
 https://marlon-dell-pc.tail6ded59.ts.net:8443 (tailnet only)
-|-- / proxy http://127.0.0.1:9119
+|-- / proxy http://127.0.0.1:80
 ```
 
 `tailscale funnel status` **não** deve listar nada.
@@ -166,13 +166,13 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 1
 
-- `hermes serve` rodando em `127.0.0.1:9119` (PID 15668 no momento do teste).
+- `hermes serve` rodando em `127.0.0.1:80` (PID 15668 no momento do teste).
 - `GET /api/status` → HTTP 200:
   `{"version":"0.23.1","auth_required":true,"auth_providers":["basic"],"auth_flows":["cookie","native_pkce"],"profiles":["default","conversa","manager-developer-hermes","matematico","neuroia"]}`
 - Login local: `POST /auth/password-login` → HTTP 200; cookies
   `hermes_session_at`, `hermes_session_rt`, `hermes_session_provider`.
 - `GET /api/profiles` com Bearer → HTTP 200 (5 perfis).
-- WebSocket `ws://127.0.0.1:9119/api/ws`:
+- WebSocket `ws://127.0.0.1:80/api/ws`:
   - `gateway.ready` recebido.
   - `profiles.list` retornou os perfis.
 - Teste de agente: `session.create` + `prompt.submit`
@@ -185,18 +185,20 @@ Registrar data/hora e resultado.
 
 ### 2026-11-16 — Fase 2
 
-- Tailscale Serve `:8443 → 127.0.0.1:9119` ativo.
+- Tailscale Serve `:8443 → 127.0.0.1:80` ativo.
 - `/api/status` via HTTPS → 200; login HTTPS → 200; `/api/profiles` → 200.
 - OpenCode `:443 → 28894` preservado (401 sem auth).
 - WebSocket WSS + `session.create` + prompt "OK" → `complete`.
 - `tailscale serve status` mostrava 443 e 8443.
+- **18/11/2026:** porta local migrada de 9119 para **80** para o Mono
+  Hermes (`Origin: http://localhost`); o URL público continua 8443.
 
 ### 2026-11-16 — Fase 3
 
 - `Instalar-Autostart.ps1` criou a Tarefa Agendada
   `Hermes Mobile - Servidor` (estado `Running`).
 - O log `logs/task-servidor-20261116-213711.log` mostra:
-  `HERMES_BACKEND_READY port=9119` e `HERMES_DASHBOARD_READY port=9119`.
+  `HERMES_BACKEND_READY port=80` e `HERMES_DASHBOARD_READY port=80`.
 - `Parar-Mobile.ps1` parou somente o PID do `hermes serve`; porta livre;
   `:443` do OpenCode preservado.
 - `Iniciar-Servidor.ps1` (background via VBS) subiu o servidor (PID 17060)
@@ -217,7 +219,7 @@ Registrar data/hora e resultado.
   (valor não registrado em log).
 - ACL do `secrets.json`: somente `DESKTOP-P05PR2E\Marlon:(F)`.
 - Tarefa `Hermes Mobile - Servidor`: estado `Running`.
-- `tailscale serve status`: `:443 → 28894` e `:8443 → 9119`.
+- `tailscale serve status`: `:443 → 28894` e `:8443 → 80`.
 - Verificação de segredos: `git grep -F -f <padrões>` em `Hermes-Mobile`
   → **nenhum segredo encontrado**.
 - `git ls-files Hermes-Mobile` → nenhum `.env`/`secret`/cookie versionado.

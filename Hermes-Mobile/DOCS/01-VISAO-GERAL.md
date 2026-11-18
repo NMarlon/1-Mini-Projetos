@@ -23,7 +23,7 @@ instalado, servido pelo gateway em `:8444`.
 ### Dentro do escopo
 
 - Configurar autenticação do gateway do Hermes.
-- Subir o `hermes serve` em `127.0.0.1:9119`.
+- Subir o `hermes serve` em `127.0.0.1:80`.
 - Publicar via Tailscale Serve HTTPS em `:8443` (Pomelu/Mono Hermes).
 - Habilitar o Webapp oficial em `:8444` (gateway 9120).
 - Instalar/manter o autostart no login (servidor + gateway).
@@ -45,7 +45,7 @@ instalado, servido pelo gateway em `:8444`.
 |---|---|
 | Hermes | v0.23.1 stable (Microsoft Store/MSIX) |
 | Home | `C:\Users\Marlon\AppData\Local\hermes` |
-| Servidor | `hermes serve` em `127.0.0.1:9119` |
+| Servidor | `hermes serve` em `127.0.0.1:80` |
 | Gateway/Webapp | gateway em `127.0.0.1:9120` |
 | Modelo padrão | `deepseek-v4.1-flash` (OpenCode Go) |
 | Auth | usuário + hash scrypt + secret (via `.env`) |
@@ -76,7 +76,7 @@ instalado, servido pelo gateway em `:8444`.
 |---|---|
 | **Hermes Agent** | Agente de IA self-hosted da Nous Research |
 | **Gateway** | Processo/servidor que expõe o agente via REST + WebSocket |
-| **`hermes serve`** | Backend headless do Hermes (porta 9119) |
+| **`hermes serve`** | Backend headless do Hermes (porta 80) |
 | **Dashboard** | UI web administrativa do Hermes (mesma origem do serve) |
 | **Pomelu** | App Android/iOS open-source, cliente do Hermes |
 | **Bot** | Um perfil (profile) do Hermes visto como contato no Pomelu |

@@ -19,10 +19,10 @@
 │  PC Windows 11 — marlon-dell-pc               │
 │                                              │
 │  Tailscale Serve :443  → 127.0.0.1:28894     │  ← OpenCode
-│  Tailscale Serve :8443 → 127.0.0.1:9119      │  ← hermes serve
+│  Tailscale Serve :8443 → 127.0.0.1:80      │  ← hermes serve
 │  Tailscale Serve :8444 → 127.0.0.1:9120      │  ← gateway/webapp
 │                                              │
-│  hermes serve (127.0.0.1:9119)               │
+│  hermes serve (127.0.0.1:80)               │
 │  gateway      (127.0.0.1:9120)               │
 │  └─ webapp = renderer copiado do app 0.23.1  │
 └──────────────────────────────────────────────┘
@@ -32,13 +32,13 @@
 
 1. **Hermes Agent v0.23.1** — CLI + agent core.
    Home: `%LOCALAPPDATA%\hermes`.
-2. **`hermes serve`** — backend headless. Bind `127.0.0.1:9119`.
+2. **`hermes serve`** — backend headless. Bind `127.0.0.1:80`.
    Expõe REST e WebSocket; é o mesmo backend que o Desktop usa.
 3. **Tailscale daemon** — v1.104.6. PC `marlon-dell-pc`
    (`100.76.44.54`); celular `a32-de-marlon` (`100.66.158.57`).
 4. **Tailscale Serve** — HTTPS no tailnet:
    - `:443` → `127.0.0.1:28894` (OpenCode, existente).
-   - `:8443` → `127.0.0.1:9119` (Hermes, novo).
+   - `:8443` → `127.0.0.1:80` (Hermes, novo).
 5. **Pomelu** — app Flutter. Fala REST + JSON-RPC/WebSocket com o gateway.
    Guarda credenciais no Android Keystore.
 6. **Gateway/Webapp** — processo do gateway em `127.0.0.1:9120`.
@@ -52,7 +52,7 @@
 Usuário escreve no Pomelu
   → app envia JSON-RPC via WSS /api/ws (ou REST /api/...)
   → Tailscale cifra e entrega ao PC
-  → Tailscale Serve termina TLS e proxia para 127.0.0.1:9119
+  → Tailscale Serve termina TLS e proxia para 127.0.0.1:80
   → hermes serve valida o token/sessão
   → agente executa ferramentas no PC (terminal, arquivos, web...)
   → eventos de streaming voltam pelo mesmo WebSocket
@@ -86,12 +86,16 @@ Usuário escreve no Pomelu
 - **Por quê:** app nativo, open-source, Play Store, protocolo oficial,
   Tailscale-friendly, Keystore, notificações, voz e arquivos.
 
-### ADR-002 — `hermes serve` em `127.0.0.1:9119`
+### ADR-002 — `hermes serve` em `127.0.0.1:80`
 - **Decisão:** rodar o backend headless, não o `hermes dashboard` em
   `0.0.0.0`.
 - **Por quê:** é o backend que o Pomelu documenta; mantém o serviço em
   loopback; o Tailscale Serve faz a exposição.
-- **Alternativa:** `hermes dashboard --host 127.0.0.1 --port 9119 --no-open`
+- **Porta 80:** o WebView do Mono Hermes envia `Origin: http://localhost`;
+  o Hermes 0.23.1 só aceita esse Origin quando a porta local é 80 (ou o
+  Origin é a URL pública). O URL público continua `:8443` via Tailscale
+  Serve. O Pomelu também usa `:8443` e não precisa mudar.
+- **Alternativa:** `hermes dashboard --host 127.0.0.1 --port 80 --no-open`
   (mesma API) se o `hermes serve` apresentar problema.
 
 ### ADR-003 — Tailscale Serve em `:8443`, não `:443`
@@ -161,7 +165,7 @@ Usuário escreve no Pomelu
 
 | O quê | Valor |
 |---|---|
-| Hermes serve | `http://127.0.0.1:9119` |
+| Hermes serve | `http://127.0.0.1:80` |
 | Gateway/webapp | `http://127.0.0.1:9120` |
 | Tailscale Serve Hermes | `https://marlon-dell-pc.tail6ded59.ts.net:8443` |
 | Tailscale Serve Webapp | `https://marlon-dell-pc.tail6ded59.ts.net:8444` |
@@ -177,9 +181,9 @@ Usuário escreve no Pomelu
 
 | Nº | Fallback | Quando usar |
 |---|---|---|
-| B-1 | `hermes dashboard --host 127.0.0.1 --port 9119 --no-open` | Se `hermes serve` não expuser as rotas do Pomelu |
-| B-2 | `tailscale serve --bg --http=8443 http://127.0.0.1:9119` | Se o HTTPS do tailnet falhar |
-| B-3 | Porta alternativa (ex.: 9121) | Se 9119 estiver ocupada pelo Desktop |
+| B-1 | `hermes dashboard --host 127.0.0.1 --port 80 --no-open` | Se `hermes serve` não expuser as rotas do Pomelu |
+| B-2 | `tailscale serve --bg --http=8443 http://127.0.0.1:80` | Se o HTTPS do tailnet falhar |
+| B-3 | Porta alternativa (ex.: 9121) | Se 80 estiver ocupada pelo Desktop |
 | B-4 | Plugin Pomelu de push | Se precisar de notificações com app fechado |
 | B-5 | Telegram gateway | Canal secundário de mensagens |
 | B-6 | Webapp oficial em `:8444` | Workspace completo (já habilitado) |

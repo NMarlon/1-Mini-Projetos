@@ -101,7 +101,7 @@ superfície de segurança.
 
 ## 8. Health check / watchdog
 
-- Tarefa a cada 5 minutos que testa `/api/status` em 9119 e 9120.
+- Tarefa a cada 5 minutos que testa `/api/status` em 80 e 9120.
 - Se falhar, reinicia `hermes serve`/gateway e registra em `logs/`.
 - Cuidado para não brigar com o autostart.
 

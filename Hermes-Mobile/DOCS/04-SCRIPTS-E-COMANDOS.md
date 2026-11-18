@@ -36,7 +36,7 @@ Parâmetros:
 |---|---|
 | `-Sim` | Não faz perguntas; assume “sim” nas etapas seguras |
 | `-SemAutostart` | Não instala a Tarefa Agendada |
-| `-Porta 9119` | Porta local do `hermes serve` |
+| `-Porta 80` | Porta local do `hermes serve` |
 | `-UrlPublica <url>` | Sobrescreve a URL do tailnet detectada |
 
 O script é **idempotente**: pode rodar de novo sem duplicar variáveis no
@@ -86,7 +86,7 @@ O script:
 
 - Verifica se o Tailscale está instalado/logado.
 - Detecta o DNS name do PC.
-- Cria `tailscale serve --bg --https=8443 http://127.0.0.1:9119`.
+- Cria `tailscale serve --bg --https=8443 http://127.0.0.1:80`.
 - Confere no `tailscale serve status --json` que **443 → 28894** continua
   intacto.
 - Se o HTTPS falhar, tenta `--http=8443` e avisa.
@@ -135,7 +135,7 @@ Opções: `-Porta`, `-PortaPublica`, `-SemTailscale`, `-AbrirNavegador`.
 powershell -ExecutionPolicy Bypass -File .\scripts\Parar-Mobile.ps1
 ```
 
-- Identifica o processo que escuta em 9119.
+- Identifica o processo que escuta em 80.
 - Verifica se a linha de comando é do `hermes serve` **deste projeto**.
 - Para **somente** esse PID.
 - Remove o handler `:8443` (opcional; por padrão mantém).
@@ -151,7 +151,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Instalar-Autostart.ps1
 Cria a Tarefa Agendada **`Hermes Mobile - Servidor`**:
 
 - Gatilho: logon do usuário atual.
-- Ação: `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<pasta>\scripts\Iniciar-Servidor.ps1" -Porta 9119 -Foreground`.
+- Ação: `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<pasta>\scripts\Iniciar-Servidor.ps1" -Porta 80 -Foreground`.
 - Sem limite de tempo; reinicia em caso de falha.
 - Log da tarefa: `logs/task-servidor-<data>.log`.
 - Roda com o usuário atual (sem UAC/admin).
@@ -197,7 +197,7 @@ Checa:
 1. Versão/instalação do Hermes (inclui o aviso `install out of sync`).
 2. `dashboard.public_url`.
 3. Variáveis de auth no `.env` (sem imprimir valores).
-4. Processo/porta 9119.
+4. Processo/porta 80.
 5. `/api/status` local (código HTTP + JSON resumido).
 6. Tailscale + `serve status --json` (443 e 8443).
 7. `/api/status` via HTTPS do tailnet.
@@ -258,13 +258,13 @@ tailscale serve status
 tailscale serve status --json
 
 # Testar saúde local
-curl.exe -s http://127.0.0.1:9119/api/status
+curl.exe -s http://127.0.0.1:80/api/status
 
 # Testar saúde pública
 curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 # Ver processos/porta
-Get-NetTCPConnection -LocalPort 9119 -State Listen
+Get-NetTCPConnection -LocalPort 80 -State Listen
 Get-Process -Id <pid>
 
 # Logs do Hermes

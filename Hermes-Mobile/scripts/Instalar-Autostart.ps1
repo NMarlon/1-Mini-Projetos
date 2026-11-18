@@ -14,7 +14,7 @@
 
 [CmdletBinding()]
 param(
-    [int]$Porta = 9119,
+    [int]$Porta = 80,
     [switch]$SemAtalho
 )
 

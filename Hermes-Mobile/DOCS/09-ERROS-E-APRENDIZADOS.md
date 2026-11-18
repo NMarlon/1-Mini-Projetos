@@ -296,7 +296,7 @@
 - **Data:** 2026-11-16
 - **Contexto:** testar o autostart.
 - **O que aconteceu:** a tarefa ficou `Ready`, mas o `hermes serve` continuou
-  escutando em 9119.
+  escutando em 80.
 - **Causa:** o `hermes.exe` (alias) destaca o processo; parar a tarefa não
   garante matar o filho.
 - **Correção:** verificar a porta/HTTP, não só o estado da tarefa; parar com
@@ -364,6 +364,31 @@
   `gateway_running: true`, `overall: ok`.
 - **Como evitar:** manter o gateway como login item; conferir
   `hermes gateway status` após logoff/login.
+
+## E028 — Mono Hermes: WebSocket 403 por `Origin: http://localhost`
+
+- **Data:** 2026-11-18
+- **Contexto:** Mono Hermes conectava, mas mostrava
+  “Could not connect to Hermes gateway (websocket error before Open)”.
+- **O que eu fiz:** testei o WebSocket com vários `Origin`:
+  - sem Origin → OK
+  - `http://localhost` → **HTTP 403**
+  - `http://localhost:80` → **HTTP 403**
+  - `http://localhost:9119` → OK
+  - `https://marlon-dell-pc.tail6ded59.ts.net:8443` → OK
+- **Causa:** o WebView do Mono Hermes usa `androidScheme: http` e
+  `hostname: localhost`, então envia `Origin: http://localhost` (porta 80).
+  O Hermes 0.23.1 endureceu a checagem: uma origem loopback só é confiável
+  se a porta for igual à `state.bound_port` (ou se o `public_url` for
+  loopback). Com o serve em 9119, 80 ≠ 9119 → 403 antes de abrir o socket.
+  O app foi construído para 0.22.0, quando a checagem era mais permissiva.
+- **Correção:** rodar o `hermes serve` em `127.0.0.1:80` e manter o Tailscale
+  Serve `:8443 → 127.0.0.1:80`. O URL público continua
+  `https://...:8443`; o `Origin: http://localhost` agora casa com a porta 80.
+- **Atenção:** a 8444 (webapp) também rejeita esse Origin, porque o listener
+  está em 9120. Mono Hermes usa **8443**, não 8444.
+- **Como evitar:** não presumir que qualquer porta local serve para o Mono
+  Hermes; a origem do WebView é fixa em `http://localhost`.
 
 ---
 

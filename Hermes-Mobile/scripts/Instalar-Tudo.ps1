@@ -19,7 +19,7 @@
 param(
     [switch]$Sim,
     [switch]$SemAutostart,
-    [int]$Porta = 9119,
+    [int]$Porta = 80,
     [int]$PortaPublica = 8443,
     [string]$UrlPublica = ''
 )

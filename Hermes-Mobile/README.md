@@ -17,7 +17,7 @@ Pomelu / Mono Hermes (Android)
 https://marlon-dell-pc.tail6ded59.ts.net:8443
    │  Tailscale Serve (somente tailnet)
    ▼
-hermes serve  →  127.0.0.1:9119
+hermes serve  →  127.0.0.1:80
 
 Webapp / Hermes-Android (Android)
    │  HTTPS + Tailscale
@@ -34,6 +34,9 @@ gateway (webapp)  →  127.0.0.1:9120
 - O Hermes escuta **apenas em `127.0.0.1`**.
 - O Tailscale Serve publica em **8443** (Pomelu/Mono Hermes) e **8444**
   (Webapp completo). O OpenCode continua no **443** e não é alterado.
+- A porta local do `hermes serve` é **80** (não 9119) para o WebView do
+  Mono Hermes aceitar `Origin: http://localhost`; o URL público continua
+  `:8443`.
 
 ## Começar do zero (PC novo ou PC atual)
 
@@ -46,7 +49,7 @@ Esse script:
 1. Verifica o Hermes instalado e o Tailscale.
 2. Gera usuário/senha/segredo de autenticação do gateway.
 3. Define `dashboard.public_url` para a URL do tailnet.
-4. Sobe o `hermes serve` em `127.0.0.1:9119`.
+4. Sobe o `hermes serve` em `127.0.0.1:80`.
 5. Ativa o Tailscale Serve em `:8443`.
 6. Instala o autostart no login (opcional).
 7. Mostra a URL e as credenciais.

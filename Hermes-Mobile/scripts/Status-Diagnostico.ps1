@@ -13,7 +13,8 @@
 
 [CmdletBinding()]
 param(
-    [switch]$SalvarEmLog
+    [switch]$SalvarEmLog,
+    [int]$Porta = 80
 )
 
 . "$PSScriptRoot\lib\common.ps1"
@@ -126,21 +127,21 @@ try {
     Report ("     {0}" -f (($serveStatus -replace "`r", ' ') -replace "`n", ' | '))
 } catch { }
 
-$listeners = Get-PortListeners -Port 9119
+$listeners = Get-PortListeners -Port $Porta
 if (@($listeners).Count -gt 0) {
-    $srv = Get-ServerProcessOnPort -Port 9119
-    Report-Ok ("Porta 9119 escutando em {0} (PID {1}, {2})." -f $srv.LocalAddress, $srv.Pid, $srv.Name)
+    $srv = Get-ServerProcessOnPort -Port $Porta
+    Report-Ok ("Porta {0} escutando em {1} (PID {2}, {3})." -f $Porta, $srv.LocalAddress, $srv.Pid, $srv.Name)
 } else {
-    Report-Err "Nada escutando em 127.0.0.1:9119."
+    Report-Err ("Nada escutando em 127.0.0.1:{0}." -f $Porta)
 }
 
 $localStatus = '000'
 $localBody = ''
 if (@($listeners).Count -gt 0) {
-    $localStatus = Test-HttpCode -Url 'http://127.0.0.1:9119/api/status'
-    $localBody = Get-HttpBody -Url 'http://127.0.0.1:9119/api/status'
+    $localStatus = Test-HttpCode -Url "http://127.0.0.1:$Porta/api/status"
+    $localBody = Get-HttpBody -Url "http://127.0.0.1:$Porta/api/status"
     if ($localStatus -eq '200') {
-        Report-Ok "GET http://127.0.0.1:9119/api/status -> 200"
+        Report-Ok ("GET http://127.0.0.1:{0}/api/status -> 200" -f $Porta)
         try {
             $j = $localBody | ConvertFrom-Json
             Report ("     version        : {0}" -f $j.version)
@@ -189,7 +190,7 @@ if (-not (Test-TailscaleInstalled)) {
     $e8443 = Get-TailscaleServeEntry -Port 8443
     if ($e8443) {
         Report-Ok ("Serve 8443 -> {0}" -f $e8443.Proxy)
-        if ($e8443.Proxy -notmatch '9119') { Report-Warn "8443 nao aponta para o Hermes (9119)." }
+        if ($e8443.Proxy -notmatch '80') { Report-Warn "8443 nao aponta para o Hermes (80)." }
     } else {
         Report-Err "Serve 8443 ausente (celular nao alcanca o Hermes)."
     }

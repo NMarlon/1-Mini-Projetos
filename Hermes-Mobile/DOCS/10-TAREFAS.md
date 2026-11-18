@@ -43,7 +43,7 @@
 - [x] Gerar usuário/senha/hash/secret.
 - [x] Gravar no `.env` com backup e ACL.
 - [x] Definir `dashboard.public_url`.
-- [x] Subir `hermes serve` em `127.0.0.1:9119`.
+- [x] Subir `hermes serve` em `127.0.0.1:80`.
 - [x] Validar `/api/status` com `auth_required: true` e `auth_providers`.
 - [x] Validar login local.
 - [x] Criar `scripts/Status-Diagnostico.ps1`.
@@ -77,7 +77,7 @@
 **Status:** ⚪
 
 - [ ] Criar `scripts/Configurar-Tailscale.ps1`.
-- [ ] Criar handler `:8443 → 127.0.0.1:9119`.
+- [ ] Criar handler `:8443 → 127.0.0.1:80`.
 - [ ] Confirmar que `:443 → 127.0.0.1:28894` continua.
 - [ ] Testar `/api/status` via HTTPS.
 - [ ] Testar login via HTTPS.
@@ -156,15 +156,18 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 ## Fase 6 — Mono Hermes (opcional)
 
-**Status:** 🟡 (aviso de versão)
+**Status:** 🟡 (conecta; aviso de versão)
 
 - [x] Instalar Mono Hermes v0.4.0 (APK GitHub).
 - [x] Conectar em `:8443` com usuário/senha.
-- [x] Validar login/WebSocket (logs do servidor).
+- [x] Migrar `hermes serve` para `127.0.0.1:80` para aceitar
+  `Origin: http://localhost` do WebView.
+- [x] Testar WebSocket com `Origin: http://localhost` → OK.
+- [x] Validar login/WebSocket/sessão.
 - [ ] Acompanhar release do app compatível com 0.23.x.
 - [ ] Opcional: usar o Webapp `:8444` para o workspace completo.
 
-**Decisão:** o aviso é informativo; o Webapp é a rota alinhada.
+**Decisão:** o aviso de versão é informativo; o Webapp é a rota alinhada.
 
 ---
 
@@ -172,7 +175,7 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 | Item | Estado |
 |---|---|
-| PC / servidor | 🟢 `hermes serve` em 9119 |
+| PC / servidor | 🟢 `hermes serve` em 80 |
 | Tailscale 8443 | 🟢 ativo (Pomelu/Mono Hermes) |
 | Tailscale 8444 | 🟢 ativo (Webapp) |
 | Auth | 🟢 basic (scrypt) |

@@ -69,7 +69,7 @@ Isso gera nova senha/hash/secret. Depois:
 ## 6. Checklist antes de dormir
 
 - [ ] Nenhum segredo no `git status`.
-- [ ] `tailscale serve status` mostra 443 → 28894 e 8443 → 9119.
+- [ ] `tailscale serve status` mostra 443 → 28894 e 8443 → 80.
 - [ ] `tailscale serve status` mostra 8444 → 9120 (webapp).
 - [ ] `https://...:8444/login` responde 200.
 - [ ] `tailscale funnel status` **não** mostra nada.

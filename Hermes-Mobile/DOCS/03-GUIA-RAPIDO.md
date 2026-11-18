@@ -25,7 +25,7 @@ O script vai:
 2. Gerar usuário `hermes`, senha forte, hash scrypt e secret.
 3. Gravar as variáveis no `%LOCALAPPDATA%\hermes\.env` (com backup).
 4. Definir `dashboard.public_url` para a URL do tailnet.
-5. Subir o `hermes serve` em `127.0.0.1:9119`.
+5. Subir o `hermes serve` em `127.0.0.1:80`.
 6. Ativar o Tailscale Serve em `:8443`.
 7. Oferecer instalar o autostart no login.
 8. Mostrar a URL e como ver a senha.
@@ -103,13 +103,17 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Iniciar-Mobile.ps1
 Equivalente manual:
 
 ```powershell
-hermes serve --host 127.0.0.1 --port 9119 --skip-build
+hermes serve --host 127.0.0.1 --port 80 --skip-build
 ```
+
+> A porta local é **80** (não 9119) porque o WebView do Mono Hermes envia
+> `Origin: http://localhost`; o Hermes 0.23.1 só aceita esse Origin quando a
+> porta local é 80. O URL público continua `:8443`.
 
 ### 4.3. Publicar no Tailscale
 
 ```powershell
-tailscale serve --bg --https=8443 http://127.0.0.1:9119
+tailscale serve --bg --https=8443 http://127.0.0.1:80
 ```
 
 Verifique:
@@ -124,7 +128,7 @@ Deve mostrar **os dois** handlers:
 https://marlon-dell-pc.tail6ded59.ts.net (tailnet only)
 |-- / proxy http://127.0.0.1:28894
 https://marlon-dell-pc.tail6ded59.ts.net:8443 (tailnet only)
-|-- / proxy http://127.0.0.1:9119
+|-- / proxy http://127.0.0.1:80
 ```
 
 ### 4.4. Testar

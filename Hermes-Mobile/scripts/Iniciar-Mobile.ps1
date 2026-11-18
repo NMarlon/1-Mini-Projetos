@@ -15,7 +15,7 @@
 
 [CmdletBinding()]
 param(
-    [int]$Porta = 9119,
+    [int]$Porta = 80,
     [int]$PortaPublica = 8443,
     [switch]$SemTailscale,
     [switch]$AbrirNavegador

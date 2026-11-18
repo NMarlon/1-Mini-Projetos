@@ -3,7 +3,7 @@
 #
 # O QUE FAZ:
 #   Cria/garante o handler HTTPS do Tailscale Serve para o Hermes:
-#       https://<pc>.<tailnet>.ts.net:8443  ->  http://127.0.0.1:9119
+#       https://<pc>.<tailnet>.ts.net:8443  ->  http://127.0.0.1:80
 #
 #   NUNCA altera o handler :443 (OpenCode).
 #
@@ -20,7 +20,7 @@
 
 [CmdletBinding()]
 param(
-    [int]$Porta = 9119,
+    [int]$Porta = 80,
     [int]$PortaPublica = 8443,
     [switch]$Remover,
     [switch]$HttpFallback

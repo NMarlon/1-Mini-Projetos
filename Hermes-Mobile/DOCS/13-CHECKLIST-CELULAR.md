@@ -10,10 +10,10 @@
 ## 1. O que já está pronto no PC
 
 - [x] Hermes v0.23.1 rodando.
-- [x] `hermes serve` em `127.0.0.1:9119`.
+- [x] `hermes serve` em `127.0.0.1:80`.
 - [x] Auth básica com hash scrypt + secret.
 - [x] `dashboard.public_url` configurado.
-- [x] Tailscale Serve `:8443 → 127.0.0.1:9119`.
+- [x] Tailscale Serve `:8443 → 127.0.0.1:80`.
 - [x] Gateway/webapp em `127.0.0.1:9120` e Tailscale `:8444`.
 - [x] Gateway instalado como login item (`Hermes_Gateway.vbs`).
 - [x] Tailscale Serve `:443 → 127.0.0.1:28894` (OpenCode) preservado.
