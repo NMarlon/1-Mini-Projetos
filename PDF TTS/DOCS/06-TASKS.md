@@ -1,7 +1,8 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T16 concluídas.** Os dois livros estão montados e
-> verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado.
+> **Estado atual:** **T00–T17 concluídas.** Os dois livros estão montados e
+> verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado;
+> o tutorial de download do PDF está em DOCS/13.
 > Áudios em `output/MKT-120/` e `output/COM-150/`; app em
 > `dist/Pathway PDF TTS/Pathway PDF TTS.exe` (local, não versionado).
 > **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
@@ -31,6 +32,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T14 | Empacotamento portátil Windows | `[x]` | `build(pdf-tts): empacotamento portátil Windows` |
 | T15 | Testes/QA do app one-click e docs | `[x]` | `docs(pdf-tts): guia do app one-click` |
 | T16 | Perfil Pathway, “Tudo literal”, robustez e app assinado | `[x]` | `feat(pathway-tts): perfil Pathway, modos de conteúdo e interface` |
+| T17 | Tutorial visual: como baixar o PDF pelo site | `[x]` | `docs(pathway-tts): tutorial de download do PDF` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -468,6 +470,45 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 - OCR continua fora da v1.
 - O app processa um PDF por vez.
 
+---
+
+## T17 — Tutorial visual: como baixar o PDF (2026-11-18)
+
+**Status:** `[x]`
+
+**Contexto:** o usuário forneceu quatro capturas de tela em `temp/`, já
+numeradas, mostrando o caminho no site do curso. Queria um tutorial simples
+para uma pessoa comum baixar o PDF e depois usar no app.
+
+**Entregas:**
+- `DOCS/13-COMO-BAIXAR-O-PDF.md` — tutorial em texto com as quatro imagens e
+  instruções de uso no app.
+- `DOCS/13-COMO-BAIXAR-O-PDF.pdf` — versão pronta para enviar (6 páginas).
+- `DOCS/assets/como-baixar-pdf/01-curso.png` … `04-download.png` — imagens
+  processadas (a primeira foi recortada para remover a barra lateral/avatar).
+- `scripts/build_download_tutorial.py` — regenera o PDF a partir das imagens.
+- Link no `README.md` e na ordem de leitura do `AGENTS.md`.
+
+**Conteúdo do tutorial:**
+1. Abrir o curso e “Informações do livro didático”.
+2. Abrir “Sobre o livro didático”.
+3. Clicar no ícone de PDF.
+4. Baixar o arquivo.
+5. Renomear `_2226.pdf` para `COM 150.pdf` (opcional).
+6. Abrir o Pathway PDF TTS, escolher “Automático — Pathway primeiro”, arrastar
+   o PDF e gerar.
+
+**Comando de regeneração:**
+```powershell
+python scripts/build_download_tutorial.py
+```
+
+**Validação:** PDF gerado com 6 páginas, imagens legíveis, checklist final e
+aviso de uso pessoal. O PDF tem ~2 MB.
+
+**Observação:** as capturas originais em `temp/` não são versionadas; apenas as
+imagens tratadas em `DOCS/assets/` entram no Git.
+
 ## Diário de progresso
 
 | Data | Tarefa | Observação |
@@ -489,3 +530,4 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 | 2026-11-18 | T14 | PyInstaller onedir + ffmpeg/ffprobe + LEIA-ME; `.exe` testado com upload e job completo. |
 | 2026-11-18 | T15 | 52 testes passando; documentação one-click e backlog atualizados. |
 | 2026-11-18 | T16 | App renomeado para Pathway PDF TTS; perfil Pathway; Tudo útil/literal; upload em blocos; instância única; sem janelas CMD; 59 testes. |
+| 2026-11-18 | T17 | Tutorial em Markdown + PDF (6 páginas) para baixar o PDF pelo site; imagens tratadas e script de regeneração. |

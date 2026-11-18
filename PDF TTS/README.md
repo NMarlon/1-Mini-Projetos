@@ -7,8 +7,9 @@ outros PDFs com camada de texto.
 
 ## Estado atual
 
-**T00–T16 concluídas.** Os dois livros estão montados e verificados; o app
-Pathway PDF TTS está implementado e empacotado.
+**T00–T17 concluídas.** Os dois livros estão montados e verificados; o app
+Pathway PDF TTS está implementado e empacotado, e o tutorial de download está
+em DOCS/13.
 
 | Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
 |---|---|---|---|---|---|
@@ -74,6 +75,20 @@ Resultado: `dist/Pathway PDF TTS (PyInstaller)/` e
 - Logs em `logs/app.log`, `logs/launcher.log` e `logs/crash.log`.
 
 Detalhes completos em [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md).
+
+## Tutorial: como baixar o PDF do livro
+
+Guia rápido, com imagens, para baixar o PDF pelo site do curso:
+
+- [`DOCS/13-COMO-BAIXAR-O-PDF.md`](DOCS/13-COMO-BAIXAR-O-PDF.md)
+- [`DOCS/13-COMO-BAIXAR-O-PDF.pdf`](DOCS/13-COMO-BAIXAR-O-PDF.pdf) — pronto para
+  enviar.
+
+Para regenerar o PDF depois de trocar as imagens:
+
+```powershell
+python scripts/build_download_tutorial.py
+```
 
 ## Fonte dos PDFs
 

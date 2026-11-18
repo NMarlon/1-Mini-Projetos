@@ -105,6 +105,13 @@ Para cada projeto:
 - [ ] O ZIP principal extraído abre e responde em `/api/health`.
 - [ ] A versão principal passa no Smart App Control; a PyInstaller é a alternativa.
 
+## 9.2 Tutorial de download
+
+- [ ] `DOCS/13-COMO-BAIXAR-O-PDF.md` abre com as quatro imagens na ordem.
+- [ ] `DOCS/13-COMO-BAIXAR-O-PDF.pdf` tem 6 páginas e está legível.
+- [ ] O texto menciona o app e o aviso de uso pessoal.
+- [ ] `python scripts/build_download_tutorial.py` regenera o PDF.
+
 ## 10. Git
 
 - [ ] `git status` limpo (exceto arquivos ignorados).

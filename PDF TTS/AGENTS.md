@@ -47,10 +47,12 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
 11. [`DOCS/11-VERIFICATION.md`](DOCS/11-VERIFICATION.md) — critérios de aceite
 12. [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md) — app, API,
     detecção, empacotamento e limitações
+13. [`DOCS/13-COMO-BAIXAR-O-PDF.md`](DOCS/13-COMO-BAIXAR-O-PDF.md) — tutorial
+    visual para baixar o PDF pelo site do curso
 
 ## 3. Estado atual (2026-11-18)
 
-- **T00–T16 concluídas.**
+- **T00–T17 concluídas.**
 - **59 testes** passando; `ruff` limpo.
 - MKT 120 e COM 150 montados e verificados:
   - MKT 120: 3:39:26, 68 capítulos, 1.473 cues;

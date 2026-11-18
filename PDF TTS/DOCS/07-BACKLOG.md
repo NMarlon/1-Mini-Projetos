@@ -92,6 +92,7 @@ retomar, avaliar custo/benefício e mover para `06-TASKS.md` se for executar.
 - [ ] **Vídeo/gif curto** demonstrando o build.
 - [ ] **FAQ** com erros comuns.
 - [x] **Diagrama atualizado** da arquitetura (DOCS/01).
+- [x] **Tutorial de download do PDF** em Markdown e PDF (DOCS/13).
 - [ ] **Changelog** por versão.
 
 ## Riscos a monitorar
