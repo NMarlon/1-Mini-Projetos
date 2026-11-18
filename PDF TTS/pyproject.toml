@@ -34,6 +34,7 @@ dev = [
 [project.scripts]
 pdf-tts = "pdf_tts.cli:main"
 pdf-tts-gui = "pdf_tts.launcher:run_gui"
+pathway-pdf-tts = "pdf_tts.launcher:run_gui"
 
 [tool.setuptools.packages.find]
 where = ["src"]

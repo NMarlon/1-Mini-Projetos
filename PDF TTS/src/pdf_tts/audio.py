@@ -28,6 +28,17 @@ def find_tool(name: str, env_var: str | None = None) -> str | None:
     return shutil.which(name)
 
 
+def run_hidden(command: list[str], **kwargs) -> subprocess.CompletedProcess:
+    """Executa ffmpeg/ffprobe sem abrir janelas de console no Windows."""
+    if os.name == "nt":
+        kwargs.setdefault("creationflags", subprocess.CREATE_NO_WINDOW)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        kwargs.setdefault("startupinfo", startupinfo)
+    return subprocess.run(command, **kwargs)
+
+
 def ffprobe_path() -> str:
     tool = find_tool("ffprobe", "FFPROBE_BIN")
     if not tool:
@@ -53,7 +64,7 @@ def ffprobe_duration(path: Path, timeout: int = 30) -> float:
         "json",
         str(path),
     ]
-    result = subprocess.run(
+    result = run_hidden(
         command,
         capture_output=True,
         text=True,

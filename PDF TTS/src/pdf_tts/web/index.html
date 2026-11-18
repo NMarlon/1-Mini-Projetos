@@ -3,59 +3,105 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PDF TTS — curso em áudio</title>
+  <title>Pathway PDF TTS — audiolivros dos cursos Pathway</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">PDF TTS</div>
-      <h1>Transforme um PDF em audiolivro</h1>
-      <p class="subtitle">Arraste o PDF, confira os capítulos e clique em gerar.</p>
+      <div class="eyebrow">Pathway PDF TTS</div>
+      <h1>Seu curso Pathway em audiolivro</h1>
+      <p class="subtitle">Feito para os PDFs do Pathway. Também converte outros PDFs com texto.</p>
     </div>
     <div class="status-chip" id="health">verificando…</div>
   </header>
 
   <main>
+    <div class="connection-banner" id="connectionBanner" hidden>
+      <div>
+        <strong>O programa não está respondendo.</strong>
+        <span id="connectionText">Mantenha a janelinha do Pathway PDF TTS aberta. Se ela foi fechada, abra o programa novamente.</span>
+      </div>
+      <button class="secondary" id="retryConnection">Tentar novamente</button>
+    </div>
+
+    <section class="card" id="settingsCard">
+      <div class="eyebrow">Passo 1</div>
+      <h2>Como você quer converter?</h2>
+      <p class="muted">Escolha antes de enviar o PDF. Você poderá revisar os capítulos depois.</p>
+
+      <div class="mode-grid" role="radiogroup" aria-label="Modo de conversão">
+        <label class="mode-card selected">
+          <input type="radio" name="recipe" value="auto" checked>
+          <span class="mode-title">Automático</span>
+          <span class="mode-desc">Detecta os capítulos e limpa bibliografia, notas de fonte e boilerplate.</span>
+          <span class="mode-tag">Recomendado</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="recipe" value="review">
+          <span class="mode-title">Identificar capítulos</span>
+          <span class="mode-desc">Analisa o PDF e deixa você revisar ou editar os capítulos antes de gerar.</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="recipe" value="all">
+          <span class="mode-title">Tudo útil</span>
+          <span class="mode-desc">Inclui referências, notas e créditos. Remove só o óbvio: cabeçalho, rodapé, número de página e links.</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="recipe" value="raw">
+          <span class="mode-title">Tudo literal</span>
+          <span class="mode-desc">Narra tudo o que foi extraído, inclusive números de página, cabeçalhos repetidos e links. O áudio fica mais repetitivo.</span>
+        </label>
+      </div>
+
+      <div class="grid two advanced">
+        <label class="field">
+          <span>Perfil de detecção</span>
+          <select id="profile">
+            <option value="auto">Automático — Pathway primeiro</option>
+            <option value="pathway">Pathway (Semanas e S01–S07)</option>
+            <option value="generic">Genérico (outros PDFs)</option>
+          </select>
+          <small>O perfil Pathway procura “Semana 1…7” e “S01…S07”. Se não achar, tenta o modo genérico e avisa.</small>
+        </label>
+        <label class="field">
+          <span>Capítulos</span>
+          <select id="chapterMode">
+            <option value="auto">Automático</option>
+            <option value="manual">Editar capítulos antes de gerar</option>
+            <option value="none">Livro inteiro (um arquivo)</option>
+          </select>
+          <small>O modo “Identificar capítulos” já ativa a edição. Se nada for detectado, o app divide em blocos de páginas.</small>
+        </label>
+      </div>
+    </section>
+
     <section class="card dropzone" id="dropzone">
       <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
       <div class="drop-icon">＋</div>
-      <h2>Arraste um PDF aqui</h2>
+      <div class="eyebrow">Passo 2</div>
+      <h2>Arraste o PDF do curso aqui</h2>
       <p>ou <button class="link-button" id="chooseFile">escolha um arquivo</button></p>
-      <p class="hint">PDFs com texto. PDFs escaneados entram no OCR em uma versão futura.</p>
+      <p class="hint">PDFs com camada de texto. PDFs escaneados entram no OCR em uma versão futura.</p>
+      <p class="hint" id="uploadProgress"></p>
+      <div class="warnings" id="uploadError"></div>
     </section>
 
     <section class="card" id="analysisCard" hidden>
       <div class="section-head">
         <div>
-          <div class="eyebrow">Passo 2</div>
+          <div class="eyebrow">Passo 3</div>
           <h2 id="fileName">—</h2>
           <p class="muted" id="fileMeta"></p>
         </div>
-        <button class="secondary" id="restart">Escolher outro PDF</button>
+        <div class="head-actions">
+          <button class="secondary" id="reanalyze">Reanalisar</button>
+          <button class="secondary" id="restart">Escolher outro PDF</button>
+        </div>
       </div>
 
+      <div class="info" id="detectionInfo"></div>
       <div class="warnings" id="warnings"></div>
-
-      <div class="grid two">
-        <label class="field">
-          <span>Conteúdo</span>
-          <select id="contentMode">
-            <option value="auto">Automático (recomendado)</option>
-            <option value="all">Tudo — modo fiel</option>
-          </select>
-          <small>“Tudo” mantém referências, notas e créditos; “Automático” limpa bibliografia e boilerplate.</small>
-        </label>
-        <label class="field">
-          <span>Capítulos</span>
-          <select id="chapterMode">
-            <option value="auto">Detectar automaticamente</option>
-            <option value="manual">Editar capítulos</option>
-            <option value="none">Livro inteiro (um arquivo)</option>
-          </select>
-          <small>Se nada for detectado, o app avisa e divide em blocos de páginas.</small>
-        </label>
-      </div>
 
       <div class="chapter-head">
         <div>
@@ -91,7 +137,7 @@
         <div class="field action-field">
           <span>&nbsp;</span>
           <button class="primary" id="generate">Gerar áudios</button>
-          <small id="estimate">Duração estimada aparece após a análise.</small>
+          <small id="estimate">A duração real aparece no resultado.</small>
         </div>
       </div>
     </section>
@@ -99,7 +145,7 @@
     <section class="card" id="progressCard" hidden>
       <div class="section-head">
         <div>
-          <div class="eyebrow">Passo 3</div>
+          <div class="eyebrow">Passo 4</div>
           <h2 id="progressTitle">Preparando…</h2>
           <p class="muted" id="progressMessage"></p>
         </div>
@@ -124,19 +170,29 @@
     </section>
 
     <section class="card notes">
-      <h3>O que o app faz</h3>
+      <h3>Feito para o Pathway</h3>
+      <p>
+        O modo <strong>Pathway</strong> procura os títulos que o material do curso usa:
+        <code>Semana 1</code>…<code>Semana 7</code>, <code>S01</code>…<code>S07</code> e
+        títulos de aula. Ele também entende índice/bookmarks do PDF.
+      </p>
+      <p>
+        <strong>E PDFs fora do Pathway?</strong> Também funcionam, pelo perfil
+        <strong>Genérico</strong>: o app tenta o índice, depois títulos por tamanho de fonte
+        e palavras como “Capítulo”, “Parte” ou “Unidade”. Se não encontrar nada, avisa e
+        divide em blocos de 10 páginas — nunca descarta páginas silenciosamente.
+      </p>
       <ul>
-        <li>Detecta capítulos por índice, sumário e títulos do PDF. Se não encontrar, avisa e divide por páginas.</li>
-        <li>Narra <strong>todo o texto extraído</strong>; páginas de imagem são listadas e ficam para o OCR futuro.</li>
         <li>Gera MP3 por capítulo, M4B com marcadores, SRT e um livro completo.</li>
-        <li>Salva tudo em <code>output/</code>, sem enviar o PDF para lugar nenhum.</li>
+        <li>Salva tudo em <code>output/</code>. O PDF não é enviado para lugar nenhum.</li>
+        <li>O Edge TTS envia apenas o texto para a Microsoft para gerar a voz.</li>
+        <li>Páginas só de imagem são listadas; OCR fica para uma versão futura.</li>
       </ul>
-      <p class="hint">O Edge TTS envia apenas o texto para a Microsoft; o PDF e os arquivos ficam no seu computador.</p>
     </section>
   </main>
 
   <footer>
-    <span>PDF TTS · uso pessoal · não redistribua o conteúdo do curso</span>
+    <span>Pathway PDF TTS · uso pessoal · não redistribua o conteúdo do curso</span>
   </footer>
   <script src="/static/app.js"></script>
 </body>

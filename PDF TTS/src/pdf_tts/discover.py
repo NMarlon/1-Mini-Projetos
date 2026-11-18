@@ -19,6 +19,9 @@ CHAPTER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 SUBSECTION_PATTERN = re.compile(r"^S\d{2}\b", re.IGNORECASE)
+PATHWAY_WEEK_PATTERN = re.compile(r"^Semana\s*0?(\d+)\b", re.IGNORECASE)
+PATHWAY_SESSION_PATTERN = re.compile(r"^S(\d{2})\b", re.IGNORECASE)
+PROFILES = {"auto", "pathway", "generic"}
 
 
 @dataclass
@@ -51,6 +54,8 @@ class Discovery:
     chapters: list[Chapter]
     structure: str
     confidence: str
+    profile: str = "auto"
+    profile_used: str = ""
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -65,6 +70,8 @@ class Discovery:
             "chapters": [chapter.to_dict() for chapter in self.chapters],
             "structure": self.structure,
             "confidence": self.confidence,
+            "profile": self.profile,
+            "profile_used": self.profile_used,
             "warnings": self.warnings,
         }
 
@@ -91,6 +98,8 @@ class Discovery:
             chapters=chapters,
             structure=str(data.get("structure", "manual")),
             confidence=str(data.get("confidence", "manual")),
+            profile=str(data.get("profile", "auto")),
+            profile_used=str(data.get("profile_used", data.get("structure", "manual"))),
             warnings=[str(item) for item in data.get("warnings", [])],
         )
 
@@ -163,7 +172,11 @@ def _heading_candidates(pdf: pdfplumber.PDF, body_size: float) -> list[_Candidat
     frequencies: Counter[str] = Counter()
     page_lines: list[list[Any]] = []
     for page in pdf.pages:
-        chars = [char for char in page.chars if str(char.get("text", ""))]
+        chars = [
+            char
+            for char in page.chars
+            if str(char.get("text", "")) and float(char.get("size", 0)) >= body_size * 1.15
+        ]
         if not chars:
             page_lines.append([])
             continue
@@ -222,6 +235,94 @@ def _heading_candidates(pdf: pdfplumber.PDF, body_size: float) -> list[_Candidat
             )
         )
     return selected
+
+
+def _pathway_candidates(
+    pdf: pdfplumber.PDF,
+    body_size: float,
+    pattern: re.Pattern[str],
+) -> list[_Candidate]:
+    """Procura títulos de Semana/Sxx, ignorando linhas pequenas de atividades."""
+    found: list[_Candidate] = []
+    for page in pdf.pages:
+        chars = [
+            char
+            for char in page.chars
+            if str(char.get("text", "")) and float(char.get("size", 0)) >= body_size * 1.05
+        ]
+        if not chars:
+            continue
+        lines = group_chars_into_lines(page.page_number, chars)
+        for index, line in enumerate(lines):
+            text = clean_text(line.text)
+            if line.top <= 48 or line.top >= page.height - 45:
+                continue
+            if line.size < body_size * 1.05:
+                continue
+            if not pattern.match(text) or not has_letter(text):
+                continue
+            if not (3 <= len(text) <= 180):
+                continue
+            parts = [text]
+            for following in lines[index + 1 :]:
+                if abs(following.size - line.size) > 0.2:
+                    break
+                if following.top - line.top > 45:
+                    break
+                following_text = clean_text(following.text)
+                if not following_text:
+                    continue
+                if pattern.match(following_text):
+                    break
+                parts.append(following_text)
+            found.append(
+                _Candidate(
+                    page=page.page_number,
+                    top=line.top,
+                    size=line.size,
+                    text=clean_text(" ".join(parts)),
+                )
+            )
+    return found
+
+
+def _pathway_chapters(
+    pdf: pdfplumber.PDF,
+    body_size: float,
+    total_pages: int,
+) -> list[Chapter]:
+    for pattern in (PATHWAY_WEEK_PATTERN, PATHWAY_SESSION_PATTERN):
+        candidates = _pathway_candidates(pdf, body_size, pattern)
+        by_number: dict[int, _Candidate] = {}
+        for candidate in candidates:
+            matched = pattern.match(candidate.text)
+            if not matched:
+                continue
+            number = int(matched.group(1))
+            current = by_number.get(number)
+            # O sumário repete os títulos em fonte menor; em empate, prefere a
+            # ocorrência fora das primeiras páginas (o início real da semana).
+            if current is None or (candidate.size, candidate.page > 5, candidate.page) > (
+                current.size,
+                current.page > 5,
+                current.page,
+            ):
+                by_number[number] = candidate
+        if len(by_number) < 2:
+            continue
+        ordered = sorted(by_number.values(), key=lambda item: (item.page, item.top))
+        chapters = [
+            Chapter(
+                number=index + 1,
+                title=item.text,
+                start_page=item.page,
+                end_page=item.page,
+                confidence="pathway",
+            )
+            for index, item in enumerate(ordered)
+        ]
+        return _finalize_chapters(chapters, total_pages)
+    return []
 
 
 def _candidate_chapters(candidates: list[_Candidate], total_pages: int) -> list[Chapter]:
@@ -327,8 +428,10 @@ def discover_pdf(
     chapter_mode: str = "auto",
     chapter_size: int = 10,
     manual_chapters: list[dict[str, Any]] | None = None,
+    profile: str = "auto",
 ) -> Discovery:
     pdf_path = Path(pdf_path)
+    profile = profile if profile in PROFILES else "auto"
     if not pdf_path.exists():
         raise FileNotFoundError(pdf_path)
     reader = PdfReader(str(pdf_path))
@@ -350,57 +453,85 @@ def discover_pdf(
     except Exception as exc:  # noqa: BLE001
         warnings.append(f"Não foi possível ler o índice do PDF: {exc}")
 
+    profile_used = "manual"
     with pdfplumber.open(pdf_path) as pdf:
         body_size = detect_body_size(pdf)
         for page in pdf.pages:
-            text = clean_text(page.extract_text() or "")
+            text = clean_text("".join(str(char.get("text", "")) for char in page.chars))
             if len(text) >= 20:
                 text_pages += 1
                 text_page_numbers.append(page.page_number)
             elif page.images:
                 image_only_pages.append(page.page_number)
 
-    if text_pages == 0:
-        warnings.append("Este PDF não tem camada de texto; a v1 não consegue narrar PDFs escaneados.")
-    elif text_pages < total_pages * 0.5:
-        warnings.append(
-            f"Apenas {text_pages} de {total_pages} páginas têm texto; páginas de imagem não serão narradas."
-        )
-    if image_only_pages:
-        warnings.append(
-            "Páginas sem texto: " + ", ".join(str(page) for page in image_only_pages[:30])
-            + ("…" if len(image_only_pages) > 30 else "")
-        )
-
-    if chapter_mode == "manual":
-        chapters = _manual_chapters(manual_chapters or [], total_pages)
-        structure = "manual"
-        confidence = "manual"
-    elif chapter_mode == "none":
-        chapters = [
-            Chapter(number=1, title="Livro completo", start_page=1, end_page=total_pages, confidence="manual")
-        ]
-        structure = "none"
-        confidence = "manual"
-    else:
-        chapters = outline
-        structure = "outline"
-        confidence = "high" if chapters else "low"
-        if not chapters:
-            with pdfplumber.open(pdf_path) as pdf:
-                candidates = _heading_candidates(pdf, body_size)
-            chapters = _candidate_chapters(candidates, total_pages)
-            structure = "headings"
-            confidence = "medium" if chapters else "low"
-        if not chapters:
-            chapters = _fallback_chapters(total_pages, chapter_size)
-            structure = "fallback"
-            confidence = "low"
+        if text_pages == 0:
+            warnings.append("Este PDF não tem camada de texto; a v1 não consegue narrar PDFs escaneados.")
+        elif text_pages < total_pages * 0.5:
             warnings.append(
-                f"Não identifiquei capítulos; o PDF será dividido em blocos de {chapter_size} páginas."
+                f"Apenas {text_pages} de {total_pages} páginas têm texto; páginas de imagem não serão narradas."
             )
+        if image_only_pages:
+            warnings.append(
+                "Páginas sem texto: " + ", ".join(str(page) for page in image_only_pages[:30])
+                + ("…" if len(image_only_pages) > 30 else "")
+            )
+
+        if chapter_mode == "manual":
+            chapters = _manual_chapters(manual_chapters or [], total_pages)
+            structure = "manual"
+            confidence = "manual"
+        elif chapter_mode == "none":
+            chapters = [
+                Chapter(
+                    number=1,
+                    title="Livro completo",
+                    start_page=1,
+                    end_page=total_pages,
+                    confidence="manual",
+                )
+            ]
+            structure = "none"
+            confidence = "manual"
         else:
-            chapters = _finalize_chapters(chapters, total_pages)
+            chapters = []
+            structure = ""
+            confidence = "low"
+            if profile in {"auto", "pathway"}:
+                chapters = _pathway_chapters(pdf, body_size, total_pages)
+                if chapters:
+                    structure = "pathway"
+                    confidence = "high"
+                    profile_used = "pathway"
+                elif profile == "pathway":
+                    warnings.append(
+                        "O perfil Pathway não encontrou títulos de Semana nem S01–S07; "
+                        "usei a detecção genérica."
+                    )
+
+            if not chapters and outline:
+                chapters = outline
+                structure = "outline"
+                confidence = "high"
+                profile_used = "outline"
+
+            if not chapters:
+                candidates = _heading_candidates(pdf, body_size)
+                chapters = _candidate_chapters(candidates, total_pages)
+                if chapters:
+                    structure = "headings"
+                    confidence = "medium"
+                    profile_used = "generic"
+
+            if not chapters:
+                chapters = _fallback_chapters(total_pages, chapter_size)
+                structure = "fallback"
+                confidence = "low"
+                profile_used = "fallback"
+                warnings.append(
+                    f"Não identifiquei capítulos; o PDF será dividido em blocos de {chapter_size} páginas."
+                )
+            else:
+                chapters = _finalize_chapters(chapters, total_pages)
 
     if not chapters:
         raise ValueError("Não foi possível criar nenhum capítulo para este PDF.")
@@ -417,5 +548,7 @@ def discover_pdf(
         chapters=chapters,
         structure=structure,
         confidence=confidence,
+        profile=profile,
+        profile_used=profile_used,
         warnings=warnings,
     )

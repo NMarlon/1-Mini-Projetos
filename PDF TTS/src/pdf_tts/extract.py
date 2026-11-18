@@ -124,17 +124,28 @@ def _is_header_footer(line: Line, page_height: float, body_size: float) -> str |
     return None
 
 
-def _filter_lines(lines: list[Line], page_height: float, body_size: float) -> list[Line]:
+def _filter_lines(
+    lines: list[Line],
+    page_height: float,
+    body_size: float,
+    content_mode: str = "auto",
+) -> list[Line]:
     kept: list[Line] = []
     for line in lines:
         text = clean_text(line.text)
         if not text:
             continue
-        if _is_header_footer(line, page_height, body_size):
-            continue
-        if is_skip_line(text) or is_url_only(text):
-            continue
-        if not has_letter(text) and not is_page_number(text) and len(text) < 4:
+        if content_mode != "raw":
+            if _is_header_footer(line, page_height, body_size):
+                continue
+            if is_skip_line(text) or is_url_only(text):
+                continue
+        if (
+            not has_letter(text)
+            and not is_page_number(text)
+            and not re.search(r"\d", text)
+            and len(text) < 4
+        ):
             continue
         line.text = text
         kept.append(line)
@@ -369,10 +380,12 @@ def classify_block(
     project_key: str,
     content_mode: str = "auto",
 ) -> Block:
-    text = strip_urls(clean_text(block.text))
-    # Remove números de nota de rodapé colados ao fim de frases: "melhor.6",
-    # 'isso." 12', "favor.11 Essas".
-    text = re.sub(r'(?<!\d)([.!?"”’])\s*\d{1,3}\b(?=\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ“"\'(\[]|$)', r"\1", text)
+    text = clean_text(block.text)
+    if content_mode != "raw":
+        text = strip_urls(text)
+        # Remove números de nota de rodapé colados ao fim de frases: "melhor.6",
+        # 'isso." 12', "favor.11 Essas".
+        text = re.sub(r'(?<!\d)([.!?"”’])\s*\d{1,3}\b(?=\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ“"\'(\[]|$)', r"\1", text)
     kind = "paragraph"
     level = 3
     drop_reason: str | None = None
@@ -395,35 +408,37 @@ def classify_block(
 
     if not text:
         drop_reason = "empty"
-    elif is_skip_line(text):
+    elif content_mode != "raw" and is_skip_line(text):
         drop_reason = "boilerplate"
-    elif is_url_only(text):
+    elif content_mode != "raw" and is_url_only(text):
         drop_reason = "url"
     elif (
-        content_mode != "all"
+        content_mode == "auto"
         and block.size <= body_size * 0.82
         and re.search(r"\bCC BY\b|Wikimedia Commons", text, re.IGNORECASE)
     ):
         drop_reason = "license"
-    elif content_mode != "all" and is_small_print_drop(text):
+    elif content_mode == "auto" and is_small_print_drop(text):
         drop_reason = "source"
-    elif content_mode != "all" and len(text) <= 40 and re.match(
+    elif content_mode == "auto" and len(text) <= 40 and re.match(
         r"^(\d{1,2}\s+)?(D&C|Éter|Mateus|Marcos|Lucas|João|Provérbios|Néfi|Gênesis|Êxodo|Isaías|Salmos)\s+\d+[:.]\d+",
         text,
         re.IGNORECASE,
     ):
         drop_reason = "scripture_ref"
     elif block.size <= body_size * 0.82:
-        if content_mode != "all" and is_small_print_drop(text):
+        if content_mode == "auto" and is_small_print_drop(text):
             drop_reason = "small_print"
         elif is_caption(text):
             kind = "caption"
             level = 2
-            text = strip_attribution(text)
+            if content_mode != "raw":
+                text = strip_attribution(text)
         else:
             kind = "paragraph"
             level = 3
-            text = strip_attribution(text)
+            if content_mode != "raw":
+                text = strip_attribution(text)
     elif is_week_title(text) and block.size >= body_size * 2.0:
         kind = "week_title"
         level = 0
@@ -442,7 +457,7 @@ def classify_block(
             kind = "option"
             text = f"Opção: {text}"
             level = 3
-        elif content_mode != "all" and looks_like_reference(text):
+        elif content_mode == "auto" and looks_like_reference(text):
             kind = "reference"
             drop_reason = "reference"
         elif re.match(r"^(\d+[.)]|[•\-–])\s+", text):
@@ -500,7 +515,7 @@ def _is_reference_continuation(text: str) -> bool:
 
 def _mark_reference_runs(blocks: list[Block], content_mode: str = "auto") -> None:
     """Após a primeira referência, descarta as linhas de continuação da bibliografia."""
-    if content_mode == "all":
+    if content_mode in {"all", "raw"}:
         return
     in_references = False
     for block in blocks:
@@ -532,7 +547,7 @@ def extract_page(
     if not chars:
         return []
     lines = group_chars_into_lines(page_number, chars)
-    lines = _filter_lines(lines, page.height, body_size)
+    lines = _filter_lines(lines, page.height, body_size, content_mode=content_mode)
 
     table_blocks, lines = extract_tables(page, lines, body_size)
     raw_blocks = group_lines_into_blocks(lines, body_size)

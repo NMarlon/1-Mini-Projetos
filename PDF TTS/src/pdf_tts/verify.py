@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from pdf_tts.assemble import measure_loudness
-from pdf_tts.audio import ffmpeg_path, ffprobe_duration, ffprobe_path, validate_audio
+from pdf_tts.audio import ffmpeg_path, ffprobe_duration, ffprobe_path, run_hidden, validate_audio
 from pdf_tts.config import ROOT, ProjectConfig, load_projects, resolve_projects
 
 
@@ -41,7 +40,7 @@ def parse_srt(path: Path) -> list[tuple[float, float, str]]:
 
 
 def ffprobe_chapters(path: Path) -> list[dict]:
-    result = subprocess.run(
+    result = run_hidden(
         [ffprobe_path(), "-v", "error", "-show_chapters", "-of", "json", str(path)],
         capture_output=True,
         text=True,
@@ -55,7 +54,7 @@ def ffprobe_chapters(path: Path) -> list[dict]:
 
 
 def ffprobe_streams(path: Path) -> list[dict]:
-    result = subprocess.run(
+    result = run_hidden(
         [ffprobe_path(), "-v", "error", "-show_streams", "-of", "json", str(path)],
         capture_output=True,
         text=True,
@@ -69,7 +68,7 @@ def ffprobe_streams(path: Path) -> list[dict]:
 
 
 def silence_gaps(path: Path, threshold_db: int = -35, min_seconds: float = 5.0) -> list[float]:
-    result = subprocess.run(
+    result = run_hidden(
         [
             ffmpeg_path(),
             "-hide_banner",

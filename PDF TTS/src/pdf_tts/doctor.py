@@ -7,11 +7,12 @@ import hashlib
 import importlib.metadata
 import os
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from subprocess import CompletedProcess
 
+from pdf_tts.audio import run_hidden
 from pdf_tts.config import ROOT, ProjectConfig, load_projects
 
 EXPECTED_PDFS = {
@@ -31,8 +32,8 @@ class Check:
     critical: bool = True
 
 
-def _run(command: list[str], timeout: int = 30) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+def _run(command: list[str], timeout: int = 30) -> CompletedProcess[str]:
+    return run_hidden(
         command,
         capture_output=True,
         text=True,

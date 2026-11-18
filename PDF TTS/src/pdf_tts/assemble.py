@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import re
-import subprocess
 import textwrap
 import wave
 from concurrent.futures import ThreadPoolExecutor
@@ -15,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pdf_tts.audio import ffmpeg_path, validate_audio
+from pdf_tts.audio import ffmpeg_path, run_hidden, validate_audio
 from pdf_tts.config import ROOT, ProjectConfig, load_projects, load_settings, resolve_projects
 from pdf_tts.tts.edge import EdgeBackend
 
@@ -108,7 +107,7 @@ def _ensure_wav(mp3: Path, wav: Path) -> Path:
         except wave.Error:
             pass
     wav.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
+    result = run_hidden(
         [
             ffmpeg_path(),
             "-y",
@@ -245,7 +244,7 @@ def concat_wavs(wavs: list[Path], output_wav: Path, gap_seconds: float = 2.0) ->
 
 
 def measure_loudness(wav: Path, target_i: float, target_tp: float, target_lra: float) -> dict[str, str] | None:
-    result = subprocess.run(
+    result = run_hidden(
         [
             ffmpeg_path(),
             "-hide_banner",
@@ -296,7 +295,7 @@ def apply_loudnorm(
         )
     else:
         audio_filter = f"loudnorm=I={target_i}:TP={target_tp}:LRA={target_lra}"
-    result = subprocess.run(
+    result = run_hidden(
         [
             ffmpeg_path(),
             "-y",
@@ -430,7 +429,7 @@ def encode_mp3(
     for key, value in metadata.items():
         command += ["-metadata", f"{key}={value}"]
     command.append(str(output))
-    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+    result = run_hidden(command, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
     if result.returncode != 0:
         raise RuntimeError(f"encode MP3 falhou: {result.stderr.strip()}")
 
@@ -471,7 +470,7 @@ def encode_m4b(
         "ipod",
         str(output),
     ]
-    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+    result = run_hidden(command, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
     if result.returncode != 0:
         raise RuntimeError(f"encode M4B falhou: {result.stderr.strip()}")
 

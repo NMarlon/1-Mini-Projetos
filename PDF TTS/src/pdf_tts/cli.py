@@ -68,6 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     detect.add_argument("--chapters", choices=["auto", "none", "manual"], default="auto")
     detect.add_argument("--chapter-size", type=int, default=10)
     detect.add_argument("--chapter-file", default=None)
+    detect.add_argument("--profile", choices=["auto", "pathway", "generic"], default="auto")
     detect.add_argument("--json", action="store_true")
 
     convert = sub.add_parser("convert", help="Converte um PDF qualquer em audiolivro.")
@@ -75,7 +76,8 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("--chapters", choices=["auto", "none", "manual"], default="auto")
     convert.add_argument("--chapter-size", type=int, default=10)
     convert.add_argument("--chapter-file", default=None)
-    convert.add_argument("--mode", choices=["auto", "all"], default="auto")
+    convert.add_argument("--mode", choices=["auto", "all", "raw"], default="auto")
+    convert.add_argument("--profile", choices=["auto", "pathway", "generic"], default="auto")
     convert.add_argument("--voice", default=None)
     convert.add_argument("--rate", default=None)
 
@@ -108,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
             chapter_mode=args.chapters,
             chapter_size=args.chapter_size,
             manual_chapters=load_manual_chapters(args.chapter_file),
+            profile=args.profile,
             as_json=args.json,
         )
     if args.command == "convert":
@@ -118,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
                 chapter_size=args.chapter_size,
                 manual_chapters=load_manual_chapters(args.chapter_file),
                 content_mode=args.mode,
+                profile=args.profile,
                 voice=args.voice,
                 rate=args.rate,
             ),

@@ -88,6 +88,7 @@ class JobManager:
             "chapter_size": options.chapter_size,
             "manual_chapters": options.manual_chapters,
             "content_mode": options.content_mode,
+            "profile": options.profile,
             "voice": options.voice,
             "rate": options.rate,
             "analysis_path": str(analysis_path),
@@ -172,8 +173,16 @@ class JobManager:
             chapter_size=int(options_data.get("chapter_size", 10)),
             manual_chapters=manual,
             content_mode=options_data.get("content_mode", "auto"),
+            profile=options_data.get("profile", "auto"),
             voice=options_data.get("voice"),
             rate=options_data.get("rate"),
+        )
+        logger.info(
+            "job %s iniciado: %s capítulos, conteúdo=%s, perfil=%s",
+            job_id,
+            len(discovery.chapters),
+            options.content_mode,
+            options.profile,
         )
         self._update(
             job_id,
@@ -208,6 +217,7 @@ class JobManager:
                 discovery=discovery,
             )
             coverage = result["coverage"]
+            logger.info("job %s concluído: %s", job_id, result["output_dir"])
             self._update(
                 job_id,
                 status="done",

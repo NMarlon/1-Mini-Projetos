@@ -1,13 +1,51 @@
 const $ = (id) => document.getElementById(id);
 
+const RECIPES = {
+  auto: { content: "auto", chapters: "auto", label: "Automático" },
+  review: { content: "auto", chapters: "manual", label: "Identificar capítulos" },
+  all: { content: "all", chapters: "auto", label: "Tudo útil" },
+  raw: { content: "raw", chapters: "auto", label: "Tudo literal" },
+};
+
+const PROFILE_LABELS = {
+  pathway: "Pathway (Semanas/S01–S07)",
+  outline: "índice do PDF",
+  generic: "genérico (títulos)",
+  fallback: "blocos de páginas",
+  manual: "manual",
+  none: "livro inteiro",
+};
+
+const STRUCTURE_LABELS = {
+  pathway: "Pathway",
+  outline: "índice do PDF",
+  headings: "títulos do PDF",
+  fallback: "blocos de páginas",
+  manual: "manual",
+  none: "livro inteiro",
+};
+
 const state = {
   uploadId: null,
   discovery: null,
   totalPages: 0,
   jobId: null,
   timer: null,
+  healthTimer: null,
+  healthChecking: false,
+  healthOk: true,
   defaultVoice: "pt-BR-FranciscaNeural",
+  profile: "auto",
+  analyzing: false,
+  uploading: false,
 };
+
+class ConnectionError extends Error {
+  constructor() {
+    super("O programa não está respondendo. Mantenha a janelinha do Pathway PDF TTS aberta ou abra o programa novamente.");
+    this.name = "ConnectionError";
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -18,16 +56,33 @@ function escapeHtml(value) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, options);
+  let response;
+  try {
+    response = await fetch(path, options);
+  } catch (_) {
+    throw new ConnectionError();
+  }
+  const text = await response.text();
   let data = {};
-  try { data = await response.json(); } catch (_) { /* resposta vazia */ }
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      data = {};
+    }
+  }
   if (!response.ok) {
-    throw new Error(data.detail || `Erro HTTP ${response.status}`);
+    const detail = data.detail;
+    if (Array.isArray(detail)) {
+      throw new Error(detail.map((item) => item.msg || JSON.stringify(item)).join("; "));
+    }
+    throw new Error(detail || `Erro HTTP ${response.status}`);
   }
   return data;
 }
 
 function showBanner(container, text, type = "warn") {
+  if (!container) return;
   const div = document.createElement("div");
   div.className = type;
   div.textContent = text;
@@ -35,7 +90,7 @@ function showBanner(container, text, type = "warn") {
 }
 
 function clearBanners(container) {
-  container.innerHTML = "";
+  if (container) container.innerHTML = "";
 }
 
 function stageLabel(stage) {
@@ -55,24 +110,54 @@ function stageLabel(stage) {
   return labels[stage] || stage || "—";
 }
 
-function humanDuration(seconds) {
-  const total = Math.max(0, Math.round(Number(seconds) || 0));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return h ? `${h}h${String(m).padStart(2, "0")}` : `${m}min${String(s).padStart(2, "0")}`;
+function currentRecipe() {
+  return document.querySelector('input[name="recipe"]:checked')?.value || "auto";
 }
 
-async function loadHealth() {
+function recipeContentMode() {
+  return RECIPES[currentRecipe()]?.content || "auto";
+}
+
+function setConnectionState(ok) {
+  state.healthOk = ok;
   const chip = $("health");
-  try {
-    await api("/api/health");
+  const banner = $("connectionBanner");
+  if (ok) {
     chip.textContent = "pronto";
     chip.className = "status-chip ok";
-  } catch (error) {
-    chip.textContent = "servidor indisponível";
+    banner.hidden = true;
+  } else {
+    chip.textContent = "sem conexão";
     chip.className = "status-chip bad";
+    banner.hidden = false;
   }
+  updateGenerateState();
+}
+
+function updateGenerateState() {
+  const button = $("generate");
+  if (!button) return;
+  const hasText = Boolean(state.discovery && state.discovery.text_pages > 0);
+  button.disabled = !hasText || !state.healthOk || state.uploading || state.analyzing;
+}
+
+async function checkHealth() {
+  if (state.healthChecking) return state.healthOk;
+  state.healthChecking = true;
+  try {
+    await api("/api/health");
+    setConnectionState(true);
+    return true;
+  } catch (_) {
+    setConnectionState(false);
+    return false;
+  } finally {
+    state.healthChecking = false;
+  }
+}
+
+function loadHealth() {
+  return checkHealth();
 }
 
 async function loadDefaults() {
@@ -83,7 +168,13 @@ async function loadDefaults() {
     if ([...rate.options].some((option) => option.value === defaults.rate)) {
       rate.value = defaults.rate;
     }
-  } catch (_) { /* usa os padrões do HTML */ }
+    if (defaults.profile) {
+      $("profile").value = defaults.profile;
+      state.profile = defaults.profile;
+    }
+  } catch (_) {
+    // Usa os padrões do HTML.
+  }
 }
 
 async function loadVoices() {
@@ -111,63 +202,154 @@ function resetToUpload() {
   if (state.timer) clearInterval(state.timer);
   state.uploadId = null;
   state.discovery = null;
+  state.totalPages = 0;
   state.jobId = null;
+  state.analyzing = false;
+  state.uploading = false;
   $("analysisCard").hidden = true;
   $("progressCard").hidden = true;
   $("result").hidden = true;
   $("dropzone").hidden = false;
   $("fileInput").value = "";
+  $("uploadProgress").textContent = "";
+  $("uploadProgress").className = "hint";
+  clearBanners($("uploadError"));
+  updateGenerateState();
+}
+
+function uploadPdf(form, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/analyze");
+    xhr.responseType = "json";
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded, event.total);
+    };
+    xhr.onload = () => {
+      const data = xhr.response || {};
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+        return;
+      }
+      const detail = data.detail;
+      reject(new Error(Array.isArray(detail) ? detail.map((item) => item.msg || JSON.stringify(item)).join("; ") : (detail || `Erro HTTP ${xhr.status}`)));
+    };
+    xhr.onerror = () => reject(new ConnectionError());
+    xhr.ontimeout = () => reject(new ConnectionError());
+    xhr.send(form);
+  });
 }
 
 async function analyzeFile(file) {
-  if (!file) return;
+  if (!file || state.uploading || state.analyzing) return;
   if (!file.name.toLowerCase().endsWith(".pdf")) {
     alert("Escolha um arquivo PDF.");
     return;
   }
+  state.uploading = true;
+  state.analyzing = false;
+  clearBanners($("uploadError"));
   const drop = $("dropzone");
   const title = drop.querySelector("h2");
   const oldTitle = title.textContent;
-  title.innerHTML = '<span class="spinner"></span> Analisando PDF…';
+  const progress = $("uploadProgress");
+  progress.className = "hint";
+  progress.textContent = "Preparando o envio…";
   drop.classList.add("drag");
+  updateGenerateState();
+
+  let phase = "upload";
+  const started = Date.now();
+  const ticker = setInterval(() => {
+    if (phase === "analysis") {
+      const seconds = Math.round((Date.now() - started) / 1000);
+      title.innerHTML = `<span class="spinner"></span> Analisando o PDF… ${seconds}s`;
+      progress.textContent = "O envio terminou. Agora o app está lendo as páginas e procurando os capítulos.";
+    }
+  }, 1000);
+
   try {
     const form = new FormData();
     form.append("file", file);
     form.append("chapter_mode", "auto");
     form.append("chapter_size", "10");
-    const data = await api("/api/analyze", { method: "POST", body: form });
+    form.append("profile", $("profile").value);
+    const data = await uploadPdf(form, (loaded, total) => {
+      const percent = total ? Math.round((loaded / total) * 100) : 0;
+      const mb = (loaded / (1024 * 1024)).toFixed(1);
+      const totalMb = (total / (1024 * 1024)).toFixed(1);
+      title.innerHTML = `<span class="spinner"></span> Enviando o PDF… ${percent}%`;
+      progress.textContent = `${mb} MB de ${totalMb} MB enviados.`;
+    });
+    phase = "analysis";
     state.uploadId = data.upload_id;
     state.discovery = data.discovery;
     state.totalPages = data.discovery.total_pages;
     renderAnalysis(data.filename, data.discovery);
     drop.hidden = true;
+    progress.textContent = "";
   } catch (error) {
-    alert(error.message);
+    if (error instanceof ConnectionError) {
+      setConnectionState(false);
+    } else {
+      showBanner($("uploadError"), error.message, "error");
+    }
+    progress.className = "hint error-text";
+    progress.textContent = error.message;
   } finally {
+    clearInterval(ticker);
+    state.uploading = false;
+    state.analyzing = false;
     title.textContent = oldTitle;
     drop.classList.remove("drag");
+    updateGenerateState();
   }
+}
+
+function describeDetection(discovery) {
+  const used = discovery.profile_used || discovery.structure || "generic";
+  const label = PROFILE_LABELS[used] || used;
+  const structure = STRUCTURE_LABELS[discovery.structure] || discovery.structure;
+  const count = discovery.chapters?.length || 0;
+  if (used === "pathway") {
+    return `Perfil Pathway: ${count} capítulos detectados por Semanas/S01–S07.`;
+  }
+  if (used === "outline") {
+    return `Detecção pelo índice do PDF: ${count} capítulos.`;
+  }
+  if (used === "generic") {
+    return `Detecção genérica por títulos (${structure}): ${count} capítulos.`;
+  }
+  if (used === "fallback") {
+    return `Não encontrei títulos de capítulo. O PDF foi dividido em ${count} blocos de páginas.`;
+  }
+  if (used === "manual" || used === "none") {
+    return `Conversão manual: ${count} capítulo(s).`;
+  }
+  return `Detecção: ${label} (${structure}); ${count} capítulos.`;
 }
 
 function renderAnalysis(filename, discovery) {
   $("fileName").textContent = filename;
-  $("fileMeta").textContent = `${discovery.total_pages} páginas · ${discovery.text_pages} com texto · detecção: ${discovery.structure}`;
+  const used = discovery.profile_used || discovery.structure || "generic";
+  const label = PROFILE_LABELS[used] || used;
+  $("fileMeta").textContent = `${discovery.total_pages} páginas · ${discovery.text_pages} com texto · ${discovery.chapters.length} capítulos · perfil: ${label}`;
+  $("detectionInfo").textContent = describeDetection(discovery);
+
   const warnings = $("warnings");
   clearBanners(warnings);
   for (const warning of discovery.warnings || []) showBanner(warnings, warning, "warn");
   if (discovery.text_pages === 0) {
-    showBanner(warnings, "Este PDF não tem texto extraível. A v1 não consegue narrar PDFs escaneados.", "error");
-    $("generate").disabled = true;
-  } else {
-    $("generate").disabled = false;
+    showBanner(warnings, "Este PDF não tem texto extraível. A versão atual não narra PDFs escaneados.", "error");
   }
-  $("chapterMode").value = "auto";
-  $("contentMode").value = "auto";
+
+  state.discovery = discovery;
+  state.totalPages = discovery.total_pages;
   populateChapters(discovery.chapters, true);
-  $("addChapter").hidden = true;
-  $("estimate").textContent = "A duração real aparece no resultado.";
+  applyChapterMode();
   $("analysisCard").hidden = false;
   $("analysisCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  updateGenerateState();
 }
 
 function populateChapters(chapters, readOnly) {
@@ -210,7 +392,12 @@ function setChapterEditing(editable) {
   $("addChapter").hidden = !editable;
 }
 
-function onChapterModeChange() {
+function looksLikeSingleBookRow() {
+  const rows = $("chapterRows").querySelectorAll("tr");
+  return rows.length === 1 && rows[0].querySelector(".ch-title")?.value === "Livro completo";
+}
+
+function applyChapterMode() {
   const mode = $("chapterMode").value;
   if (mode === "none") {
     populateChapters([{ title: "Livro completo", start_page: 1, end_page: state.totalPages }], true);
@@ -218,15 +405,28 @@ function onChapterModeChange() {
     setChapterEditing(false);
   } else if (mode === "manual") {
     $("chapterHint").textContent = "Ajuste títulos e páginas. Os intervalos devem ser contínuos, de 1 até a última página.";
-    if (!$("chapterRows").children.length || $("chapterRows").querySelector(".ch-title")?.value === "Livro completo") {
-      populateChapters([{ title: "Parte 01", start_page: 1, end_page: state.totalPages }], false);
+    if (!state.discovery || looksLikeSingleBookRow()) {
+      populateChapters(state.discovery?.chapters || [{ title: "Parte 01", start_page: 1, end_page: state.totalPages }], false);
+    } else {
+      setChapterEditing(true);
     }
     setChapterEditing(true);
   } else {
-    $("chapterHint").textContent = "Detectados automaticamente. Para editar, escolha “Editar capítulos”.";
+    $("chapterHint").textContent = "Detectados automaticamente. Para editar, escolha “Editar capítulos” ou o modo “Identificar capítulos”.";
     populateChapters(state.discovery?.chapters || [], true);
     setChapterEditing(false);
   }
+}
+
+function applyRecipe() {
+  const recipe = currentRecipe();
+  const config = RECIPES[recipe] || RECIPES.auto;
+  for (const card of document.querySelectorAll(".mode-card")) {
+    const input = card.querySelector("input");
+    card.classList.toggle("selected", input.checked);
+  }
+  $("chapterMode").value = config.chapters;
+  if (state.discovery) applyChapterMode();
 }
 
 function collectChapters() {
@@ -288,7 +488,8 @@ async function generate() {
         chapter_mode: chapterMode,
         chapter_size: 10,
         chapters,
-        content_mode: $("contentMode").value,
+        content_mode: recipeContentMode(),
+        profile: $("profile").value,
         voice: $("voice").value,
         rate: $("rate").value,
       }),
@@ -296,6 +497,7 @@ async function generate() {
     state.jobId = data.job_id;
     startPolling();
   } catch (error) {
+    if (error instanceof ConnectionError) setConnectionState(false);
     $("generate").disabled = false;
     $("progressMessage").textContent = error.message;
     $("progressStage").textContent = "Erro";
@@ -342,14 +544,19 @@ async function pollJob() {
       clearInterval(state.timer);
       state.timer = null;
       $("progressTitle").textContent = job.status === "interrupted" ? "Interrompido" : "Não foi possível gerar";
-      $("progressMessage").textContent = job.message || job.error || "Veja o log.";
+      $("progressMessage").textContent = job.message || job.error || "Veja o log em logs/app.log.";
       $("progressStage").textContent = "Erro";
       $("progressBar").classList.remove("indeterminate");
       $("progressBar").style.width = "0%";
       $("generate").disabled = false;
     }
   } catch (error) {
-    $("progressMessage").textContent = error.message;
+    if (error instanceof ConnectionError) {
+      setConnectionState(false);
+      $("progressMessage").textContent = "Conexão com o programa perdida. Mantenha a janelinha aberta e aguarde ou clique em Tentar novamente.";
+    } else {
+      $("progressMessage").textContent = error.message;
+    }
   }
 }
 
@@ -390,9 +597,55 @@ function renderResult(job) {
         body: JSON.stringify({ job_id: state.jobId }),
       });
     } catch (error) {
+      if (error instanceof ConnectionError) setConnectionState(false);
       alert(error.message);
     }
   };
+}
+
+async function reanalyze() {
+  if (!state.uploadId || state.analyzing) return;
+  const newProfile = $("profile").value;
+  if ($("chapterMode").value === "manual" && !confirm("Trocar o perfil refaz a detecção e perde as edições manuais dos capítulos. Continuar?")) {
+    $("profile").value = state.profile;
+    return;
+  }
+  const oldProfile = state.profile;
+  state.profile = newProfile;
+  state.analyzing = true;
+  updateGenerateState();
+  $("reanalyze").disabled = true;
+  $("detectionInfo").textContent = "Reanalisando o PDF com o novo perfil…";
+  try {
+    const data = await api("/api/reanalyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ upload_id: state.uploadId, profile: newProfile }),
+    });
+    state.discovery = data.discovery;
+    state.totalPages = data.discovery.total_pages;
+    renderAnalysis(data.filename, data.discovery);
+  } catch (error) {
+    state.profile = oldProfile;
+    $("profile").value = oldProfile;
+    if (error instanceof ConnectionError) setConnectionState(false);
+    if (state.discovery) $("detectionInfo").textContent = describeDetection(state.discovery);
+    clearBanners($("warnings"));
+    showBanner($("warnings"), error.message, "error");
+  } finally {
+    state.analyzing = false;
+    $("reanalyze").disabled = false;
+    updateGenerateState();
+  }
+}
+
+function onProfileChange() {
+  const value = $("profile").value;
+  if (!state.uploadId) {
+    state.profile = value;
+    return;
+  }
+  reanalyze();
 }
 
 function setupDropzone() {
@@ -426,15 +679,27 @@ function init() {
   loadDefaults();
   loadVoices();
   setupDropzone();
+  setConnectionState(true);
   $("restart").addEventListener("click", resetToUpload);
-  $("chapterMode").addEventListener("change", onChapterModeChange);
+  $("reanalyze").addEventListener("click", reanalyze);
+  $("profile").addEventListener("change", onProfileChange);
+  $("chapterMode").addEventListener("change", applyChapterMode);
   $("addChapter").addEventListener("click", () => {
     const rows = $("chapterRows");
     const last = rows.querySelector("tr:last-child");
     const start = Number(last?.querySelector(".ch-end")?.value || 0) + 1;
     addChapterRow(`Parte ${rows.children.length + 1}`, Math.max(1, start), state.totalPages, false);
   });
+  for (const radio of document.querySelectorAll('input[name="recipe"]')) {
+    radio.addEventListener("change", applyRecipe);
+  }
+  $("retryConnection").addEventListener("click", async () => {
+    const ok = await checkHealth();
+    if (ok && state.jobId) pollJob();
+  });
   $("generate").addEventListener("click", generate);
+  applyRecipe();
+  state.healthTimer = setInterval(checkHealth, 5000);
 }
 
 document.addEventListener("DOMContentLoaded", init);

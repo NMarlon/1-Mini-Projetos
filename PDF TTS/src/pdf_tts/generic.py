@@ -37,6 +37,7 @@ class ConvertOptions:
     chapter_size: int = 10
     manual_chapters: list[dict[str, Any]] | None = None
     content_mode: str = "auto"
+    profile: str = "auto"
     voice: str | None = None
     rate: str | None = None
 
@@ -64,9 +65,10 @@ def make_project(
     settings["rate"] = options.rate or settings.get("rate", "-5%")
     settings["chapter_label"] = "Parte"
     settings["content_mode"] = options.content_mode
+    settings["profile"] = options.profile
     settings["include"] = {
         **settings.get("include", {}),
-        "references": options.content_mode == "all",
+        "references": options.content_mode in {"all", "raw"},
     }
 
     digest = hashlib.sha1(
@@ -135,6 +137,10 @@ def convert_pdf(
 ) -> dict[str, Any]:
     options = options or ConvertOptions()
     pdf_path = Path(pdf_path)
+    if options.content_mode not in {"auto", "all", "raw"}:
+        raise ValueError("Modo de conteúdo inválido; use auto, all ou raw.")
+    if options.profile not in {"auto", "pathway", "generic"}:
+        raise ValueError("Perfil inválido; use auto, pathway ou generic.")
     if discovery is None:
         _notify(progress_cb, "analisando", 0, 1, "lendo PDF")
         discovery = discover_pdf(
@@ -142,6 +148,7 @@ def convert_pdf(
             chapter_mode=options.chapter_mode,
             chapter_size=options.chapter_size,
             manual_chapters=options.manual_chapters,
+            profile=options.profile,
         )
     if options.manual_chapters:
         discovery = copy.deepcopy(discovery)
@@ -258,6 +265,7 @@ def run_detect(
     chapter_mode: str = "auto",
     chapter_size: int = 10,
     manual_chapters: list[dict[str, Any]] | None = None,
+    profile: str = "auto",
     as_json: bool = False,
 ) -> int:
     discovery = discover_pdf(
@@ -265,6 +273,7 @@ def run_detect(
         chapter_mode=chapter_mode,
         chapter_size=chapter_size,
         manual_chapters=manual_chapters,
+        profile=profile,
     )
     if as_json:
         print(json.dumps(discovery.to_dict(), ensure_ascii=False, indent=2))
@@ -273,7 +282,8 @@ def run_detect(
     print(f"Título: {discovery.title}")
     print(
         f"Páginas: {discovery.total_pages}; com texto: {discovery.text_pages}; "
-        f"estrutura: {discovery.structure} ({discovery.confidence})"
+        f"estrutura: {discovery.structure} ({discovery.confidence}); "
+        f"perfil usado: {discovery.profile_used}"
     )
     for chapter in discovery.chapters:
         print(
