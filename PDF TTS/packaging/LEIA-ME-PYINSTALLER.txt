@@ -1,0 +1,26 @@
+Pathway PDF TTS — versão PyInstaller
+====================================
+
+Esta é a versão PyInstaller, menor e de inicialização mais rápida.
+
+Ela NÃO tem assinatura digital. Em computadores com o Smart App Control ativo,
+o Windows pode bloquear o arquivo com a mensagem "Uma política de Controle de
+Aplicativo bloqueou este arquivo".
+
+Se isso acontecer, use a versão principal do Pathway PDF TTS, que usa o Python
+assinado pela Python Software Foundation e costuma ser aceita pelo Smart App
+Control.
+
+Como usar (quando o Windows permite):
+1. Extraia esta pasta.
+2. Dê duplo clique em "Pathway PDF TTS.exe".
+3. A interface abre no navegador.
+4. Mantenha a janelinha do programa aberta.
+
+Os arquivos ficam em output/<nome-do-livro>/.
+
+O funcionamento é o mesmo da versão principal: perfis Pathway/Genérico,
+modos Automático / Tudo útil / Tudo literal e edição de capítulos. O app não
+abre janelas de prompt durante a conversão.
+
+Uso pessoal. O conteúdo dos PDFs pertence aos autores originais.

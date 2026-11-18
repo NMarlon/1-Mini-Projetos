@@ -1,43 +1,63 @@
-PDF TTS — leia-me
-=================
+Pathway PDF TTS — leia-me
+==========================
 
 O que é
 -------
 Um aplicativo local que transforma PDFs em audiolivros em português brasileiro.
-Ele cria MP3 por capítulo, M4B com marcadores, SRT e um livro completo.
+Ele foi feito para os cursos do Pathway, mas também funciona com outros PDFs
+que tenham texto.
+
+Esta versão usa o Python assinado pela Python Software Foundation. Por isso,
+costuma funcionar mesmo com o Smart App Control do Windows ativo, que bloqueia
+executáveis novos sem assinatura digital.
+
+O app cria MP3 por capítulo, M4B com marcadores, SRT e um livro completo.
 
 Como usar
 ---------
 1. Extraia esta pasta em qualquer lugar (ex.: Documentos).
-2. Dê duplo clique em "PDF TTS.exe".
+2. Dê duplo clique em "Pathway PDF TTS.exe".
 3. A interface abre no seu navegador.
-4. Arraste um PDF para a página (ou clique em "escolha um arquivo").
-5. Confira os capítulos detectados. Se estiver errado, escolha "Editar capítulos".
-6. Escolha a voz e o ritmo e clique em "Gerar áudios".
+4. Escolha o modo:
+   - Automático: detecta capítulos e limpa bibliografia.
+   - Identificar capítulos: analisa e deixa você revisar/editar.
+   - Tudo útil: inclui referências/notas, mas remove cabeçalho, página e links.
+   - Tudo literal: narra tudo o que foi extraído, inclusive páginas e links.
+5. Arraste um PDF para a página (ou clique em "escolha um arquivo").
+6. Confira os capítulos e clique em "Gerar áudios".
 7. Ao terminar, clique em "Abrir pasta dos áudios".
 
 Os arquivos ficam em:
   output/<nome-do-livro>/
+
+Importante
+----------
+Mantenha a janelinha "Pathway PDF TTS está rodando" aberta. Se você fechar essa
+janela, o navegador perde a conexão com o programa.
 
 O que precisa
 -------------
 - Windows 10 ou 11.
 - Internet (o Edge TTS sintetiza o texto na nuvem).
 - Não é preciso instalar Python nem FFmpeg.
+- O app não abre janelas de prompt durante a conversão.
 
-Limites desta versão
---------------------
-- PDFs com camada de texto. PDFs escaneados/imagem ainda não têm OCR.
-- PDFs protegidos por senha precisam ser desbloqueados antes.
-- Se o app não encontrar capítulos, ele avisa e divide o livro em blocos de páginas.
-- O texto é enviado ao serviço Edge TTS da Microsoft para virar áudio.
-- Use apenas material que você tem direito de ouvir; não redistribua o áudio.
+Pathway e outros PDFs
+---------------------
+- O perfil Pathway procura "Semana 1"…"Semana 7" e "S01"…"S07".
+- O perfil Genérico procura índice e títulos como "Capítulo", "Parte" ou "Unidade".
+- Se não encontrar nada, o app avisa e divide o PDF em blocos de 10 páginas.
+- PDFs escaneados (só imagem) ainda não têm OCR nesta versão.
 
 Problemas
 ---------
-- Se o Windows mostrar "O Windows protegeu o computador", clique em
-  "Mais informações" e "Executar assim mesmo" (o app não é assinado).
-- Logs ficam em logs/. Se algo falhar, guarde o arquivo de log.
-- Para fechar o app, use o botão "Sair" da janelinha do PDF TTS.
+- Se o Windows bloquear com "Uma política de Controle de Aplicativo bloqueou
+  este arquivo", você está usando a versão PyInstaller (sem assinatura) em um
+  PC com Smart App Control ativo. Use a versão principal, que usa o Python
+  assinado, ou desative o Smart App Control nas configurações do Windows.
+- Se aparecer "O programa não está respondendo", confira se a janelinha do
+  Pathway PDF TTS ainda está aberta. Se não estiver, abra o programa de novo.
+- Logs ficam em logs/app.log e logs/crash.log. Se algo falhar, guarde o log.
+- Para fechar o app, use o botão "Sair" da janelinha.
 
 Uso pessoal. O conteúdo dos PDFs pertence aos autores originais.

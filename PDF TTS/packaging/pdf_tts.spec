@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec do PDF TTS portátil (Windows)."""
+"""PyInstaller spec do Pathway PDF TTS portátil (Windows)."""
 
 import shutil
 from pathlib import Path
@@ -50,7 +50,7 @@ exe = EXE(  # noqa: F821
     a.scripts,
     [],
     exclude_binaries=True,
-    name="PDF TTS",
+    name="Pathway PDF TTS",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -70,5 +70,5 @@ coll = COLLECT(  # noqa: F821
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="PDF TTS",
+    name="Pathway PDF TTS (PyInstaller)",
 )
