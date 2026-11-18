@@ -1,12 +1,14 @@
-# PDF TTS — curso em áudio
+# Pathway PDF TTS — curso em áudio
 
-Pipeline local que transforma os PDFs do curso em audiolivros narrados em
+Pipeline local que transforma os PDFs do Pathway em audiolivros narrados em
 português brasileiro, divididos por semana/aula (`S01`…`S07`), com capítulos,
-legendas e um arquivo M4B pronto para players de audiolivro.
+legendas e um arquivo M4B pronto para players de audiolivro. Também converte
+outros PDFs com camada de texto.
 
 ## Estado atual
 
-**T00–T11 concluídas.** Os dois livros estão montados e verificados.
+**T00–T16 concluídas.** Os dois livros estão montados e verificados; o app
+Pathway PDF TTS está implementado e empacotado.
 
 | Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
 |---|---|---|---|---|---|
@@ -14,7 +16,7 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 | `COM 150` | S01–S07 | 07:50:42 | 92 | 3.457 | ~910 MB |
 | **Total** | **14** | **11:30:08** | **160** | **4.930** | **1,335 GB** |
 
-- 43 testes automatizados passando.
+- 59 testes automatizados passando.
 - `verify --project all`: MP3/M4B/SRT/capítulos/capa/loudness **OK**; nenhum
   silêncio > 5 s.
 - Áudios em `output/MKT-120/` e `output/COM-150/` (não versionados).
@@ -23,7 +25,7 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 O plano completo, as tarefas e o estado de cada etapa estão em
 [`DOCS/06-TASKS.md`](DOCS/06-TASKS.md).
 
-## App one-click (para leigos)
+## App one-click (Pathway PDF TTS)
 
 Além da CLI, existe um app local:
 
@@ -32,21 +34,39 @@ python -m pdf_tts gui
 ```
 
 Ele abre uma interface no navegador onde qualquer pessoa pode arrastar um PDF,
-revisar os capítulos e clicar em **Gerar áudios**.
+escolher o modo, revisar os capítulos e clicar em **Gerar áudios**.
 
-O portátil Windows é gerado com:
+O portátil Windows principal usa o Python assinado da Python Software
+Foundation, para funcionar também com o Smart App Control ativo:
+
+```powershell
+.\packaging\build_python_portable.ps1
+```
+
+Resultado: `dist/Pathway PDF TTS/Pathway PDF TTS.exe` e
+`dist/Pathway-PDF-TTS-Windows.zip` (não versionados). O app não exige
+Python/FFmpeg instalados.
+
+Há também uma embalagem PyInstaller, menor mas sem assinatura:
 
 ```powershell
 .\packaging\build_portable.ps1
 ```
 
-Resultado: `dist/PDF TTS/PDF TTS.exe` e `dist/PDF-TTS-Windows.zip` (não
-versionados). O app não exige Python/FFmpeg instalados.
+Resultado: `dist/Pathway PDF TTS (PyInstaller)/` e
+`dist/Pathway-PDF-TTS-Windows-PyInstaller.zip`. Se o Windows bloquear por
+“política de Controle de Aplicativo”, use a versão principal.
+
+**Feito para o Pathway:**
+- Perfil padrão **Automático — Pathway primeiro**: procura Semanas 1–7 e
+  S01–S07. Se não achar, tenta índice, títulos genéricos e blocos de páginas.
+- Também aceita PDFs de outras origens no perfil **Genérico**.
 
 **Modos do app:**
 - **Automático** (padrão): limpa bibliografia/boilerplate.
-- **Tudo (fiel)**: narra referências, notas e créditos.
-- **Capítulos**: automático, manual ou livro inteiro.
+- **Identificar capítulos**: analisa e deixa revisar/editar antes de gerar.
+- **Tudo útil**: narra referências, notas e créditos; remove cabeçalho, página e links.
+- **Tudo literal**: narra tudo extraído, inclusive páginas e links.
 - Sem estrutura detectada: avisa e divide em blocos de 10 páginas; **não perde
   o texto**.
 - Páginas só de imagem são listadas; OCR fica para a próxima versão.

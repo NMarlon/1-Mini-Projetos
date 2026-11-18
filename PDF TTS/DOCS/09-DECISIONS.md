@@ -252,3 +252,65 @@ edge-tts) são mais testadas em 3.11.
 **Consequências:**
 - Evita surpresas de compatibilidade.
 - `doctor` valida a versão.
+
+---
+
+## D016 — App com identidade Pathway e perfil próprio
+
+**Data:** 2026-11-18
+**Status:** aceita (decisão do usuário)
+
+**Contexto:** o app é usado principalmente nos cursos Pathway, mas também deve
+aceitar PDFs de outras origens.
+
+**Decisão:**
+- renomear o app para **Pathway PDF TTS**;
+- perfil padrão `auto` tenta Pathway primeiro (`Semana N`, `S01`–`S07`);
+- perfil `generic` cobre outros PDFs por outline/títulos/padrões;
+- se nada for encontrado, fallback em blocos de páginas, com aviso.
+
+**Consequências:**
+- A interface deixa claro para que serve e como editar capítulos.
+- PDFs fora do Pathway continuam suportados, mas sem promessa de semântica.
+
+---
+
+## D017 — Três modos de conteúdo
+
+**Data:** 2026-11-18
+**Status:** aceita (decisão do usuário)
+
+**Contexto:** “Tudo” estava ambíguo: incluía referências mas removia
+cabeçalho/página/link.
+
+**Decisão:**
+- `auto` — limpa bibliografia/boilerplate;
+- `all` — tudo útil: referências/notas/créditos, sem cabeçalho/página/link;
+- `raw` — tudo literal: inclusive cabeçalho, número de página, rodapé e link.
+
+**Consequências:**
+- `raw` gera áudio mais repetitivo; a interface avisa.
+- O relatório `coverage.json` continua valendo para todos.
+
+---
+
+## D018 — Embalagem principal com Python assinado
+
+**Data:** 2026-11-18
+**Status:** aceita
+
+**Contexto:** o Smart App Control do Windows bloqueou o `.exe` recém-gerado
+pelo PyInstaller (“política de Controle de Aplicativo bloqueou este arquivo”).
+O usuário não tem certificado de code signing.
+
+**Decisão:** distribuir como versão principal uma pasta com o `pythonw.exe`
+assinado pela Python Software Foundation, renomeado para `Pathway PDF TTS.exe`,
+mais `Lib`, `DLLs`, `tcl`, `site-packages`, `src` e FFmpeg locais. Um
+`sitecustomize.py` adiciona o código ao `sys.path`, ajusta o `PATH` e abre a GUI
+quando o executável é iniciado sem argumentos.
+
+**Consequências:**
+- O `.exe` tem assinatura válida da PSF e passa pelo Smart App Control.
+- A pasta é maior (~428 MB) que a versão PyInstaller (~277 MB).
+- A versão PyInstaller continua disponível como alternativa menor.
+- Não é um `.exe` único; é uma pasta portátil com um `.exe` assinado.

@@ -464,6 +464,79 @@ recursos de dados.
 
 ---
 
+## E043 — “Failed to fetch” no COM 150
+
+**Sintoma:** ao soltar o PDF do COM 150 na interface, o navegador mostrou
+`Failed to fetch` e as opções de capítulos nunca apareceram.
+**Causa provável:** o servidor local não estava mais rodando (a janelinha do
+app foi fechada) ou a aba era de uma instância antiga. A análise do COM 150
+também leva ~46 s, o que parece travamento se não houver progresso.
+**Solução:**
+- upload em blocos com progresso real e tempo de análise;
+- `GET /api/health` + banner “O programa não está respondendo” com botão
+  **Tentar novamente**;
+- instância única: um novo `.exe` abre a instância existente;
+- aviso e confirmação ao fechar a janelinha;
+- logs em `logs/app.log` e `logs/crash.log`.
+**Evitar:** não usar `alert`/mensagem crua do navegador; traduzir falha de rede
+em instrução acionável.
+
+---
+
+## E044 — Análise do COM 150 demorava ~100 s
+
+**Causa:** `discover_pdf` abria o pdfplumber 2–3 vezes, chamava
+`page.extract_text()` em todas as páginas e agrupava todos os caracteres para
+procurar títulos.
+**Solução:**
+- uma única abertura do PDF para contagem e detecção;
+- contagem de texto por `page.chars` em vez de `extract_text()`;
+- filtrar caracteres por tamanho de fonte antes de agrupar linhas.
+**Resultado:** ~46 s no COM 150, mantendo os 8 capítulos corretos.
+
+---
+
+## E045 — “Tudo” não era literal o suficiente
+
+**Sintoma:** o usuário queria uma opção que narrasse realmente tudo, inclusive
+números de página e cabeçalhos, e outra que removesse só o óbvio.
+**Solução:** separar `all` (tudo útil, sem cabeçalho/página/link) de `raw`
+(tudo literal) e expor os dois na interface.
+**Evitar:** usar o mesmo nome “Tudo” para comportamentos diferentes.
+
+---
+
+## E046 — Smart App Control bloqueou o `.exe` do PyInstaller
+
+**Sintoma:** `Start-Process` retornou “Uma política de Controle de Aplicativo
+bloqueou este arquivo”; o `.exe` antigo continuava abrindo.
+**Causa:** o Windows está com **Smart App Control** ativo. O binário novo do
+PyInstaller não tem assinatura digital nem reputação; o antigo já era conhecido.
+**Solução:** embalagem principal com o `pythonw.exe` assinado pela Python
+Software Foundation (`packaging/build_python_portable.ps1`). O executável é
+renomeado para `Pathway PDF TTS.exe`, carrega o runtime/dependências locais e
+abre a GUI via `sitecustomize.py`. A versão PyInstaller fica como alternativa
+para máquinas sem esse bloqueio.
+**Evitar:** não prometer um `.exe` único e assinado sem certificado de code
+signing; testar em máquina com Smart App Control ativo.
+
+---
+
+## E047 — Dezenas de janelas CMD durante a montagem
+
+**Sintoma:** ao gerar os áudios, várias janelas de prompt piscavam e fechavam,
+atrapalhando o uso do computador.
+**Causa:** `ffmpeg`/`ffprobe` eram chamados com `subprocess.run` sem
+`CREATE_NO_WINDOW`. Em app com `pythonw`/PyInstaller `console=False`, cada
+chamada cria um console temporário.
+**Solução:** `pdf_tts.audio.run_hidden()` centraliza a execução com
+`CREATE_NO_WINDOW` + `STARTF_USESHOWWINDOW`; assemble, verify, doctor e ffprobe
+usam essa função.
+**Evitar:** nunca chamar ferramentas de console direto em app GUI; sempre usar o
+helper.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

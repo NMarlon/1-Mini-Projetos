@@ -183,11 +183,15 @@ python -m pdf_tts all --project all
 O estado final (2026-11-17) está em `DOCS/06-TASKS.md`: MKT 120 (3:39:26) e
 COM 150 (7:50:42) montados e verificados. Áudios em `output/` (não versionados).
 
-Em 2026-11-18 foi adicionado o **modo genérico one-click** (PDF TTS Studio):
-`python -m pdf_tts gui`, ou o portátil `dist/PDF TTS/PDF TTS.exe` gerado por
-`packaging/build_portable.ps1`. Ele detecta capítulos, aceita PDFs arbitrários
-com texto, tem modo “Automático” e “Tudo” e cai para blocos de páginas quando
-não encontra estrutura. Detalhes em `DOCS/12-ONE-CLICK-APP.md`.
+Em 2026-11-18 foi adicionado o **Pathway PDF TTS** (one-click):
+`python -m pdf_tts gui`, ou o portátil `dist/Pathway PDF TTS/Pathway PDF
+TTS.exe` gerado por `packaging/build_python_portable.ps1` (Python assinado,
+para Smart App Control). A variante PyInstaller fica em
+`packaging/build_portable.ps1` e pode ser bloqueada por política de aplicativo.
+Ele procura primeiro os títulos do Pathway (`Semana 1`…`7`, `S01`…`S07`),
+aceita PDFs arbitrários com texto no perfil genérico e cai para blocos de
+páginas quando não encontra estrutura. Modos de conteúdo: **Automático**,
+**Tudo útil** e **Tudo literal**. Detalhes em `DOCS/12-ONE-CLICK-APP.md`.
 
 Detalhes em [`DOCS/05-OPERATIONS.md`](DOCS/05-OPERATIONS.md).
 

@@ -91,6 +91,17 @@ Para cada projeto:
 - [ ] Nenhum cabeçalho/rodapé/número de página falado.
 - [ ] Nenhuma URL soletrada.
 
+## 9.1 App Pathway PDF TTS
+
+- [ ] Opções de modo visíveis antes do upload.
+- [ ] Perfil Pathway encontra Semanas/S01–S07 no MKT 120 e COM 150.
+- [ ] PDF fora do Pathway funciona no perfil Genérico ou cai para blocos com aviso.
+- [ ] “Tudo útil” remove cabeçalho/página/link; “Tudo literal” mantém.
+- [ ] Upload de PDF grande mostra progresso e não estoura a memória.
+- [ ] Fechar a janelinha mostra confirmação; reabrir o `.exe` usa a instância existente.
+- [ ] Queda do servidor mostra “O programa não está respondendo”, não “Failed to fetch”.
+- [ ] `logs/app.log` registra upload, análise e jobs.
+
 ## 10. Git
 
 - [ ] `git status` limpo (exceto arquivos ignorados).

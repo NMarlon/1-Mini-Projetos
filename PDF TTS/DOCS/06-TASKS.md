@@ -1,9 +1,9 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T15 concluídas.** Os dois livros estão montados e
-> verificados; o **modo genérico one-click** também está implementado e
-> empacotado. Áudios em `output/MKT-120/` e `output/COM-150/`; app em
-> `dist/PDF TTS/PDF TTS.exe` (local, não versionado).
+> **Estado atual:** **T00–T16 concluídas.** Os dois livros estão montados e
+> verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado.
+> Áudios em `output/MKT-120/` e `output/COM-150/`; app em
+> `dist/Pathway PDF TTS/Pathway PDF TTS.exe` (local, não versionado).
 > **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
 > instalador e assinatura ficam no backlog.
 
@@ -30,6 +30,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T13 | Interface local + fila de jobs | `[x]` | `feat(pdf-tts): interface one-click e fila de conversões` |
 | T14 | Empacotamento portátil Windows | `[x]` | `build(pdf-tts): empacotamento portátil Windows` |
 | T15 | Testes/QA do app one-click e docs | `[x]` | `docs(pdf-tts): guia do app one-click` |
+| T16 | Perfil Pathway, “Tudo literal” e robustez da conexão | `[x]` | `feat(pathway-tts): perfil Pathway e modos de conteúdo` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -37,16 +38,20 @@ Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ## Estado final (2026-11-17)
 
-### App one-click (2026-11-18)
+### App Pathway PDF TTS (2026-11-18)
 
 - `python -m pdf_tts gui` abre a interface local.
-- `dist/PDF TTS/PDF TTS.exe` é o portátil Windows (gerado por
+- `dist/Pathway PDF TTS/Pathway PDF TTS.exe` é o portátil Windows (gerado por
   `packaging/build_portable.ps1`; não versionado).
-- Detecta capítulos por outline/fonte/padrões; sem estrutura, avisa e divide em
-  blocos de 10 páginas.
-- Modo **Automático** (padrão) e **Tudo (fiel)**.
+- **Perfil padrão Pathway primeiro**: Semanas 1–7, S01–S07, índice, genérico e
+  blocos de 10 páginas, sempre avisando.
+- Modos: **Automático**, **Identificar capítulos**, **Tudo útil** (`all`) e
+  **Tudo literal** (`raw`).
 - Capítulos: automático, manual ou livro inteiro.
 - `coverage.json` lista páginas sem áudio e páginas só de imagem.
+- Upload em blocos, instância única, health check, logs e aviso de conexão.
+- Teste com COM 150 real (52 MB, 220 páginas): análise Pathway em ~20 s, 8
+  capítulos.
 - Teste ponta a ponta com PDF sintético e com o `.exe` empacotado: **OK**.
 - Detalhes em [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
 
@@ -73,7 +78,7 @@ Os manifests versionados estão em `manifests/MKT-120.json` e
 - Nenhum silêncio > 5 s.
 - Capítulos e capa presentes em todos os M4B.
 - SRT termina dentro da duração de cada áudio.
-- 43 testes automatizados (`pytest`) passando.
+- 59 testes automatizados (`pytest`) passando.
 - Nenhum PDF/texto/áudio versionado no Git.
 
 ### Limitações conhecidas
@@ -378,7 +383,7 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 - `api.py` + `web/` + `launcher.py`: upload, análise, editor de capítulos,
   progresso, abrir pasta, fila SQLite.
 - `packaging/`: spec PyInstaller, entrypoint, LEIA-ME, build portátil.
-- `tests`: 52 testes, incluindo descoberta, API e montagem.
+- `tests`: 59 testes, incluindo descoberta, API e montagem.
 - Teste real do `.exe` com PDF sintético: upload → job → MP3/M4B/SRT → OK.
 
 **Critério de aceite atendido:**
@@ -410,3 +415,4 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 | 2026-11-18 | T13 | Interface FastAPI + web local, fila SQLite, progresso, editor de capítulos; teste com PDF sintético. |
 | 2026-11-18 | T14 | PyInstaller onedir + ffmpeg/ffprobe + LEIA-ME; `.exe` testado com upload e job completo. |
 | 2026-11-18 | T15 | 52 testes passando; documentação one-click e backlog atualizados. |
+| 2026-11-18 | T16 | App renomeado para Pathway PDF TTS; perfil Pathway; Tudo útil/literal; upload em blocos; instância única; sem janelas CMD; 59 testes. |

@@ -153,27 +153,43 @@ python -m pdf_tts gui
 # Só o servidor, para debug
 python -m pdf_tts serve --port 8899
 
-# Detectar capítulos de um PDF qualquer
+# Detectar capítulos de um PDF (Pathway primeiro)
 python -m pdf_tts detect "C:\caminho\livro.pdf"
+python -m pdf_tts detect "C:\caminho\livro.pdf" --profile pathway
+python -m pdf_tts detect "C:\caminho\livro.pdf" --profile generic
 
 # Converter qualquer PDF com texto
 python -m pdf_tts convert "C:\caminho\livro.pdf" --mode auto
 python -m pdf_tts convert "C:\caminho\livro.pdf" --mode all
+python -m pdf_tts convert "C:\caminho\livro.pdf" --mode raw
 ```
 
-O modo `auto` limpa bibliografia/boilerplate; `all` narra tudo (referências,
-notas e créditos). Sem capítulos detectados, divide em blocos de 10 páginas e
-avisa. O relatório fica em `output/<slug>/coverage.json`.
+O modo `auto` limpa bibliografia/boilerplate; `all` inclui referências, notas e
+créditos, mas remove cabeçalho/página/link; `raw` narra tudo o que foi extraído,
+inclusive páginas e links. O perfil `auto` tenta Pathway → índice → genérico →
+blocos. Sem capítulos detectados, divide em blocos de 10 páginas e avisa. O
+relatório fica em `output/<slug>/coverage.json`.
 
 ## Gerar o portátil Windows
+
+Versão principal (Python assinado, funciona com Smart App Control):
+
+```powershell
+.\packaging\build_python_portable.ps1
+```
+
+Saída: `dist/Pathway PDF TTS/Pathway PDF TTS.exe` +
+`dist/Pathway-PDF-TTS-Windows.zip`.
+
+Versão PyInstaller (menor, sem assinatura):
 
 ```powershell
 .\packaging\build_portable.ps1
 ```
 
-Saída: `dist/PDF TTS/PDF TTS.exe` + `dist/PDF-TTS-Windows.zip`. O PyInstaller
-inclui Python, config, web e FFmpeg; o usuário não instala nada. O `.exe` não é
-assinado, então o SmartScreen pode pedir “Executar assim mesmo”.
+Saída: `dist/Pathway PDF TTS (PyInstaller)/` +
+`dist/Pathway-PDF-TTS-Windows-PyInstaller.zip`. Se o Windows bloquear com
+"política de Controle de Aplicativo", use a versão principal.
 
 Guia completo: [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
 
