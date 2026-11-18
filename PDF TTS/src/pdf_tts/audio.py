@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -15,6 +16,15 @@ def find_tool(name: str, env_var: str | None = None) -> str | None:
         candidate = Path(os.environ[env_var])
         if candidate.exists():
             return str(candidate)
+    if getattr(sys, "frozen", False):
+        bases = [Path(sys.executable).resolve().parent]
+        if getattr(sys, "_MEIPASS", None):
+            bases.append(Path(sys._MEIPASS))
+        for base in bases:
+            for suffix in ("", ".exe"):
+                candidate = base / f"{name}{suffix}"
+                if candidate.exists():
+                    return str(candidate)
     return shutil.which(name)
 
 

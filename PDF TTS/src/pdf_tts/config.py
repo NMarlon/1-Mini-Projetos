@@ -2,14 +2,35 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
-CONFIG_DIR = ROOT / "config"
+
+def _is_frozen() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def _data_root() -> Path:
+    """Onde ficam input/content/output/cache/logs (ao lado do .exe quando empacotado)."""
+    if _is_frozen():
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[2]
+
+
+def _resource_root() -> Path:
+    """Onde ficam config/samples empacotados (o _internal no PyInstaller onedir)."""
+    if _is_frozen():
+        return Path(getattr(sys, "_MEIPASS", _data_root())).resolve()
+    return _data_root()
+
+
+ROOT = _data_root()
+RESOURCE_ROOT = _resource_root()
+CONFIG_DIR = RESOURCE_ROOT / "config"
 
 
 @dataclass(frozen=True)

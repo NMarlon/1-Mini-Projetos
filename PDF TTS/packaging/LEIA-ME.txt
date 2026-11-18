@@ -1,0 +1,43 @@
+PDF TTS — leia-me
+=================
+
+O que é
+-------
+Um aplicativo local que transforma PDFs em audiolivros em português brasileiro.
+Ele cria MP3 por capítulo, M4B com marcadores, SRT e um livro completo.
+
+Como usar
+---------
+1. Extraia esta pasta em qualquer lugar (ex.: Documentos).
+2. Dê duplo clique em "PDF TTS.exe".
+3. A interface abre no seu navegador.
+4. Arraste um PDF para a página (ou clique em "escolha um arquivo").
+5. Confira os capítulos detectados. Se estiver errado, escolha "Editar capítulos".
+6. Escolha a voz e o ritmo e clique em "Gerar áudios".
+7. Ao terminar, clique em "Abrir pasta dos áudios".
+
+Os arquivos ficam em:
+  output/<nome-do-livro>/
+
+O que precisa
+-------------
+- Windows 10 ou 11.
+- Internet (o Edge TTS sintetiza o texto na nuvem).
+- Não é preciso instalar Python nem FFmpeg.
+
+Limites desta versão
+--------------------
+- PDFs com camada de texto. PDFs escaneados/imagem ainda não têm OCR.
+- PDFs protegidos por senha precisam ser desbloqueados antes.
+- Se o app não encontrar capítulos, ele avisa e divide o livro em blocos de páginas.
+- O texto é enviado ao serviço Edge TTS da Microsoft para virar áudio.
+- Use apenas material que você tem direito de ouvir; não redistribua o áudio.
+
+Problemas
+---------
+- Se o Windows mostrar "O Windows protegeu o computador", clique em
+  "Mais informações" e "Executar assim mesmo" (o app não é assinado).
+- Logs ficam em logs/. Se algo falhar, guarde o arquivo de log.
+- Para fechar o app, use o botão "Sair" da janelinha do PDF TTS.
+
+Uso pessoal. O conteúdo dos PDFs pertence aos autores originais.

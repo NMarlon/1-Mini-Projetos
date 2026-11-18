@@ -21,6 +21,9 @@ cache/
 logs/
 *.log
 
+# Manifests de PDFs arbitrários (ficam locais; os curados são versionados)
+manifests/AUTO-*.json
+
 # Sistema / editores
 .DS_Store
 Thumbs.db
