@@ -26,12 +26,13 @@ DEEP_SECTION_TYPES = {"sxx", "task", "discussion", "case_study", "project"}
 
 
 def _synthetic_week_title(project: ProjectConfig, week_number: int, title: str, page: int) -> Block:
+    label = str(project.settings.get("chapter_label", "Semana"))
     return Block(
         id=f"{project.key}-S{week_number:02d}-title",
         project=project.key,
         page=page,
         kind="section_heading",
-        text=f"Semana {week_number} — {title}",
+        text=f"{label} {week_number} — {title}",
         size=0.0,
         fontname="synthetic",
         top=0.0,

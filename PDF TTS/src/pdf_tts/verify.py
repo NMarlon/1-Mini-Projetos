@@ -214,6 +214,45 @@ def verify_full_book(project: ProjectConfig, check_loudness: bool = True) -> lis
     return checks
 
 
+def run_verify_project(
+    project: ProjectConfig,
+    lesson: str | None = None,
+    check_loudness: bool = True,
+    check_silence: bool = True,
+    progress_cb=None,
+) -> int:
+    output = ROOT / "output" / project.slug
+    if not output.exists():
+        print(f"[verify] {project.key}: output/ ausente")
+        return 1
+    if lesson:
+        text = lesson.strip().upper()
+        lesson_ids = [f"S{int(text[1:] if text.startswith('S') else text):02d}"]
+    else:
+        lesson_ids = [week.lesson_id for week in project.weeks]
+    checks: list[CheckResult] = []
+    for index, lesson_id in enumerate(lesson_ids, start=1):
+        if progress_cb is not None:
+            progress_cb("verificando", index - 1, len(lesson_ids) + (0 if lesson else 1), lesson_id)
+        checks.extend(
+            verify_lesson(project, lesson_id, check_loudness=check_loudness, check_silence=check_silence)
+        )
+    if not lesson:
+        if progress_cb is not None:
+            progress_cb("verificando", len(lesson_ids), len(lesson_ids) + 1, "livro completo")
+        checks.extend(verify_full_book(project, check_loudness=check_loudness))
+    print(f"[verify] {project.key}")
+    failures = 0
+    for check in checks:
+        mark = "OK  " if check.ok else "FAIL"
+        print(f"  [{mark}] {check.name}: {check.detail}")
+        if not check.ok:
+            failures += 1
+    if progress_cb is not None:
+        progress_cb("concluído", len(lesson_ids) + 1, len(lesson_ids) + 1, "verificação concluída")
+    return 1 if failures else 0
+
+
 def run_verify(
     selector: str,
     lesson: str | None = None,
@@ -223,27 +262,12 @@ def run_verify(
     _, projects = load_projects()
     failures = 0
     for project in resolve_projects(projects, selector):
-        output = ROOT / "output" / project.slug
-        if not output.exists():
-            print(f"[verify] {project.key}: output/ ausente")
+        code = run_verify_project(
+            project,
+            lesson=lesson,
+            check_loudness=check_loudness,
+            check_silence=check_silence,
+        )
+        if code:
             failures += 1
-            continue
-        if lesson:
-            text = lesson.strip().upper()
-            lesson_ids = [f"S{int(text[1:] if text.startswith('S') else text):02d}"]
-        else:
-            lesson_ids = [f"S{index:02d}" for index in range(1, 8)]
-        checks: list[CheckResult] = []
-        for lesson_id in lesson_ids:
-            checks.extend(
-                verify_lesson(project, lesson_id, check_loudness=check_loudness, check_silence=check_silence)
-            )
-        if not lesson:
-            checks.extend(verify_full_book(project, check_loudness=check_loudness))
-        print(f"[verify] {project.key}")
-        for check in checks:
-            mark = "OK  " if check.ok else "FAIL"
-            print(f"  [{mark}] {check.name}: {check.detail}")
-            if not check.ok:
-                failures += 1
     return 1 if failures else 0

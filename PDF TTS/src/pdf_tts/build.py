@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -110,11 +111,20 @@ def _prepare_project(
     return backend, lessons, unique
 
 
+ProgressCallback = Callable[[str, int, int, str], None]
+
+
+def _notify(callback: ProgressCallback | None, stage: str, current: int, total: int, message: str = "") -> None:
+    if callback is not None:
+        callback(stage, current, total, message)
+
+
 async def _synthesize_unique(
     backend: EdgeBackend,
     state: StateStore,
     unique: dict[str, dict[str, Any]],
     force: bool,
+    progress_cb: ProgressCallback | None = None,
 ) -> list[tuple[str, str | None, bool, str | None]]:
     total = len(unique)
     progress = tqdm(total=total, desc=f"sintetizando {backend.voice}", unit="chunk")
@@ -142,6 +152,7 @@ async def _synthesize_unique(
                 ok=sum(1 for item in results if item[3] is None),
                 fail=sum(1 for item in results if item[3] is not None),
             )
+            _notify(progress_cb, "sintetizando", len(results), total, item["chunk_id"])
 
     try:
         await asyncio.gather(*(worker(key, item) for key, item in unique.items()))
@@ -150,47 +161,61 @@ async def _synthesize_unique(
     return results
 
 
+def run_build_project(
+    project: ProjectConfig,
+    options: BuildOptions,
+    progress_cb: ProgressCallback | None = None,
+) -> int:
+    backend, lessons, unique = _prepare_project(project, options)
+    total_chunks = sum(len(lesson["chunks"]) for _, lesson in lessons)
+    estimated = sum(
+        len(chunk["spoken"]) / 15.5 + chunk.get("gap_before_ms", 0) / 1000.0
+        for _, lesson in lessons
+        for chunk in lesson["chunks"]
+    )
+    hits = sum(1 for text in (item["text"] for item in unique.values()) if backend.cached_duration(text) is not None)
+    print(
+        f"[build] {project.key}: {len(lessons)} aula(s), {total_chunks} chunks, "
+        f"{len(unique)} textos únicos, {hits} em cache, ~{estimated / 3600:.2f} h"
+    )
+    _notify(progress_cb, "preparando", 0, len(unique), f"{len(unique)} textos únicos")
+    if options.dry_run:
+        print("  dry-run: nada foi sintetizado.")
+        return 0
+
+    state_path = project.cache_dir / "state.db"
+    with StateStore(state_path) as state:
+        results = asyncio.run(_synthesize_unique(backend, state, unique, options.force, progress_cb))
+        counts = state.counts()
+    failures = [result for result in results if result[3] is not None]
+    cached = sum(1 for result in results if result[2])
+    generated = len(results) - cached - len(failures)
+    print(
+        f"  cache={cached} gerados={generated} falhas={len(failures)} "
+        f"status={counts}"
+    )
+    if failures:
+        print("  Falhas (primeiras 10):")
+        for key, _, _, error in failures[:10]:
+            print(f"    {key[:12]}… {error}")
+        print("  Rode novamente com `--resume` (padrão) para tentar só o que faltou.")
+        _notify(progress_cb, "erro", len(results), len(unique), f"{len(failures)} falhas")
+        return 1
+    if not options.no_assemble:
+        from pdf_tts.assemble import run_assemble_project
+
+        return run_assemble_project(project, options.lesson, progress_cb=progress_cb)
+    _notify(progress_cb, "concluído", len(results), len(unique), "chunks prontos")
+    return 0
+
+
 def run_build(options: BuildOptions) -> int:
     _, projects = load_projects()
     selected = resolve_projects(projects, options.project)
     for project in selected:
-        backend, lessons, unique = _prepare_project(project, options)
-        total_chunks = sum(len(lesson["chunks"]) for _, lesson in lessons)
-        estimated = sum(
-            len(chunk["spoken"]) / 15.5 + chunk.get("gap_before_ms", 0) / 1000.0
-            for _, lesson in lessons
-            for chunk in lesson["chunks"]
-        )
-        hits = sum(1 for text in (item["text"] for item in unique.values()) if backend.cached_duration(text) is not None)
-        print(
-            f"[build] {project.key}: {len(lessons)} aula(s), {total_chunks} chunks, "
-            f"{len(unique)} textos únicos, {hits} em cache, ~{estimated / 3600:.2f} h"
-        )
-        if options.dry_run:
-            print("  dry-run: nada foi sintetizado.")
-            continue
-
-        state_path = project.cache_dir / "state.db"
-        with StateStore(state_path) as state:
-            results = asyncio.run(_synthesize_unique(backend, state, unique, options.force))
-            counts = state.counts()
-        failures = [result for result in results if result[3] is not None]
-        cached = sum(1 for result in results if result[2])
-        generated = len(results) - cached - len(failures)
-        print(
-            f"  cache={cached} gerados={generated} falhas={len(failures)} "
-            f"status={counts}"
-        )
-        if failures:
-            print("  Falhas (primeiras 10):")
-            for key, _, _, error in failures[:10]:
-                print(f"    {key[:12]}… {error}")
-            print("  Rode novamente com `--resume` (padrão) para tentar só o que faltou.")
-            return 1
-        if not options.no_assemble:
-            from pdf_tts.assemble import run_assemble
-
-            return run_assemble(options.project, options.lesson)
+        code = run_build_project(project, options)
+        if code:
+            return code
     return 0
 
 

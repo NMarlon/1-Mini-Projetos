@@ -363,7 +363,12 @@ def _looks_like_heading_block(block: RawBlock) -> bool:
     return block.fontname != "table" and (block.size >= 10.0 or bool(re.match(r"^S0\d\b", block.text)))
 
 
-def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block:
+def classify_block(
+    block: RawBlock,
+    body_size: float,
+    project_key: str,
+    content_mode: str = "auto",
+) -> Block:
     text = strip_urls(clean_text(block.text))
     # Remove números de nota de rodapé colados ao fim de frases: "melhor.6",
     # 'isso." 12', "favor.11 Essas".
@@ -394,18 +399,22 @@ def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block
         drop_reason = "boilerplate"
     elif is_url_only(text):
         drop_reason = "url"
-    elif block.size <= body_size * 0.82 and re.search(r"\bCC BY\b|Wikimedia Commons", text, re.IGNORECASE):
+    elif (
+        content_mode != "all"
+        and block.size <= body_size * 0.82
+        and re.search(r"\bCC BY\b|Wikimedia Commons", text, re.IGNORECASE)
+    ):
         drop_reason = "license"
-    elif is_small_print_drop(text):
+    elif content_mode != "all" and is_small_print_drop(text):
         drop_reason = "source"
-    elif len(text) <= 40 and re.match(
+    elif content_mode != "all" and len(text) <= 40 and re.match(
         r"^(\d{1,2}\s+)?(D&C|Éter|Mateus|Marcos|Lucas|João|Provérbios|Néfi|Gênesis|Êxodo|Isaías|Salmos)\s+\d+[:.]\d+",
         text,
         re.IGNORECASE,
     ):
         drop_reason = "scripture_ref"
     elif block.size <= body_size * 0.82:
-        if is_small_print_drop(text):
+        if content_mode != "all" and is_small_print_drop(text):
             drop_reason = "small_print"
         elif is_caption(text):
             kind = "caption"
@@ -433,7 +442,7 @@ def classify_block(block: RawBlock, body_size: float, project_key: str) -> Block
             kind = "option"
             text = f"Opção: {text}"
             level = 3
-        elif looks_like_reference(text):
+        elif content_mode != "all" and looks_like_reference(text):
             kind = "reference"
             drop_reason = "reference"
         elif re.match(r"^(\d+[.)]|[•\-–])\s+", text):
@@ -489,8 +498,10 @@ def _is_reference_continuation(text: str) -> bool:
     return False
 
 
-def _mark_reference_runs(blocks: list[Block]) -> None:
+def _mark_reference_runs(blocks: list[Block], content_mode: str = "auto") -> None:
     """Após a primeira referência, descarta as linhas de continuação da bibliografia."""
+    if content_mode == "all":
+        return
     in_references = False
     for block in blocks:
         if block.kind == "reference":
@@ -515,6 +526,7 @@ def extract_page(
     page: pdfplumber.page.Page,
     page_number: int,
     body_size: float,
+    content_mode: str = "auto",
 ) -> list[Block]:
     chars = [char for char in page.chars if str(char.get("text", ""))]
     if not chars:
@@ -529,10 +541,10 @@ def extract_page(
 
     blocks: list[Block] = []
     for index, raw in enumerate(raw_blocks, start=1):
-        block = classify_block(raw, body_size, "pending")
+        block = classify_block(raw, body_size, "pending", content_mode=content_mode)
         block.id = f"pending-p{page_number:04d}-b{index:03d}"
         blocks.append(block)
-    _mark_reference_runs(blocks)
+    _mark_reference_runs(blocks, content_mode=content_mode)
     return blocks
 
 
@@ -559,7 +571,10 @@ def _merge_cross_page_continuations(blocks: list[Block]) -> None:
         current.drop_reason = "continuation"
 
 
-def extract_project(project: ProjectConfig) -> tuple[list[Block], float]:
+def extract_project(
+    project: ProjectConfig,
+    content_mode: str = "auto",
+) -> tuple[list[Block], float]:
     if not project.pdf.exists():
         raise FileNotFoundError(
             f"PDF não encontrado: {project.pdf}. Veja input/README.md e copie o arquivo."
@@ -568,7 +583,7 @@ def extract_project(project: ProjectConfig) -> tuple[list[Block], float]:
     with pdfplumber.open(project.pdf) as pdf:
         body_size = detect_body_size(pdf)
         for page in pdf.pages:
-            blocks.extend(extract_page(page, page.page_number, body_size))
+            blocks.extend(extract_page(page, page.page_number, body_size, content_mode=content_mode))
     for block in blocks:
         block.project = project.key
         block.id = block.id.replace("pending", project.key)

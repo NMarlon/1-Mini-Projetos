@@ -8,6 +8,7 @@ import sys
 from pdf_tts.assemble import run_assemble
 from pdf_tts.build import BuildOptions, run_all, run_build, run_samples, run_status
 from pdf_tts.doctor import run_doctor
+from pdf_tts.generic import ConvertOptions, load_manual_chapters, run_convert_cli, run_detect
 from pdf_tts.lessons import run_segment
 from pdf_tts.segment import run_extract, run_resegment
 from pdf_tts.verify import run_verify
@@ -57,6 +58,27 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--dry-run", action="store_true")
     build.add_argument("--no-assemble", action="store_true")
 
+    sub.add_parser("gui", help="Abre a interface one-click no navegador.")
+    serve = sub.add_parser("serve", help="Sobe apenas o servidor local da interface.")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+
+    detect = sub.add_parser("detect", help="Detecta capítulos de um PDF qualquer.")
+    detect.add_argument("pdf")
+    detect.add_argument("--chapters", choices=["auto", "none", "manual"], default="auto")
+    detect.add_argument("--chapter-size", type=int, default=10)
+    detect.add_argument("--chapter-file", default=None)
+    detect.add_argument("--json", action="store_true")
+
+    convert = sub.add_parser("convert", help="Converte um PDF qualquer em audiolivro.")
+    convert.add_argument("pdf")
+    convert.add_argument("--chapters", choices=["auto", "none", "manual"], default="auto")
+    convert.add_argument("--chapter-size", type=int, default=10)
+    convert.add_argument("--chapter-file", default=None)
+    convert.add_argument("--mode", choices=["auto", "all"], default="auto")
+    convert.add_argument("--voice", default=None)
+    convert.add_argument("--rate", default=None)
+
     return parser
 
 
@@ -71,6 +93,35 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "doctor":
         return run_doctor()
+    if args.command == "gui":
+        from pdf_tts.launcher import run_gui
+
+        return run_gui()
+    if args.command == "serve":
+        from pdf_tts.launcher import run_serve
+
+        run_serve(host=args.host, port=args.port)
+        return 0
+    if args.command == "detect":
+        return run_detect(
+            args.pdf,
+            chapter_mode=args.chapters,
+            chapter_size=args.chapter_size,
+            manual_chapters=load_manual_chapters(args.chapter_file),
+            as_json=args.json,
+        )
+    if args.command == "convert":
+        return run_convert_cli(
+            args.pdf,
+            ConvertOptions(
+                chapter_mode=args.chapters,
+                chapter_size=args.chapter_size,
+                manual_chapters=load_manual_chapters(args.chapter_file),
+                content_mode=args.mode,
+                voice=args.voice,
+                rate=args.rate,
+            ),
+        )
     if args.command == "extract":
         return run_extract(args.project)
     if args.command == "resegment":

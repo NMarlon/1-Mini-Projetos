@@ -630,7 +630,11 @@ def _write_manifest(
         "project": project.key,
         "title": project.title,
         "slug": project.slug,
-        "source_pdf": project.pdf.relative_to(ROOT).as_posix(),
+        "source_pdf": (
+            project.pdf.relative_to(ROOT).as_posix()
+            if project.pdf.is_relative_to(ROOT)
+            else str(project.pdf)
+        ),
         "source_sha256": _sha256(project.pdf),
         "engine": "edge",
         "voice": str(project.settings.get("voice", "pt-BR-FranciscaNeural")),
@@ -798,44 +802,64 @@ def _assemble_full_book(
     return total_duration, {"mp3": full_mp3, "m4b": full_m4b, "srt": full_srt}
 
 
-def run_assemble(selector: str, lesson: str | None = None) -> int:
-    defaults, projects = load_projects()
+def _notify(callback, stage: str, current: int, total: int, message: str = "") -> None:
+    if callback is not None:
+        callback(stage, current, total, message)
+
+
+def run_assemble_project(
+    project: ProjectConfig,
+    lesson: str | None = None,
+    progress_cb=None,
+) -> int:
+    defaults, _projects = load_projects()
     settings = load_settings()
     audio_settings = defaults.get("audio", settings.get("audio", {}))
-    for project in resolve_projects(projects, selector):
-        output_dir = ROOT / "output" / project.slug
-        work_dir = project.cache_dir / "work"
-        wav_cache = project.cache_dir / "wav"
-        work_dir.mkdir(parents=True, exist_ok=True)
-        cover = render_cover(project, output_dir / "cover.jpg")
-        loaded = _load_lessons(project, lesson)
-        results: list[LessonAudio] = []
-        for index, (lesson_path, data) in enumerate(loaded, start=1):
-            print(f"[assemble] {project.key} {data['lesson_id']}…")
-            track = f"{index}/{len(loaded)}"
-            result = assemble_lesson(
-                project,
-                data,
-                lesson_path,
-                output_dir,
-                work_dir,
-                wav_cache,
-                audio_settings,
-                cover,
-                track=track,
-            )
-            print(
-                f"  {result.lesson_id}: {result.duration / 60:.1f} min, "
-                f"{result.mp3.name}, {result.m4b.name}, {result.srt.name}"
-            )
-            results.append(result)
+    output_dir = ROOT / "output" / project.slug
+    work_dir = project.cache_dir / "work"
+    wav_cache = project.cache_dir / "wav"
+    work_dir.mkdir(parents=True, exist_ok=True)
+    cover = render_cover(project, output_dir / "cover.jpg")
+    loaded = _load_lessons(project, lesson)
+    results: list[LessonAudio] = []
+    for index, (lesson_path, data) in enumerate(loaded, start=1):
+        print(f"[assemble] {project.key} {data['lesson_id']}…")
+        _notify(progress_cb, "montando", index, len(loaded) + 1, data["lesson_id"])
+        track = f"{index}/{len(loaded)}"
+        result = assemble_lesson(
+            project,
+            data,
+            lesson_path,
+            output_dir,
+            work_dir,
+            wav_cache,
+            audio_settings,
+            cover,
+            track=track,
+        )
+        print(
+            f"  {result.lesson_id}: {result.duration / 60:.1f} min, "
+            f"{result.mp3.name}, {result.m4b.name}, {result.srt.name}"
+        )
+        results.append(result)
 
-        full_files = None
-        total_duration = sum(result.duration for result in results)
-        if not lesson:
-            print("[assemble] livro completo…")
-            total_duration, full_files = _assemble_full_book(project, results, output_dir, work_dir, cover)
-        manifest = _write_manifest(project, results, total_duration, full_files)
-        _write_output_readme(project, results, total_duration)
-        print(f"  manifesto: {manifest.relative_to(ROOT)}")
+    full_files = None
+    total_duration = sum(result.duration for result in results)
+    if not lesson:
+        print("[assemble] livro completo…")
+        _notify(progress_cb, "montando", len(loaded), len(loaded) + 1, "livro completo")
+        total_duration, full_files = _assemble_full_book(project, results, output_dir, work_dir, cover)
+    manifest = _write_manifest(project, results, total_duration, full_files)
+    _write_output_readme(project, results, total_duration)
+    print(f"  manifesto: {manifest.relative_to(ROOT)}")
+    _notify(progress_cb, "concluído", len(loaded) + 1, len(loaded) + 1, "montagem concluída")
+    return 0
+
+
+def run_assemble(selector: str, lesson: str | None = None) -> int:
+    _, projects = load_projects()
+    for project in resolve_projects(projects, selector):
+        code = run_assemble_project(project, lesson)
+        if code:
+            return code
     return 0
