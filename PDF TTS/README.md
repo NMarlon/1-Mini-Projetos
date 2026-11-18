@@ -23,6 +23,36 @@ legendas e um arquivo M4B pronto para players de audiolivro.
 O plano completo, as tarefas e o estado de cada etapa estão em
 [`DOCS/06-TASKS.md`](DOCS/06-TASKS.md).
 
+## App one-click (para leigos)
+
+Além da CLI, existe um app local:
+
+```powershell
+python -m pdf_tts gui
+```
+
+Ele abre uma interface no navegador onde qualquer pessoa pode arrastar um PDF,
+revisar os capítulos e clicar em **Gerar áudios**.
+
+O portátil Windows é gerado com:
+
+```powershell
+.\packaging\build_portable.ps1
+```
+
+Resultado: `dist/PDF TTS/PDF TTS.exe` e `dist/PDF-TTS-Windows.zip` (não
+versionados). O app não exige Python/FFmpeg instalados.
+
+**Modos do app:**
+- **Automático** (padrão): limpa bibliografia/boilerplate.
+- **Tudo (fiel)**: narra referências, notas e créditos.
+- **Capítulos**: automático, manual ou livro inteiro.
+- Sem estrutura detectada: avisa e divide em blocos de 10 páginas; **não perde
+  o texto**.
+- Páginas só de imagem são listadas; OCR fica para a próxima versão.
+
+Detalhes completos em [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md).
+
 ## Fonte dos PDFs
 
 Por questão de direitos autorais, os PDFs **não são versionados**. Coloque-os

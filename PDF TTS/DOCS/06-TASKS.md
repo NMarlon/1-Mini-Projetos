@@ -1,9 +1,11 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T11 concluídas.** Os dois livros estão montados e
-> verificados. Áudios em `output/MKT-120/` e `output/COM-150/`.
-> **Próximo passo:** ouvir as amostras/S01 e, se necessário, ajustar pronúncia
-> ou voz; o backlog lista melhorias opcionais.
+> **Estado atual:** **T00–T15 concluídas.** Os dois livros estão montados e
+> verificados; o **modo genérico one-click** também está implementado e
+> empacotado. Áudios em `output/MKT-120/` e `output/COM-150/`; app em
+> `dist/PDF TTS/PDF TTS.exe` (local, não versionado).
+> **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
+> instalador e assinatura ficam no backlog.
 
 Este é o quadro vivo do projeto. Atualize o status ao final de cada tarefa.
 Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqueado.
@@ -24,12 +26,29 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T09 | Build completo COM 150 | `[x]` | `feat(pdf-tts): build completo do COM 150` |
 | T10 | Verificação final e manifests | `[x]` | `chore(pdf-tts): verificação final e manifests` |
 | T11 | Documentação final e handoff | `[x]` | `docs(pdf-tts): handoff e estado final` |
+| T12 | Ingestão genérica + detecção de capítulos | `[x]` | `feat(pdf-tts): conversão genérica e detecção de capítulos` |
+| T13 | Interface local + fila de jobs | `[x]` | `feat(pdf-tts): interface one-click e fila de conversões` |
+| T14 | Empacotamento portátil Windows | `[x]` | `build(pdf-tts): empacotamento portátil Windows` |
+| T15 | Testes/QA do app one-click e docs | `[x]` | `docs(pdf-tts): guia do app one-click` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
 ---
 
 ## Estado final (2026-11-17)
+
+### App one-click (2026-11-18)
+
+- `python -m pdf_tts gui` abre a interface local.
+- `dist/PDF TTS/PDF TTS.exe` é o portátil Windows (gerado por
+  `packaging/build_portable.ps1`; não versionado).
+- Detecta capítulos por outline/fonte/padrões; sem estrutura, avisa e divide em
+  blocos de 10 páginas.
+- Modo **Automático** (padrão) e **Tudo (fiel)**.
+- Capítulos: automático, manual ou livro inteiro.
+- `coverage.json` lista páginas sem áudio e páginas só de imagem.
+- Teste ponta a ponta com PDF sintético e com o `.exe` empacotado: **OK**.
+- Detalhes em [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
 
 ### Entregas
 
@@ -347,6 +366,30 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 
 ---
 
+## T12–T15 — App one-click (2026-11-18)
+
+**Status:** `[x]`
+
+**Entregas:**
+- `discover.py`: outline, títulos por fonte, padrões, fallback por páginas,
+  remoção de sumário, capítulos contínuos.
+- `generic.py`: projeto dinâmico, `--mode auto|all`, `--chapters
+  auto|none|manual`, `coverage.json`.
+- `api.py` + `web/` + `launcher.py`: upload, análise, editor de capítulos,
+  progresso, abrir pasta, fila SQLite.
+- `packaging/`: spec PyInstaller, entrypoint, LEIA-ME, build portátil.
+- `tests`: 52 testes, incluindo descoberta, API e montagem.
+- Teste real do `.exe` com PDF sintético: upload → job → MP3/M4B/SRT → OK.
+
+**Critério de aceite atendido:**
+- PDF sem estrutura gera áudio e aviso.
+- “Tudo” mantém referências; “Automático” limpa.
+- Páginas com texto sem áudio aparecem no relatório.
+- Páginas de imagem são listadas; OCR fica para a v2.
+- App roda sem Python/FFmpeg instalados no Windows.
+
+**Referência:** [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
+
 ## Diário de progresso
 
 | Data | Tarefa | Observação |
@@ -363,3 +406,7 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 | 2026-11-17 | T09 | COM completo: 7 aulas + livro (7:50:42), 3.457 cues, 92 capítulos; verify 100% OK (-16,45 LUFS; TP ≤ -0,79; sem silêncios >5 s). |
 | 2026-11-17 | T10 | Verificação final dos dois livros: 54 arquivos, 1,335 GB, 14 aulas + 2 completos; tudo OK. |
 | 2026-11-17 | T11 | Documentação final, README e handoff atualizados. |
+| 2026-11-18 | T12 | Modo genérico: descoberta por outline/fonte/fallback; modo Automático/Tudo; cobertura. |
+| 2026-11-18 | T13 | Interface FastAPI + web local, fila SQLite, progresso, editor de capítulos; teste com PDF sintético. |
+| 2026-11-18 | T14 | PyInstaller onedir + ffmpeg/ffprobe + LEIA-ME; `.exe` testado com upload e job completo. |
+| 2026-11-18 | T15 | 52 testes passando; documentação one-click e backlog atualizados. |

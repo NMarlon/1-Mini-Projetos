@@ -36,6 +36,8 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
 9. [`DOCS/09-DECISIONS.md`](DOCS/09-DECISIONS.md) — decisões arquiteturais
 10. [`DOCS/10-VOICE-AND-PRONUNCIATION.md`](DOCS/10-VOICE-AND-PRONUNCIATION.md)
 11. [`DOCS/11-VERIFICATION.md`](DOCS/11-VERIFICATION.md) — critérios de aceite
+12. [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md) — app one-click,
+    detecção genérica, interface, empacotamento e limitações
 
 ## 3. Estado atual
 
@@ -86,6 +88,8 @@ mudança de escopo/voz ou risco de perda de dados.
   - `content/` (texto extraído, direitos autorais);
   - `output/` (áudio, ~1,2 GB);
   - `cache/` (chunks e estado);
+  - `dist/` e `build/` (executável e artefatos do PyInstaller);
+  - `manifests/AUTO-*.json` (PDFs arbitrários do usuário);
   - `.venv/`, segredos, logs.
 - **Nunca** faça `push` sem pedido explícito.
 - Se um commit falhar, resolva e registre em
@@ -113,6 +117,9 @@ mudança de escopo/voz ou risco de perda de dados.
 - Rode `pytest` antes de cada commit que altere código.
 - Se o Edge TTS falhar repetidamente, **pare** e preserve o cache; não troque
   de motor automaticamente.
+- A interface one-click usa **uma fila e um job por vez**; não rode dois builds
+  Edge simultâneos. O modo genérico deve sempre avisar quando uma página com
+  texto ficar sem áudio e nunca descartar páginas silenciosamente.
 
 ### 4.6 Ambiente
 
@@ -175,6 +182,12 @@ python -m pdf_tts all --project all
 
 O estado final (2026-11-17) está em `DOCS/06-TASKS.md`: MKT 120 (3:39:26) e
 COM 150 (7:50:42) montados e verificados. Áudios em `output/` (não versionados).
+
+Em 2026-11-18 foi adicionado o **modo genérico one-click** (PDF TTS Studio):
+`python -m pdf_tts gui`, ou o portátil `dist/PDF TTS/PDF TTS.exe` gerado por
+`packaging/build_portable.ps1`. Ele detecta capítulos, aceita PDFs arbitrários
+com texto, tem modo “Automático” e “Tudo” e cai para blocos de páginas quando
+não encontra estrutura. Detalhes em `DOCS/12-ONE-CLICK-APP.md`.
 
 Detalhes em [`DOCS/05-OPERATIONS.md`](DOCS/05-OPERATIONS.md).
 

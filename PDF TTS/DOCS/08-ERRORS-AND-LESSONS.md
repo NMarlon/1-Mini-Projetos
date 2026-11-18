@@ -394,6 +394,76 @@ re-trabalho.
 
 ---
 
+## E037 — Uvicorn quebra no `.exe` com `--noconsole`
+
+**Erro:** o portátil iniciava e morria com
+`AttributeError: 'NoneType' object has no attribute 'isatty'` em
+`uvicorn/logging.py`.
+**Causa:** em app windowed (`console=False`), `sys.stdout` e `sys.stderr` são
+`None`; o logging do uvicorn chama `.isatty()`.
+**Solução:** `launcher._ensure_streams()` redireciona ambos para
+`logs/launcher.log` antes de criar o servidor.
+**Evitar:** qualquer app Python windowed que use logging/uvicorn precisa de
+streams válidos.
+
+---
+
+## E038 — FastAPI + Ruff B008
+
+**Erro:** Ruff acusou `B008 Do not perform function call File in argument
+defaults`.
+**Causa:** o padrão clássico do FastAPI (`file: UploadFile = File(...)`).
+**Solução:** usar `Annotated[UploadFile, File()]` e
+`Annotated[str, Form()]`.
+**Evitar:** prefira `Annotated` em projetos com Ruff ativo.
+
+---
+
+## E039 — Sumário virava capítulos no modo genérico
+
+**Erro:** a detecção achou “Semana 2…7” no sumário do COM e criou capítulos
+falsos; também pegou `S01` como capítulo.
+**Causa:** títulos de sumário usam a mesma fonte; `S0x` parece capítulo.
+**Solução:**
+- ignorar páginas iniciais com muitos títulos (sumário);
+- priorizar padrões fortes (`Semana`, `Capítulo`, `Parte`, `Aula`…);
+- tratar `S0x` como subseção quando há padrões fortes;
+- escolher o título com padrão na página, não o primeiro por posição.
+**Evitar:** validar detecção nos PDFs reais e permitir edição manual.
+
+---
+
+## E040 — Título de metadados inútil
+
+**Erro:** slug/título viravam `(anonymous)` ou um hash/uuid.
+**Causa:** metadados do ReportLab/Word e nome do upload temporário.
+**Solução:** ignorar títulos vazios, “anonymous”, “untitled”, “Microsoft Word”
+e strings hex/uuid; usar o nome original do arquivo enviado.
+**Evitar:** sempre ter fallback para o nome do arquivo.
+
+---
+
+## E041 — `relative_to(ROOT)` em PDF externo
+
+**Erro:** manifest falhou com PDF temporário fora do repositório.
+**Causa:** `project.pdf.relative_to(ROOT)` levanta `ValueError` quando o PDF
+está em `%TEMP%`.
+**Solução:** usar caminho relativo somente se `is_relative_to(ROOT)`; senão,
+guardar o caminho absoluto.
+**Evitar:** nunca assumir que a entrada está dentro da pasta do projeto.
+
+---
+
+## E042 — Caminho de config/web/ffmpeg no PyInstaller
+
+**Observação:** o `.exe` usa `ROOT` = pasta do executável (dados/áudio) e
+`RESOURCE_ROOT` = `_internal` (config/web). O ffmpeg/ffprobe foram copiados
+para a pasta do `.exe` e são encontrados por `find_tool`.
+**Evitar:** usar `Path(__file__)` para dados graváveis em app congelado; separe
+recursos de dados.
+
+---
+
 ## Modelo para novos registros
 
 ```markdown

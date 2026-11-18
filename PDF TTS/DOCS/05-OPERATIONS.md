@@ -144,6 +144,39 @@ python -m pdf_tts all --project all
 Executa `extract` → `segment` → `build` → `assemble` → `verify`. É retomável
 (os chunks em cache são reaproveitados).
 
+## App one-click
+
+```powershell
+# Interface local (abre o navegador e uma janelinha de controle)
+python -m pdf_tts gui
+
+# Só o servidor, para debug
+python -m pdf_tts serve --port 8899
+
+# Detectar capítulos de um PDF qualquer
+python -m pdf_tts detect "C:\caminho\livro.pdf"
+
+# Converter qualquer PDF com texto
+python -m pdf_tts convert "C:\caminho\livro.pdf" --mode auto
+python -m pdf_tts convert "C:\caminho\livro.pdf" --mode all
+```
+
+O modo `auto` limpa bibliografia/boilerplate; `all` narra tudo (referências,
+notas e créditos). Sem capítulos detectados, divide em blocos de 10 páginas e
+avisa. O relatório fica em `output/<slug>/coverage.json`.
+
+## Gerar o portátil Windows
+
+```powershell
+.\packaging\build_portable.ps1
+```
+
+Saída: `dist/PDF TTS/PDF TTS.exe` + `dist/PDF-TTS-Windows.zip`. O PyInstaller
+inclui Python, config, web e FFmpeg; o usuário não instala nada. O `.exe` não é
+assinado, então o SmartScreen pode pedir “Executar assim mesmo”.
+
+Guia completo: [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
+
 ### Amostras
 
 ```powershell
