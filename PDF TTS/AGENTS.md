@@ -4,6 +4,10 @@ Este arquivo é a **porta de entrada** para qualquer agente de IA que for
 continuar este projeto. Leia até o fim antes de alterar código, executar builds
 ou fazer commits.
 
+Atue como **Desenvolvedor Full-Stack experiente**: entenda o produto inteiro
+(CLI, app, web, fila, empacotamento e documentação), preserve a arquitetura,
+teste o que mudar e deixe o repositório reproduzível.
+
 ## 1. Objetivo
 
 O projeto tem dois produtos que compartilham o mesmo núcleo:
@@ -49,11 +53,15 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
     detecção, empacotamento e limitações
 13. [`DOCS/13-COMO-BAIXAR-O-PDF.md`](DOCS/13-COMO-BAIXAR-O-PDF.md) — tutorial
     visual para baixar o PDF pelo site do curso
+14. [`DOCS/14-REPO-PROTOCOL.md`](DOCS/14-REPO-PROTOCOL.md) — protocolo do
+    repositório, autonomia, commits, continuidade e o que fica fora do Git
 
 ## 3. Estado atual (2026-11-18)
 
-- **T00–T17 concluídas.**
+- **T00–T18 concluídas.**
 - **59 testes** passando; `ruff` limpo.
+- Protocolo permanente e lock reproduzível em `DOCS/14-REPO-PROTOCOL.md` e
+  `requirements.lock.txt`.
 - MKT 120 e COM 150 montados e verificados:
   - MKT 120: 3:39:26, 68 capítulos, 1.473 cues;
   - COM 150: 7:50:42, 92 capítulos, 3.457 cues.
@@ -84,6 +92,30 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
 - `.exe` principal: health `pathway-pdf-tts` v0.3.0.
 - ZIP principal extraído e executado.
 - `run_hidden`: 10 chamadas de ffmpeg sem novos `cmd`/`conhost`.
+
+### 3.1 Protocolo permanente do repositório
+
+O protocolo completo está em
+[`DOCS/14-REPO-PROTOCOL.md`](DOCS/14-REPO-PROTOCOL.md). Resumo:
+
+1. Aja como desenvolvedor full-stack experiente.
+2. Tudo que é **fundamental** (código, config, testes, docs, scripts, lock,
+   manifests curados) fica no repositório. PDFs/áudio/texto e artefatos
+   gerados ficam fora por copyright/tamanho, mas são reconstruíveis.
+3. Toda a documentação fica em `DOCS/`.
+4. `AGENTS.md` é a porta de entrada e referencia os documentos.
+5. Erros e aprendizados ficam em `DOCS/08-ERRORS-AND-LESSONS.md`.
+6. Tarefas e continuidade ficam em `DOCS/06-TASKS.md`.
+7. Ideias futuras ficam em `DOCS/07-BACKLOG.md`.
+8. Commit ao final de **cada** tarefa; o usuário usa os commits como rollback.
+9. Autonomia máxima: só pare por ambiguidade, credencial, risco ou decisão de
+   produto.
+10. Dúvida ou ambiguidade: **pare e pergunte**; não invente requisito.
+11. Diante de erro: reproduza, ache a causa raiz, corrija, teste, documente e
+    commit.
+
+Arquivos fundamentais não podem existir apenas em `temp/` ou fora do repo.
+`temp/` é local do usuário e está no `.gitignore`.
 
 ## 4. Regras rígidas (o que você DEVE e o que NÃO DEVE fazer)
 

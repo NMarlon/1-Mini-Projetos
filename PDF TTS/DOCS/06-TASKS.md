@@ -1,8 +1,9 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T17 concluídas.** Os dois livros estão montados e
+> **Estado atual:** **T00–T18 concluídas.** Os dois livros estão montados e
 > verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado;
-> o tutorial de download do PDF está em DOCS/13.
+> o tutorial de download do PDF está em DOCS/13; o protocolo do repositório e o
+> lock reproduzível estão em DOCS/14 e `requirements.lock.txt`.
 > Áudios em `output/MKT-120/` e `output/COM-150/`; app em
 > `dist/Pathway PDF TTS/Pathway PDF TTS.exe` (local, não versionado).
 > **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
@@ -33,6 +34,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T15 | Testes/QA do app one-click e docs | `[x]` | `docs(pdf-tts): guia do app one-click` |
 | T16 | Perfil Pathway, “Tudo literal”, robustez e app assinado | `[x]` | `feat(pathway-tts): perfil Pathway, modos de conteúdo e interface` |
 | T17 | Tutorial visual: como baixar o PDF pelo site | `[x]` | `docs(pathway-tts): tutorial de download do PDF` |
+| T18 | Protocolo permanente do repositório e lock reproduzível | `[x]` | `chore(repo): formaliza protocolo de continuidade e lock` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -509,6 +511,40 @@ aviso de uso pessoal. O PDF tem ~2 MB.
 **Observação:** as capturas originais em `temp/` não são versionadas; apenas as
 imagens tratadas em `DOCS/assets/` entram no Git.
 
+---
+
+## T18 — Protocolo permanente do repositório (2026-11-18)
+
+**Status:** `[x]`
+
+**Contexto:** o usuário pediu um protocolo permanente para as próximas IAs:
+papel de full-stack, documentação centralizada, AGENTS como índice, erros,
+tarefas, backlog, commits por tarefa, autonomia, parar em ambiguidades e
+soluções profissionais.
+
+**Entregas:**
+- `DOCS/14-REPO-PROTOCOL.md` — protocolo completo, com mapa de docs, o que é
+  versionado, o que é gerado, autonomia, commits, continuidade e Definition of
+  Done.
+- `AGENTS.md` — seção “Protocolo permanente” e item 14 na ordem de leitura.
+- `requirements.lock.txt` — atualizado com todas as dependências reais do
+  ambiente (FastAPI, Uvicorn, reportlab, PyInstaller, etc.).
+- `scripts/setup.ps1` — instala o lock exato e depois o projeto com
+  `--no-deps`.
+- `.gitignore` — `temp/` ignorado (arquivos locais do usuário).
+- `README.md`, `DOCS/00`, `DOCS/06`, `DOCS/11` — referências ao protocolo.
+
+**Validação:**
+```powershell
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m ruff check src tests scripts packaging
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+**Regra para o futuro:** toda tarefa nova entra na tabela de `06-TASKS.md`,
+tem critério de aceite e termina com commit. Dúvida real → perguntar antes de
+editar.
+
 ## Diário de progresso
 
 | Data | Tarefa | Observação |
@@ -531,3 +567,4 @@ imagens tratadas em `DOCS/assets/` entram no Git.
 | 2026-11-18 | T15 | 52 testes passando; documentação one-click e backlog atualizados. |
 | 2026-11-18 | T16 | App renomeado para Pathway PDF TTS; perfil Pathway; Tudo útil/literal; upload em blocos; instância única; sem janelas CMD; 59 testes. |
 | 2026-11-18 | T17 | Tutorial em Markdown + PDF (6 páginas) para baixar o PDF pelo site; imagens tratadas e script de regeneração. |
+| 2026-11-18 | T18 | Protocolo permanente em DOCS/14; AGENTS atualizado; lock de dependências e setup reproduzível; `temp/` ignorado. |

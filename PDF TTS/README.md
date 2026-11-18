@@ -7,9 +7,9 @@ outros PDFs com camada de texto.
 
 ## Estado atual
 
-**T00–T17 concluídas.** Os dois livros estão montados e verificados; o app
-Pathway PDF TTS está implementado e empacotado, e o tutorial de download está
-em DOCS/13.
+**T00–T18 concluídas.** Os dois livros estão montados e verificados; o app
+Pathway PDF TTS está implementado e empacotado, o tutorial de download está em
+DOCS/13 e o protocolo do repositório está em DOCS/14.
 
 | Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
 |---|---|---|---|---|---|
@@ -155,10 +155,14 @@ Os áudios ficam em `output/<SLUG>/`:
 O áudio **não é versionado**; os manifests em `manifests/` registram o que foi
 gerado, com durações e hashes.
 
-## Documentação
+## Documentação e continuidade
 
 Comece por [`AGENTS.md`](AGENTS.md) e siga a ordem de leitura indicada nele.
 Toda a documentação está em [`DOCS/`](DOCS/).
+
+O protocolo permanente do repositório — autonomia, commits, o que fica fora do
+Git, tarefas, erros e continuidade — está em
+[`DOCS/14-REPO-PROTOCOL.md`](DOCS/14-REPO-PROTOCOL.md).
 
 ## Licença e uso
 

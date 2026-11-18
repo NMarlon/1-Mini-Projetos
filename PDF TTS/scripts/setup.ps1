@@ -21,7 +21,14 @@ if (-not (Test-Path $python)) {
 }
 
 & $python -m pip install --upgrade pip
-& $python -m pip install -e ".[dev]"
+$lock = Join-Path $root "requirements.lock.txt"
+if (Test-Path $lock) {
+    Write-Host "Instalando versões exatas do requirements.lock.txt..."
+    & $python -m pip install -r $lock
+    & $python -m pip install -e ".[dev]" --no-deps
+} else {
+    & $python -m pip install -e ".[dev]"
+}
 
 Write-Host ""
 Write-Host "Ambiente pronto. Rodando doctor..."

@@ -112,6 +112,14 @@ Para cada projeto:
 - [ ] O texto menciona o app e o aviso de uso pessoal.
 - [ ] `python scripts/build_download_tutorial.py` regenera o PDF.
 
+## 9.3 Protocolo e reprodutibilidade
+
+- [ ] `AGENTS.md` aponta para `DOCS/14-REPO-PROTOCOL.md`.
+- [ ] `requirements.lock.txt` reflete o `.venv` (`pip check`).
+- [ ] `scripts/setup.ps1` instala o lock e o projeto com `--no-deps`.
+- [ ] `temp/` está no `.gitignore`.
+- [ ] Nenhum arquivo fundamental existe apenas fora do repositório.
+
 ## 10. Git
 
 - [ ] `git status` limpo (exceto arquivos ignorados).
