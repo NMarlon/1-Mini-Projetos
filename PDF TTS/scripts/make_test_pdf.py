@@ -1,4 +1,4 @@
-"""Gera um PDF sintético pequeno para testar o modo genérico.
+r"""Gera um PDF sintético pequeno para testar o modo genérico.
 
 Uso:
     python scripts/make_test_pdf.py "C:\caminho\teste.pdf"
