@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF TTS — curso em áudio</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">PDF TTS</div>
+      <h1>Transforme um PDF em audiolivro</h1>
+      <p class="subtitle">Arraste o PDF, confira os capítulos e clique em gerar.</p>
+    </div>
+    <div class="status-chip" id="health">verificando…</div>
+  </header>
+
+  <main>
+    <section class="card dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+      <div class="drop-icon">＋</div>
+      <h2>Arraste um PDF aqui</h2>
+      <p>ou <button class="link-button" id="chooseFile">escolha um arquivo</button></p>
+      <p class="hint">PDFs com texto. PDFs escaneados entram no OCR em uma versão futura.</p>
+    </section>
+
+    <section class="card" id="analysisCard" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Passo 2</div>
+          <h2 id="fileName">—</h2>
+          <p class="muted" id="fileMeta"></p>
+        </div>
+        <button class="secondary" id="restart">Escolher outro PDF</button>
+      </div>
+
+      <div class="warnings" id="warnings"></div>
+
+      <div class="grid two">
+        <label class="field">
+          <span>Conteúdo</span>
+          <select id="contentMode">
+            <option value="auto">Automático (recomendado)</option>
+            <option value="all">Tudo — modo fiel</option>
+          </select>
+          <small>“Tudo” mantém referências, notas e créditos; “Automático” limpa bibliografia e boilerplate.</small>
+        </label>
+        <label class="field">
+          <span>Capítulos</span>
+          <select id="chapterMode">
+            <option value="auto">Detectar automaticamente</option>
+            <option value="manual">Editar capítulos</option>
+            <option value="none">Livro inteiro (um arquivo)</option>
+          </select>
+          <small>Se nada for detectado, o app avisa e divide em blocos de páginas.</small>
+        </label>
+      </div>
+
+      <div class="chapter-head">
+        <div>
+          <h3>Capítulos</h3>
+          <p class="muted" id="chapterHint">Revise antes de gerar. Você pode ajustar os títulos e páginas.</p>
+        </div>
+        <button class="secondary" id="addChapter" hidden>+ Adicionar capítulo</button>
+      </div>
+      <div class="table-wrap">
+        <table class="chapters">
+          <thead>
+            <tr><th>Título</th><th>Página inicial</th><th>Página final</th><th></th></tr>
+          </thead>
+          <tbody id="chapterRows"></tbody>
+        </table>
+      </div>
+
+      <div class="grid three">
+        <label class="field">
+          <span>Voz</span>
+          <select id="voice"><option value="pt-BR-FranciscaNeural">Francisca (feminina)</option></select>
+          <small>Vozes pt-BR do Edge TTS.</small>
+        </label>
+        <label class="field">
+          <span>Ritmo</span>
+          <select id="rate">
+            <option value="-5%">Levemente mais lenta (-5%)</option>
+            <option value="+0%">Normal (0%)</option>
+            <option value="-10%">Mais lenta (-10%)</option>
+          </select>
+          <small>Para estudar, -5% costuma ser confortável.</small>
+        </label>
+        <div class="field action-field">
+          <span>&nbsp;</span>
+          <button class="primary" id="generate">Gerar áudios</button>
+          <small id="estimate">Duração estimada aparece após a análise.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="progressCard" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Passo 3</div>
+          <h2 id="progressTitle">Preparando…</h2>
+          <p class="muted" id="progressMessage"></p>
+        </div>
+        <span class="badge" id="progressStage">—</span>
+      </div>
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-meta">
+        <span id="progressCount"></span>
+        <span id="progressPercent"></span>
+      </div>
+      <div class="result" id="result" hidden>
+        <h3>Pronto!</h3>
+        <div id="resultSummary"></div>
+        <div class="actions">
+          <button class="primary" id="openFolder">Abrir pasta dos áudios</button>
+        </div>
+        <details>
+          <summary>Ver arquivos gerados</summary>
+          <ul id="resultFiles"></ul>
+        </details>
+      </div>
+    </section>
+
+    <section class="card notes">
+      <h3>O que o app faz</h3>
+      <ul>
+        <li>Detecta capítulos por índice, sumário e títulos do PDF. Se não encontrar, avisa e divide por páginas.</li>
+        <li>Narra <strong>todo o texto extraído</strong>; páginas de imagem são listadas e ficam para o OCR futuro.</li>
+        <li>Gera MP3 por capítulo, M4B com marcadores, SRT e um livro completo.</li>
+        <li>Salva tudo em <code>output/</code>, sem enviar o PDF para lugar nenhum.</li>
+      </ul>
+      <p class="hint">O Edge TTS envia apenas o texto para a Microsoft; o PDF e os arquivos ficam no seu computador.</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>PDF TTS · uso pessoal · não redistribua o conteúdo do curso</span>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
