@@ -3,6 +3,33 @@
 Ideias, melhorias e dívidas técnicas que não entram no escopo imediato. Ao
 retomar, avaliar custo/benefício e mover para `06-TASKS.md` se for executar.
 
+## Concluído em 2026-11-18 (não repetir)
+
+- [x] App one-click local com FastAPI + interface web.
+- [x] Fila SQLite, um job por vez, progresso e retomada.
+- [x] Detecção Pathway (`Semana 1…7`, `S01…S07`), genérica e fallback.
+- [x] Modos de conteúdo `auto`, `all` e `raw`.
+- [x] Upload em blocos, health check, instância única e reanálise.
+- [x] Subprocessos sem janela de CMD (`run_hidden`).
+- [x] Embalagem principal com Python assinado (Smart App Control).
+- [x] Testes de descoberta/API/`run_hidden` com PDFs sintéticos.
+
+## App e distribuição (próximos)
+
+- [ ] **Assinatura própria do `.exe`** (certificado de code signing) para
+      aposentar a dependência do Python assinado.
+- [ ] **Instalador** com atalho no Menu Iniciar e desinstalador.
+- [ ] **Ícone próprio** no `.exe` e na janela.
+- [ ] **Bandeja do sistema** para não precisar manter a janelinha Tkinter.
+- [ ] **Análise em background** com progresso por página (hoje o HTTP espera a
+      análise terminar; ~20 s no COM 150).
+- [ ] **Retomada automática** de jobs `interrupted` ao reabrir.
+- [ ] **Cancelar job** pela interface.
+- [ ] **Prévia de 30 s** antes do build completo.
+- [ ] **Conversão em lote** de todos os PDFs de uma pasta.
+- [ ] **OCR opcional** (Tesseract/OCRmyPDF) para PDFs escaneados.
+- [ ] **Teste em máquina limpa** sem Python, com Smart App Control ligado.
+
 ## Qualidade de áudio
 
 - [ ] **Provider Google Chirp 3 HD** (`pt-BR`): primeiro 1M de chars/mês grátis;
@@ -49,12 +76,12 @@ retomar, avaliar custo/benefício e mover para `06-TASKS.md` se for executar.
 ## Engenharia
 
 - [ ] **`clean-cache`** com retenção por dias/tamanho.
-- [ ] **Testes de integração** com PDFs sintéticos (gerados por reportlab) para
-      não depender dos PDFs reais.
+- [x] **Testes de integração** com PDFs sintéticos (reportlab) para descoberta,
+      API e `run_hidden`; falta um teste de áudio real no CI.
 - [ ] **CI** (GitHub Actions) rodando `ruff` + `pytest` (sem PDFs).
-- [ ] **Empacotamento** com `pipx`/wheel.
+- [ ] **Empacotamento** com `pipx`/wheel (o app portátil já existe).
 - [ ] **Interface CLI mais amigável** (Typer/Rich progress).
-- [ ] **Log estruturado** em JSON + rotação.
+- [ ] **Log estruturado** em JSON + rotação (hoje `logs/app.log` é texto).
 - [ ] **Métricas de build**: tempo por chunk, taxa de retry, tamanho.
 - [ ] **Paralelismo por aula** (hoje a concorrência é por chunk).
 - [ ] **Suporte a proxy** explícito no `edge-tts`.
@@ -64,7 +91,7 @@ retomar, avaliar custo/benefício e mover para `06-TASKS.md` se for executar.
 
 - [ ] **Vídeo/gif curto** demonstrando o build.
 - [ ] **FAQ** com erros comuns.
-- [ ] **Diagrama atualizado** da arquitetura.
+- [x] **Diagrama atualizado** da arquitetura (DOCS/01).
 - [ ] **Changelog** por versão.
 
 ## Riscos a monitorar

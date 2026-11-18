@@ -30,7 +30,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T13 | Interface local + fila de jobs | `[x]` | `feat(pdf-tts): interface one-click e fila de conversões` |
 | T14 | Empacotamento portátil Windows | `[x]` | `build(pdf-tts): empacotamento portátil Windows` |
 | T15 | Testes/QA do app one-click e docs | `[x]` | `docs(pdf-tts): guia do app one-click` |
-| T16 | Perfil Pathway, “Tudo literal” e robustez da conexão | `[x]` | `feat(pathway-tts): perfil Pathway e modos de conteúdo` |
+| T16 | Perfil Pathway, “Tudo literal”, robustez e app assinado | `[x]` | `feat(pathway-tts): perfil Pathway, modos de conteúdo e interface` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -394,6 +394,79 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 - App roda sem Python/FFmpeg instalados no Windows.
 
 **Referência:** [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
+
+---
+
+## T16 — Perfil Pathway, conteúdo literal e app assinado (2026-11-18)
+
+**Status:** `[x]`
+
+**Contexto:** depois do primeiro app one-click, o usuário reportou:
+1. “Failed to fetch” ao subir o COM 150;
+2. queria deixar claro que o app é para o Pathway;
+3. queria opções visíveis de automático / identificar capítulos / tudo;
+4. queria uma versão “tudo mesmo” e outra que removesse o óbvio;
+5. janelas de CMD piscando durante a conversão;
+6. o Windows bloqueou o `.exe` novo pelo Smart App Control.
+
+**Entregas:**
+- App renomeado para **Pathway PDF TTS** em janela, interface, LEIA-ME,
+  pastas e ZIPs.
+- **Perfil Pathway** em `discover.py`: `Semana N`, `S01`–`S07`, rejeição de
+  sumário, fallback genérico/blocos e `profile_used`.
+- Modos de conteúdo `auto`, `all` e `raw`; interface com quatro receitas:
+  Automático, Identificar capítulos, Tudo útil e Tudo literal.
+- Opções visíveis antes do upload; perfil, capítulos e reanálise sem reenviar.
+- Upload em blocos de 1 MB, limite de 500 MB, `%PDF-`, espaço em disco.
+- Análise mais rápida: uma abertura do PDF, contagem por `page.chars`, filtro
+  de fonte antes de agrupar linhas (~100 s → ~20 s no COM 150).
+- Instância única, health check a cada 5 s, banner de conexão e
+  `POST /api/reanalyze`.
+- `run_hidden()` com `CREATE_NO_WINDOW` para ffmpeg/ffprobe; nenhuma janela de
+  CMD.
+- Embalagem principal com `pythonw.exe` assinado pela Python Software
+  Foundation + runtime local + `sitecustomize.py`; PyInstaller como alternativa.
+- Logs `logs/app.log`, `logs/launcher.log`, `logs/crash.log`.
+- Documentação: 00, 01, 03, 04, 05, 06, 08, 09, 11, 12, AGENTS e README.
+
+**Arquivos-chave:**
+- `discover.py`, `generic.py`, `extract.py`, `api.py`, `jobs.py`, `launcher.py`
+- `web/index.html`, `web/app.js`, `web/style.css`
+- `audio.py`, `assemble.py`, `verify.py`, `doctor.py`
+- `packaging/build_python_portable.ps1`, `build_portable.ps1`, `pdf_tts.spec`
+- `tests/test_discover.py`, `test_api.py`, `test_audio.py`
+
+**Validação executada:**
+```powershell
+.\.venv\Scripts\python.exe -m ruff check src tests packaging
+.\.venv\Scripts\python.exe -m pytest -q
+# 59 passed
+```
+
+- COM 150 real (52 MB, 220 páginas): `pathway`, 8 capítulos (Abertura +
+  Semanas 1–7), ~20 s.
+- MKT 120 real: `pathway`, 8 capítulos.
+- COM 150 no perfil `generic`: 8 capítulos por título.
+- Job sintético `raw`: 15 arquivos (MP3/M4B/SRT + completo + capa + JSON).
+- `.exe` principal: health `pathway-pdf-tts` v0.3.0.
+- ZIP principal extraído e executado.
+- `run_hidden`: 10 chamadas de ffmpeg sem novos `cmd/conhost`.
+- PyInstaller: build gerado, mas bloqueado nesta máquina pelo Smart App Control.
+
+**Commits:**
+```text
+67168cf feat(pathway-tts): perfil Pathway, modos de conteúdo e interface
+17cbc85 build(pathway-tts): portátil com Python assinado e PyInstaller
+5dc8d64 docs(pathway-tts): guia do app, perfis e decisões
+```
+
+**Limitações/avisos:**
+- A versão principal tem ~428 MB de pasta (~150 MB ZIP); a PyInstaller ~277 MB
+  (~130 MB ZIP).
+- Não é um `.exe` único: é uma pasta portátil com `Pathway PDF TTS.exe`
+  assinado pela PSF.
+- OCR continua fora da v1.
+- O app processa um PDF por vez.
 
 ## Diário de progresso
 

@@ -70,6 +70,8 @@ Resultado: `dist/Pathway PDF TTS (PyInstaller)/` e
 - Sem estrutura detectada: avisa e divide em blocos de 10 páginas; **não perde
   o texto**.
 - Páginas só de imagem são listadas; OCR fica para a próxima versão.
+- Não abre janelas de CMD: FFmpeg/ffprobe rodam com `CREATE_NO_WINDOW`.
+- Logs em `logs/app.log`, `logs/launcher.log` e `logs/crash.log`.
 
 Detalhes completos em [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md).
 

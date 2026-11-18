@@ -1,4 +1,4 @@
-# AGENTS.md — PDF TTS
+# AGENTS.md — Pathway PDF TTS
 
 Este arquivo é a **porta de entrada** para qualquer agente de IA que for
 continuar este projeto. Leia até o fim antes de alterar código, executar builds
@@ -6,12 +6,18 @@ ou fazer commits.
 
 ## 1. Objetivo
 
-Transformar os dois PDFs do curso em audiolivros em português brasileiro:
+O projeto tem dois produtos que compartilham o mesmo núcleo:
 
-- `input/MKT 120.pdf` → `output/MKT-120/`
-- `input/Livro texto COM 150-1.pdf` → `output/COM-150/`
+1. **Modo curado** — os dois PDFs do Pathway já configurados:
+   - `input/MKT 120.pdf` → `output/MKT-120/`
+   - `input/Livro texto COM 150-1.pdf` → `output/COM-150/`
+2. **Pathway PDF TTS** — app one-click para qualquer PDF com camada de texto:
+   - detecta capítulos do Pathway (`Semana 1…7`, `S01…S07`);
+   - aceita PDFs de outras origens no perfil genérico;
+   - gera MP3 por capítulo, M4B com marcadores, SRT, livro completo,
+     `coverage.json`, `manifest.json` e `README.md`.
 
-Cada livro é dividido em 7 aulas/semanas (`S01`…`S07`), com:
+Cada livro curado é dividido em 7 aulas/semanas (`S01`…`S07`), com:
 
 - MP3 por aula;
 - M4B por aula e um M4B completo, com capítulos e capa;
@@ -28,22 +34,54 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
 1. `AGENTS.md` (este arquivo)
 2. [`DOCS/00-OVERVIEW.md`](DOCS/00-OVERVIEW.md) — visão geral e escopo
 3. [`DOCS/06-TASKS.md`](DOCS/06-TASKS.md) — **estado atual e próxima tarefa**
-4. [`DOCS/01-ARCHITECTURE.md`](DOCS/01-ARCHITECTURE.md) — módulos e fluxo
-5. [`DOCS/03-PDF-PIPELINE.md`](DOCS/03-PDF-PIPELINE.md) — extração e limpeza
-6. [`DOCS/04-AUDIO-PIPELINE.md`](DOCS/04-AUDIO-PIPELINE.md) — TTS e montagem
+4. [`DOCS/01-ARCHITECTURE.md`](DOCS/01-ARCHITECTURE.md) — módulos e fluxos
+5. [`DOCS/03-PDF-PIPELINE.md`](DOCS/03-PDF-PIPELINE.md) — extração, perfis e
+   modos de conteúdo
+6. [`DOCS/04-AUDIO-PIPELINE.md`](DOCS/04-AUDIO-PIPELINE.md) — TTS, FFmpeg e
+   montagem sem console
 7. [`DOCS/05-OPERATIONS.md`](DOCS/05-OPERATIONS.md) — comandos e troubleshooting
-8. [`DOCS/08-ERRORS-AND-LESSONS.md`](DOCS/08-ERRORS-AND-LESSONS.md) — erros já cometidos
+8. [`DOCS/08-ERRORS-AND-LESSONS.md`](DOCS/08-ERRORS-AND-LESSONS.md) — erros já
+   cometidos
 9. [`DOCS/09-DECISIONS.md`](DOCS/09-DECISIONS.md) — decisões arquiteturais
 10. [`DOCS/10-VOICE-AND-PRONUNCIATION.md`](DOCS/10-VOICE-AND-PRONUNCIATION.md)
 11. [`DOCS/11-VERIFICATION.md`](DOCS/11-VERIFICATION.md) — critérios de aceite
-12. [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md) — app one-click,
-    detecção genérica, interface, empacotamento e limitações
+12. [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md) — app, API,
+    detecção, empacotamento e limitações
 
-## 3. Estado atual
+## 3. Estado atual (2026-11-18)
 
-Leia sempre a seção **“Estado atual”** no topo de
-[`DOCS/06-TASKS.md`](DOCS/06-TASKS.md). Ela diz exatamente em qual tarefa o
-projeto parou e qual é o próximo comando.
+- **T00–T16 concluídas.**
+- **59 testes** passando; `ruff` limpo.
+- MKT 120 e COM 150 montados e verificados:
+  - MKT 120: 3:39:26, 68 capítulos, 1.473 cues;
+  - COM 150: 7:50:42, 92 capítulos, 3.457 cues.
+- App **Pathway PDF TTS v0.3.0** implementado:
+  - perfil Pathway/genérico/automático;
+  - modos `auto`, `all`, `raw`;
+  - upload em blocos, fila SQLite, progresso e reanálise;
+  - instância única, health check e logs;
+  - FFmpeg sem janelas de CMD;
+  - empacotamento com Python assinado + PyInstaller alternativo.
+- Artefatos locais (não versionados):
+  - `dist/Pathway PDF TTS/Pathway PDF TTS.exe` — **principal**;
+  - `dist/Pathway-PDF-TTS-Windows.zip`;
+  - `dist/Pathway PDF TTS (PyInstaller)/` — alternativa;
+  - `dist/Pathway-PDF-TTS-Windows-PyInstaller.zip`.
+- **Smart App Control:** a versão principal passa por usar o `pythonw.exe`
+  assinado pela Python Software Foundation. A versão PyInstaller pode ser
+  bloqueada (“política de Controle de Aplicativo”).
+- Próximo passo: ouvir as amostras/S01 e testar PDFs reais; OCR, assinatura
+  própria e instalador estão no backlog.
+
+### O que já foi validado manualmente
+
+- COM 150 real: análise Pathway em ~20 s, 8 capítulos.
+- MKT 120 real: 8 capítulos Pathway.
+- PDF sintético: `auto`/`all` removem cabeçalho/página/URL; `raw` mantém.
+- Job sintético `raw`: 15 arquivos finais.
+- `.exe` principal: health `pathway-pdf-tts` v0.3.0.
+- ZIP principal extraído e executado.
+- `run_hidden`: 10 chamadas de ffmpeg sem novos `cmd`/`conhost`.
 
 ## 4. Regras rígidas (o que você DEVE e o que NÃO DEVE fazer)
 
@@ -55,9 +93,10 @@ projeto parou e qual é o próximo comando.
 - mudança de voz, motor de TTS ou ritmo;
 - necessidade de credencial/conta (Google Cloud, Azure, Hugging Face);
 - conflito entre documentação e código;
-- risco de apagar `cache/`, `content/`, `output/` ou PDFs;
+- risco de apagar `cache/`, `content/`, `output/`, `input/` ou PDFs;
 - dúvida sobre licença/copyright;
-- qualquer ação destrutiva (`git reset --hard`, `git clean`, apagar arquivos).
+- qualquer ação destrutiva (`git reset --hard`, `git clean`, apagar arquivos);
+- mudança no nome do app, portas ou formato dos ZIPs.
 
 Não invente resposta. Registre a dúvida em `DOCS/06-TASKS.md` se precisar parar.
 
@@ -69,6 +108,7 @@ O usuário pediu **autonomia máxima**. Continue sem pedir confirmação para:
 - instalar dependências no `.venv`;
 - rodar extração, testes e builds;
 - gerar áudio em `output/`;
+- gerar os portáteis em `dist/`;
 - fazer commits locais ao final de cada tarefa.
 
 Só interrompa por: ambiguidade real, credencial ausente, ação destrutiva,
@@ -77,19 +117,22 @@ mudança de escopo/voz ou risco de perda de dados.
 ### 4.3 Commits
 
 - Faça **um commit ao final de cada tarefa** concluída.
-- Use mensagens convencionais, por exemplo:
-  - `chore(pdf-tts): scaffold, documentação e regras`
-  - `feat(pdf-tts): extração e estruturação dos PDFs`
-  - `fix(pdf-tts): validação de chunks vazios`
+- Use mensagens convencionais:
+  - `feat(pathway-tts): …`
+  - `fix(pathway-tts): …`
+  - `build(pathway-tts): …`
+  - `docs(pathway-tts): …`
 - Antes de commitar, rode `git status` e confira se só há arquivos deste
-  projeto. **Não** inclua alterações de outros projetos.
+  projeto. **Não** inclua alterações de outros projetos nem arquivos do usuário
+  em `temp/`.
 - **Nunca** commite:
   - `input/*.pdf` (direitos autorais);
   - `content/` (texto extraído, direitos autorais);
   - `output/` (áudio, ~1,2 GB);
-  - `cache/` (chunks e estado);
-  - `dist/` e `build/` (executável e artefatos do PyInstaller);
-  - `manifests/AUTO-*.json` (PDFs arbitrários do usuário);
+  - `cache/` (chunks, estado, jobs);
+  - `dist/` e `build/` (executáveis e artefatos);
+  - `manifests/AUTO-*.json` (PDFs arbitrários);
+  - `temp/` (arquivos do usuário);
   - `.venv/`, segredos, logs.
 - **Nunca** faça `push` sem pedido explícito.
 - Se um commit falhar, resolva e registre em
@@ -104,8 +147,9 @@ mudança de escopo/voz ou risco de perda de dados.
 - `manifests/` é a fonte de verdade do que foi gerado.
 - Não edite o texto em `content/` à mão para “consertar” o áudio. Corrija a
   regra em `src/pdf_tts/` ou o léxico em `config/pronunciation.pt-BR.yaml` e
-  regenere. Exceções manuais devem ser registradas em
-  `config/structure.yaml` ou no léxico.
+  regenere.
+- O `sitecustomize.py` do pacote portátil é **gerado** por
+  `packaging/build_python_portable.ps1`; não o edite à mão no `dist/`.
 
 ### 4.5 Qualidade
 
@@ -118,15 +162,20 @@ mudança de escopo/voz ou risco de perda de dados.
 - Se o Edge TTS falhar repetidamente, **pare** e preserve o cache; não troque
   de motor automaticamente.
 - A interface one-click usa **uma fila e um job por vez**; não rode dois builds
-  Edge simultâneos. O modo genérico deve sempre avisar quando uma página com
-  texto ficar sem áudio e nunca descartar páginas silenciosamente.
+  Edge simultâneos.
+- O modo genérico deve sempre avisar quando uma página com texto ficar sem
+  áudio e nunca descartar páginas silenciosamente.
+- **Todo subprocesso externo** (ffmpeg/ffprobe) deve usar
+  `pdf_tts.audio.run_hidden()`; nunca `subprocess.run` direto em app GUI.
+- Novas mudanças em `discover.py` precisam passar pelos testes de perfil
+  Pathway e pelo `detect` nos PDFs reais MKT/COM.
 
 ### 4.6 Ambiente
 
 - Use **Python 3.11** (`.venv`). O `py` padrão é 3.15 e pode quebrar
   dependências.
 - Windows + PowerShell. Use `pathlib` e UTF-8 em todos os arquivos.
-- FFmpeg/ffprobe precisam estar no `PATH`; `doctor` valida.
+- FFmpeg/ffprobe precisam estar no `PATH` no modo curado; `doctor` valida.
 - Não use PyMuPDF (AGPL). A extração é feita com `pdfplumber` (MIT).
 - Não adicione dependências pesadas (torch, kokoro, etc.) sem aprovação; o
   fallback local está no backlog.
@@ -139,6 +188,7 @@ Ao final de **toda** tarefa, atualize:
 - `DOCS/08-ERRORS-AND-LESSONS.md` — erros e aprendizados;
 - `DOCS/09-DECISIONS.md` — novas decisões;
 - `DOCS/11-VERIFICATION.md` — se mudou critério de aceite;
+- `DOCS/12-ONE-CLICK-APP.md` — se mexeu no app/empacotamento;
 - `manifests/` — se gerou áudio.
 
 Se você parar no meio de uma tarefa, deixe o comando exato para continuar.
@@ -151,28 +201,45 @@ PDF TTS/
 ├─ README.md                 ← início rápido
 ├─ pyproject.toml
 ├─ config/
-│  ├─ projects.yaml          ← projetos, páginas das semanas, voz/rate
+│  ├─ projects.yaml          ← projetos curados, páginas, voz/rate
 │  ├─ structure.yaml         ← regras de detecção de títulos/seções
 │  └─ pronunciation.pt-BR.yaml
 ├─ input/                    ← PDFs (local, não versionado)
 ├─ content/                  ← texto limpo (local, não versionado)
-├─ src/pdf_tts/              ← código
+├─ src/pdf_tts/
+│  ├─ cli.py, config.py, models.py
+│  ├─ extract.py, clean.py, segment.py, normalize.py, chunking.py, lessons.py
+│  ├─ tts/, build.py, state.py, assemble.py, verify.py, audio.py, doctor.py
+│  ├─ discover.py, generic.py, api.py, jobs.py, launcher.py
+│  └─ web/                    ← index.html, app.js, style.css
 ├─ tests/
-├─ scripts/                  ← setup/doctor/run-all
-├─ samples/                  ← amostras sintéticas de voz (versionadas)
-├─ manifests/                ← manifests de build (versionados, sem texto)
-├─ DOCS/                     ← documentação
-├─ output/                   ← áudio (local, não versionado)
-└─ cache/                    ← chunks/estado (local, não versionado)
+├─ scripts/                   ← setup/doctor/run-all/make_test_pdf
+├─ samples/                   ← amostras sintéticas de voz (versionadas)
+├─ manifests/                 ← manifests de build (versionados, sem texto)
+├─ packaging/                 ← builds portáteis, spec, LEIA-MEs
+├─ DOCS/                      ← documentação
+├─ output/                    ← áudio (local, não versionado)
+├─ cache/                     ← chunks/estado/jobs (local, não versionado)
+├─ dist/                      ← portáteis (local, não versionado)
+└─ temp/                      ← arquivos do usuário (não versionar)
 ```
 
 ## 6. Fluxo resumido
 
+### Setup
+
 ```powershell
+cd "PDF TTS"
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
 python -m pip install -e ".[dev]"
 python -m pdf_tts doctor
+```
+
+### Pipeline curado
+
+```powershell
 python -m pdf_tts extract --project all
 python -m pdf_tts segment --project all
 python -m pdf_tts samples
@@ -180,22 +247,87 @@ python -m pdf_tts build --project mkt120 --lesson S01
 python -m pdf_tts all --project all
 ```
 
-O estado final (2026-11-17) está em `DOCS/06-TASKS.md`: MKT 120 (3:39:26) e
-COM 150 (7:50:42) montados e verificados. Áudios em `output/` (não versionados).
+### App pelo código-fonte
 
-Em 2026-11-18 foi adicionado o **Pathway PDF TTS** (one-click):
-`python -m pdf_tts gui`, ou o portátil `dist/Pathway PDF TTS/Pathway PDF
-TTS.exe` gerado por `packaging/build_python_portable.ps1` (Python assinado,
-para Smart App Control). A variante PyInstaller fica em
-`packaging/build_portable.ps1` e pode ser bloqueada por política de aplicativo.
-Ele procura primeiro os títulos do Pathway (`Semana 1`…`7`, `S01`…`S07`),
-aceita PDFs arbitrários com texto no perfil genérico e cai para blocos de
-páginas quando não encontra estrutura. Modos de conteúdo: **Automático**,
-**Tudo útil** e **Tudo literal**. Detalhes em `DOCS/12-ONE-CLICK-APP.md`.
+```powershell
+python -m pdf_tts gui
+python -m pdf_tts serve --port 8899
+python -m pdf_tts detect "input\Livro texto COM 150-1.pdf" --profile pathway
+python -m pdf_tts convert "C:\caminho\livro.pdf" --mode auto
+```
 
-Detalhes em [`DOCS/05-OPERATIONS.md`](DOCS/05-OPERATIONS.md).
+### Portáteis
 
-## 7. Definition of Done
+```powershell
+# Principal: Python assinado (funciona com Smart App Control)
+.\packaging\build_python_portable.ps1
+
+# Alternativa: PyInstaller (menor, sem assinatura; pode ser bloqueada)
+.\packaging\build_portable.ps1
+```
+
+Saídas:
+
+```text
+dist/Pathway PDF TTS/Pathway PDF TTS.exe
+dist/Pathway-PDF-TTS-Windows.zip
+dist/Pathway PDF TTS (PyInstaller)/Pathway PDF TTS.exe
+dist/Pathway-PDF-TTS-Windows-PyInstaller.zip
+```
+
+### Testes
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check src tests packaging
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+## 7. App Pathway PDF TTS
+
+### Modos de conteúdo
+
+| Modo | `content_mode` | Comportamento |
+|---|---|---|
+| Automático | `auto` | Limpa bibliografia, créditos e boilerplate. |
+| Tudo útil | `all` | Inclui referências/notas; remove cabeçalho, página, URL. |
+| Tudo literal | `raw` | Inclui tudo extraído, inclusive cabeçalho/página/link. |
+
+### Perfis
+
+- `auto` — Pathway primeiro, depois outline, genérico e blocos.
+- `pathway` — força Semana/S01–S07; se não achar, avisa e cai para genérico.
+- `generic` — outline, títulos por fonte/padrões e blocos.
+
+### Receitas da interface
+
+- **Automático** = `auto` + capítulos automáticos.
+- **Identificar capítulos** = `auto` + capítulos manuais/editáveis.
+- **Tudo útil** = `all` + capítulos automáticos.
+- **Tudo literal** = `raw` + capítulos automáticos.
+
+### Robustez que não pode regredir
+
+- upload em blocos, limite 500 MB, validação `%PDF-`;
+- análise mostrando tempo e progresso do envio;
+- `GET /api/health` e banner de conexão;
+- instância única e confirmação ao fechar;
+- reanálise por `POST /api/reanalyze`;
+- logs em `logs/app.log`, `launcher.log`, `crash.log`;
+- `run_hidden` para ffmpeg/ffprobe;
+- uma fila SQLite (`cache/jobs.db`), um job por vez;
+- `coverage.json` com páginas sem áudio e só imagem.
+
+### Smart App Control
+
+A versão principal usa uma cópia assinada do `pythonw.exe` da Python Software
+Foundation, renomeada para `Pathway PDF TTS.exe`, com `Lib`, `DLLs`, `tcl`,
+`site-packages`, `src`, `config` e FFmpeg locais. Isso evita o bloqueio de
+“política de Controle de Aplicativo” que atinge o PyInstaller sem assinatura.
+
+Não troque a versão principal por PyInstaller sem testar em máquina com Smart
+App Control ativo.
+
+## 8. Definition of Done
 
 Uma tarefa só termina quando:
 

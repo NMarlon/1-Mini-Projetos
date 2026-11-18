@@ -193,6 +193,69 @@ Saída: `dist/Pathway PDF TTS (PyInstaller)/` +
 
 Guia completo: [`12-ONE-CLICK-APP.md`](12-ONE-CLICK-APP.md).
 
+### App: portas, instância e dados
+
+- O app escuta em `127.0.0.1:8765` e, se ocupado, tenta 8766…8794.
+- Se já existe uma instância, abrir o `.exe` de novo apenas abre a interface
+  existente; não cria outra fila.
+- Dados do app ficam na pasta do `.exe`: `input/uploads/`, `cache/jobs.db`,
+  `cache/uploads/`, `output/`, `logs/`.
+- Logs: `logs/app.log` (rotativo), `logs/launcher.log`, `logs/crash.log`,
+  `logs/launcher-error.log`.
+- Para encerrar, use **Sair** na janelinha; fechar no X pede confirmação.
+- `GET /api/health` retorna `{"ok": true, "app": "pathway-pdf-tts", "version": "0.3.0"}`.
+
+### App: teste rápido do servidor
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8765/api/health"
+Invoke-RestMethod "http://127.0.0.1:8765/api/defaults"
+```
+
+Se o primeiro comando falhar, o servidor não está rodando ou a porta é outra.
+
+### App: “Failed to fetch”
+
+“Failed to fetch” é o navegador sem conseguir falar com o servidor local, não
+um erro de PDF. Verifique, nesta ordem:
+
+1. A janelinha **Pathway PDF TTS está rodando** ainda está aberta?
+2. A aba é da instância atual? Se o app foi reaberto em outra porta, use a aba
+   nova; abrir o `.exe` de novo reutiliza a instância existente.
+3. O log `logs/app.log` mostra o upload/análise?
+4. Se a interface mostrou o banner vermelho, clique em **Tentar novamente**.
+5. Se o processo morreu, abra o `.exe` novamente; os jobs interrompidos são
+   marcados como `interrupted` e podem ser gerados de novo usando o cache.
+
+O upload é feito em blocos de 1 MB, com limite de 500 MB. O COM 150 leva ~20 s
+para analisar; a interface mostra o tempo decorrido.
+
+### App: Windows bloqueou o `.exe`
+
+Se aparecer **“Uma política de Controle de Aplicativo bloqueou este arquivo”**,
+você está usando a versão PyInstaller em um PC com **Smart App Control** ativo.
+Use a versão principal:
+
+```text
+dist/Pathway PDF TTS/Pathway PDF TTS.exe
+```
+
+Ela é uma cópia assinada do `pythonw.exe` da Python Software Foundation, com
+runtime e dependências locais. Não é um `.exe` PyInstaller.
+
+### App: janelas de CMD piscando
+
+Isso não deve mais acontecer. `ffmpeg`/`ffprobe` são executados por
+`pdf_tts.audio.run_hidden()` com `CREATE_NO_WINDOW`. Se voltar, procure
+`subprocess.run` direto em `src/pdf_tts/` e troque por `run_hidden`.
+
+### App: reanalisar com outro perfil
+
+Na tela de análise, troque **Perfil de detecção** ou clique em **Reanalisar**.
+O app usa `POST /api/reanalyze` com o mesmo upload e não pede o PDF de novo.
+Se você estiver no modo de edição manual, ele pede confirmação porque a
+detecção será refeita.
+
 ### Amostras
 
 ```powershell
@@ -313,7 +376,8 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 1. Abra `content/<projeto>/manuscript.md` e localize a página.
 2. Veja `skipped.jsonl` para saber se um bloco foi removido.
-3. Corrija a regra em `src/pdf_tts/clean.py`/`classify.py` ou o léxico.
+3. Corrija a regra em `src/pdf_tts/clean.py`, `src/pdf_tts/extract.py` ou o
+   léxico.
 4. Regenere `extract`/`segment` e o áudio da aula.
 5. Registre em `08-ERRORS-AND-LESSONS.md`.
 

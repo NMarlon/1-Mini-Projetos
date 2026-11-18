@@ -8,6 +8,84 @@ semana/seção.
 
 O resultado fica em `content/<projeto>/` e **não é versionado** (copyright).
 
+## Dois caminhos de entrada
+
+| Caminho | Código | Fonte da estrutura |
+|---|---|---|
+| **Curado** | `extract.py` + `segment.py` com `config/projects.yaml` | Páginas fixas das 7 semanas do MKT 120 / COM 150. |
+| **Genérico (app)** | `discover.py` + `generic.py` | Perfil Pathway, índice, títulos por fonte/padrões ou fallback em blocos. |
+
+O modo curado continua sendo a fonte dos dois audiolivros entregues. O modo
+genérico é o que a interface usa para PDFs arbitrários.
+
+## Perfis do modo genérico
+
+O perfil é escolhido no app ou por `--profile`:
+
+| Perfil | Ordem |
+|---|---|
+| `auto` (padrão) | Pathway → outline → títulos genéricos → blocos de páginas. |
+| `pathway` | Força Semana/S01–S07; se não achar, avisa e cai para o genérico. |
+| `generic` | Outline → títulos por fonte/padrões (`Capítulo`, `Chapter`, `Parte`, `Aula`…) → blocos. |
+
+### Detecção Pathway
+
+1. Procura linhas `Semana N` com fonte ≥ 1,05× o corpo.
+2. Se não houver, procura `S01`…`S07`.
+3. Ignora o sumário: para cada número de semana, prefere a ocorrência de fonte
+   maior e, em empate, a que está fora das primeiras páginas.
+4. Agrupa os títulos em ordem de página, insere “Abertura” para as páginas
+   anteriores e calcula `end_page` até a página seguinte.
+5. Se houver menos de 2 semanas, cai para outline/genérico/blocos e registra
+   aviso.
+
+No MKT 120 e no COM 150 o resultado é Abertura + Semanas 1–7 (8 capítulos).
+
+### Detecção genérica
+
+1. Outline/bookmarks do PDF (`pypdf`).
+2. Títulos por tamanho de fonte (`pdfplumber`), com filtro de sumário.
+3. Padrões `Capítulo`, `Chapter`, `Parte`, `Part`, `Unidade`, `Unit`, `Aula`,
+   `Lição`, `Lesson`, `Módulo`, `Module`.
+4. Fallback em blocos de 10 páginas (configurável).
+5. Sem nada: um capítulo “Livro completo”.
+
+O app **não é uma IA semântica**: se o PDF não tiver títulos reconhecíveis, ele
+divide por páginas e avisa. Nunca descarta páginas silenciosamente.
+
+## Modos de conteúdo
+
+| Modo | Constante | Comportamento |
+|---|---|---|
+| **Automático** | `auto` | Remove bibliografia, créditos, boilerplate, cabeçalho/rodapé, número de página, URL e texto pequeno de fonte. |
+| **Tudo útil** | `all` | Mantém referências/notas/créditos; remove cabeçalho, rodapé, número de página, URL e ícones. |
+| **Tudo literal** | `raw` | Mantém tudo o que foi extraído, inclusive cabeçalho, rodapé, número de página e link. |
+
+A escolha é feita no `extract.py` e propagada por `ConvertOptions.content_mode`.
+No modo curado, o padrão é `auto`.
+
+## `coverage.json`
+
+Gerado em `output/<slug>/coverage.json` pelo pipeline genérico:
+
+```json
+{
+  "pages_total": 220,
+  "pages_with_text": 218,
+  "pages_narrated": 218,
+  "pages_without_audio": [],
+  "pages_only_dropped": [],
+  "image_only_pages": [1],
+  "dropped_blocks": {"header": 40, "footer": 38, "reference": 10},
+  "chapters": [],
+  "chunks": 1234,
+  "warnings": []
+}
+```
+
+Se uma página com texto ficar sem áudio, o app mostra o número e permite trocar
+para “Tudo útil”/“Tudo literal” ou editar os capítulos.
+
 ## Ferramenta
 
 **`pdfplumber`** (MIT), sobre `pdfminer.six`. Fornece:
@@ -148,7 +226,7 @@ Exemplos:
   - `Vocabulário`, `Glossário`, `Dicas de Estudo`;
   - `Exercícios`, `Verificação de Conhecimento`;
   - `Projeto Final`, `Estudo de Caso`, `Discussão`, `Tarefa`;
-  - `A Mão do Senhor`, `Mantenha o Ímético Espiritual`.
+  - `A Mão do Senhor`, `Mantenha o Ímpeto Espiritual`.
 - Títulos quebrados em duas linhas são mesclados.
 - Se uma seção não tiver conteúdo, é descartada.
 - Se a detecção falhar, adicionar override em `config/structure.yaml`
@@ -235,6 +313,9 @@ Antes de sintetizar um projeto novo:
 
 - `tests/test_clean.py`: ligaduras, PUA, URLs, cabeçalhos, hifenização.
 - `tests/test_classify.py`: títulos, opções, small print, referências e tabelas.
+- `tests/test_discover.py`: perfil Pathway, S01–S07, fallback, modo `raw` e
+  projeto dinâmico.
+- `tests/test_api.py`: upload, análise, reanálise e modos inválidos.
 - Validação nos PDFs reais:
   - contagem de caracteres por semana próxima da tabela acima;
   - nenhum bloco com PUA ou ligadura;

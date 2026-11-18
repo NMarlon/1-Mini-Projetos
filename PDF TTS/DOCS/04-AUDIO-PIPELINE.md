@@ -25,6 +25,28 @@ manifest.
 | Pausa antes de seção | 1.200 ms |
 | Pausa antes de semana/livro | 1.800 / 2.000 ms |
 
+## Execução de FFmpeg sem janelas de console
+
+O app roda com `pythonw.exe`/PyInstaller `console=False`. Se `ffmpeg` ou
+`ffprobe` fossem chamados com `subprocess.run` puro, cada chamada abriria um
+console temporário. Por isso **todo** subprocesso externo usa
+`pdf_tts.audio.run_hidden()`:
+
+```python
+def run_hidden(command: list[str], **kwargs):
+    if os.name == "nt":
+        kwargs.setdefault("creationflags", subprocess.CREATE_NO_WINDOW)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        kwargs.setdefault("startupinfo", startupinfo)
+    return subprocess.run(command, **kwargs)
+```
+
+Usado por `assemble.py`, `verify.py`, `doctor.py` e `ffprobe_duration`.
+**Não troque por `subprocess.run` direto**; o teste
+`tests/test_audio.py::test_run_hidden_sets_windows_flags` protege isso.
+
 ## Chunking
 
 1. Cada bloco é dividido em sentenças.
@@ -95,6 +117,9 @@ Antes de marcar como `done`:
    - pass 2: aplicar com os valores medidos.
 5. Opcional: suavizar o começo/fim com 50 ms de fade para evitar clique.
 6. Codificar MP3 e M4B a partir do WAV normalizado.
+
+O app não chama `run_assemble` diretamente: usa `run_assemble_project`, que
+recebe `progress_cb` e informa `montando`/`concluído` ao `jobs.py`.
 
 ### Por que WAV concatenado e não concat de MP3
 

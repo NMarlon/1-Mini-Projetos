@@ -75,6 +75,60 @@ output/<nome-do-pdf>/
 | **Tudo útil** (`all`) | Mantém referências, notas, créditos e texto pequeno; remove apenas cabeçalho, rodapé, número de página, URLs e ícones. |
 | **Tudo literal** (`raw`) | Narra tudo o que o extrator encontrou: referências, cabeçalhos repetidos, números de página, rodapés e links. O áudio fica mais repetitivo. |
 
+## Receitas da interface
+
+As quatro opções visíveis antes do upload são combinações de conteúdo/capítulos:
+
+| Receita | `content_mode` | `chapter_mode` | Uso |
+|---|---|---|---|
+| **Automático** | `auto` | `auto` | Uso diário; limpa bibliografia/boilerplate. |
+| **Identificar capítulos** | `auto` | `manual` | Revisar/editar capítulos antes de gerar. |
+| **Tudo útil** | `all` | `auto` | Referências/notas/créditos, sem lixo de layout. |
+| **Tudo literal** | `raw` | `auto` | “Tudo mesmo”; áudio repetitivo. |
+
+O usuário ainda pode mudar o perfil de detecção e, em “Avançado”, escolher
+capítulos automáticos, edição manual ou livro inteiro.
+
+## API local
+
+| Método | Rota | Uso |
+|---|---|---|
+| GET | `/api/health` | `{"ok": true, "app": "pathway-pdf-tts", "version": "0.3.0"}` |
+| GET | `/api/defaults` | Voz, ritmo, tamanho de bloco e perfil padrão. |
+| POST | `/api/analyze` | Multipart: `file`, `chapter_mode`, `chapter_size`, `profile`; salva upload e devolve `upload_id` + `discovery`. |
+| POST | `/api/reanalyze` | JSON `upload_id`, `profile`; refaz a detecção sem novo upload. |
+| POST | `/api/jobs` | JSON `upload_id`, `chapter_mode`, `chapters`, `content_mode`, `profile`, `voice`, `rate`. |
+| GET | `/api/jobs/{id}` | Status, progresso, `coverage`, arquivos e pasta. |
+| GET | `/api/jobs` | Últimos jobs (máx. 50). |
+| POST | `/api/open-folder` | Abre a pasta de saída validada no Windows. |
+| GET | `/api/voices` | Vozes pt-BR do Edge TTS. |
+
+Upload: blocos de 1 MB, limite de 500 MB, exige cabeçalho `%PDF-` e checa
+espaço livre. A análise roda em threadpool; o job roda em uma thread de fila
+SQLite, um por vez.
+
+## Arquivos e dados do app
+
+```text
+<portátil>/
+├─ Pathway PDF TTS.exe     # principal: pythonw.exe assinado pela PSF
+├─ Lib/ DLLs/ tcl/         # runtime Python local
+├─ src/                    # código pdf_tts
+├─ config/                 # projects.yaml, structure.yaml, pronunciation
+├─ ffmpeg.exe ffprobe.exe
+├─ input/uploads/          # PDFs enviados (local)
+├─ cache/jobs.db           # fila SQLite
+├─ cache/uploads/          # análise JSON por upload
+├─ output/<slug>/          # MP3/M4B/SRT/coverage/manifest
+├─ logs/app.log            # upload, análise, jobs
+├─ logs/launcher.log       # stdout/stderr do app sem console
+└─ logs/crash.log          # faulthandler
+```
+
+No código-fonte, os mesmos dados ficam na raiz do projeto (`ROOT`), e
+`config/`/`web/` são recursos (`RESOURCE_ROOT`). No PyInstaller congelado,
+`ROOT` é a pasta do `.exe` e `RESOURCE_ROOT` é `_internal`.
+
 O relatório `coverage.json` mostra:
 
 - páginas totais, com texto e narradas;
@@ -226,15 +280,56 @@ Gera `dist/Pathway PDF TTS (PyInstaller)/` e
   encontrados pelo `find_tool`; `ROOT` é a pasta do `.exe` e `RESOURCE_ROOT` é
   `_internal`.
 - `sys.stdout/stderr` são redirecionados para `logs/launcher.log`.
+- Tamanhos medidos em 2026-11-18: pasta principal ~428 MB / ZIP ~150 MB;
+  PyInstaller ~277 MB / ZIP ~130 MB.
+
+Nada disso é versionado: `dist/` e `build/` estão no `.gitignore`. O código e
+os scripts de build são versionados; o executável é regenerado.
 
 ## Testes executados
 
 - `pytest`: **59 testes** (descoberta, perfis, API, montagem, normalização).
-- COM 150 real: análise Pathway em ~20 s (com cache de disco), 8 capítulos, sem erro.
-- MKT 120 real: 8 capítulos Pathway.
-- PDF sintético: modos `auto`/`all` removem cabeçalho/página/URL; `raw` mantém.
-- Executável portátil: upload, análise, job completo e arquivos finais.
-- MKT 120 e COM 150: verificação técnica continua OK.
+- `ruff check src tests packaging`: limpo.
+
+| Teste | Resultado |
+|---|---|
+| MKT 120, perfil Pathway | 8 capítulos (Abertura + Semanas 1–7) |
+| COM 150, perfil Pathway | 8 capítulos (Abertura + Semanas 1–7), ~20 s |
+| COM 150, perfil Genérico | 8 capítulos por título |
+| PDF sintético, `auto`/`all` | remove cabeçalho, número de página e URL |
+| PDF sintético, `raw` | mantém cabeçalho, número de página e URL |
+| Job sintético `raw` | 15 arquivos (MP3/M4B/SRT + completo + capa + JSON) |
+| `.exe` principal | health `pathway-pdf-tts` v0.3.0 |
+| ZIP principal extraído | abriu e respondeu ao health |
+| `run_hidden` (10 chamadas ffmpeg) | nenhum `cmd.exe`/`conhost.exe` novo |
+| PyInstaller | build OK, mas bloqueado nesta máquina pelo Smart App Control |
+
+## Diagnóstico rápido
+
+### “Failed to fetch”
+
+1. A janelinha do app está aberta?
+2. A aba é da instância/porta atual?
+3. `logs/app.log` registra o upload?
+4. Clique em **Tentar novamente** no banner de conexão.
+5. Se o processo morreu, abra o `.exe`; jobs ficam `interrupted` e o cache é
+   reaproveitado.
+
+### O `.exe` foi bloqueado pelo Windows
+
+Use a versão principal (`dist/Pathway PDF TTS/`), que usa o `pythonw.exe`
+assinado pela PSF. A versão PyInstaller não tem assinatura e pode ser bloqueada
+pelo Smart App Control.
+
+### Janelas de CMD piscando
+
+Não deve ocorrer. Se voltar, procure `subprocess.run` direto em `src/pdf_tts/`
+e troque por `pdf_tts.audio.run_hidden`.
+
+### Análise demorada
+
+O COM 150 leva ~20 s. A interface mostra o tempo decorrido; não feche a
+janelinha nem recarregue a aba. Se o PDF tiver mais de 500 MB, divida antes.
 
 ## Limitações da v1
 
