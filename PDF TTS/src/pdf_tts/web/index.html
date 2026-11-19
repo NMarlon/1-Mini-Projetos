@@ -158,7 +158,9 @@
       </div>
       <p class="hint" id="errorHelp" hidden>
         Se o problema continuar, <a id="reportErrorLink" href="mailto:marlonrviana@gmail.com">envie um e-mail</a>
-        com o ID do job, a mensagem acima e o arquivo <code>logs/app.log</code>.
+        com o ID do job e a mensagem acima. Para anexar, use
+        <a href="/api/logs/app.log?download=1">Baixar log</a>; para copiar, use
+        <a href="/api/logs/app.log" target="_blank" rel="noopener">Abrir log</a>.
       </p>
       <div class="result" id="result" hidden>
         <h3>Pronto!</h3>
@@ -203,8 +205,18 @@
           com o que aconteceu, o nome do PDF e, se possível, o arquivo
           <code>logs/app.log</code>. Isso ajuda a corrigir mais rápido.
         </p>
+        <p class="hint">
+          O navegador não consegue anexar arquivos sozinho no e-mail. Use
+          <strong>Abrir log</strong> para copiar o conteúdo, ou
+          <strong>Baixar log</strong> e anexe o arquivo manualmente.
+        </p>
+        <div class="support-actions">
+          <a class="secondary button-link" href="/api/logs/app.log" target="_blank" rel="noopener">Abrir log</a>
+          <a class="secondary button-link" href="/api/logs/app.log?download=1">Baixar log</a>
+          <button class="secondary" id="copyLog" type="button">Copiar log</button>
+          <a class="primary button-link" href="mailto:marlonrviana@gmail.com?subject=Pathway%20PDF%20TTS%20-%20relato%20de%20bug">Enviar e-mail</a>
+        </div>
       </div>
-      <a class="primary button-link" href="mailto:marlonrviana@gmail.com?subject=Pathway%20PDF%20TTS%20-%20relato%20de%20bug">Enviar e-mail</a>
     </section>
   </main>
 

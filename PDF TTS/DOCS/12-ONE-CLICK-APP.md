@@ -288,7 +288,7 @@ os scripts de build são versionados; o executável é regenerado.
 
 ## Testes executados
 
-- `pytest`: **59 testes** (descoberta, perfis, API, montagem, normalização).
+- `pytest`: **60 testes** (descoberta, perfis, API, logs, montagem, normalização).
 - `ruff check src tests packaging`: limpo.
 
 | Teste | Resultado |
@@ -319,6 +319,25 @@ um link **“envie um e-mail”** que já inclui:
 - ID do job;
 - etapa;
 - mensagem de erro.
+
+### Por que o log não é anexado automaticamente
+
+`mailto:` não permite anexar arquivos; o navegador e o cliente de e-mail não
+dão esse controle por segurança. Para contornar isso sem servidor de e-mail, o
+card de suporte oferece:
+
+| Ação | Resultado |
+|---|---|
+| **Abrir log** | Abre `/api/logs/app.log` no navegador; o usuário pode copiar e colar no e-mail. |
+| **Baixar log** | Baixa `app.log` para anexar manualmente. |
+| **Copiar log** | Copia o conteúdo para a área de transferência. |
+| **Enviar e-mail** | Abre o cliente com assunto e corpo preenchidos. |
+
+Endpoints (allowlist, sem caminhos arbitrários):
+
+- `GET /api/logs/app.log` — exibe o log;
+- `GET /api/logs/app.log?download=1` — baixa;
+- também aceita `launcher.log`, `crash.log` e `launcher-error.log`.
 
 Peça ao usuário que anexe `logs/app.log` e informe o nome do PDF. Não há
 telemetria automática; nada é enviado sem o usuário clicar.

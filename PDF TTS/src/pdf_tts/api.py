@@ -34,8 +34,11 @@ UPLOAD_CHUNK = 1024 * 1024
 WEB_DIR = Path(__file__).parent / "web"
 UPLOAD_DIR = ROOT / "input" / "uploads"
 ANALYSIS_DIR = ROOT / "cache" / "uploads"
+LOG_DIR = ROOT / "logs"
+LOG_FILES = {"app.log", "launcher.log", "crash.log", "launcher-error.log"}
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Pathway PDF TTS", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
@@ -132,6 +135,22 @@ def index() -> FileResponse:
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     return {"ok": True, "app": APP_ID, "version": APP_VERSION}
+
+
+@app.get("/api/logs/{name}")
+def get_log(name: str, download: bool = False) -> FileResponse:
+    """Abre ou baixa um log conhecido, sem expor caminhos arbitrários."""
+    if name not in LOG_FILES:
+        raise HTTPException(status_code=404, detail="Log não encontrado.")
+    path = (LOG_DIR / name).resolve()
+    if LOG_DIR.resolve() not in path.parents or not path.exists():
+        raise HTTPException(status_code=404, detail="Log não encontrado.")
+    return FileResponse(
+        path,
+        media_type="text/plain; charset=utf-8",
+        filename=name if download else None,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/defaults")

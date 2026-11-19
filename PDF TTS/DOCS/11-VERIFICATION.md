@@ -117,6 +117,9 @@ Para cada projeto:
 - [ ] Card “Encontrou um bug?” visível no fim da interface.
 - [ ] Rodapé mostra `marlonrviana@gmail.com`.
 - [ ] Link de erro inclui ID do job, etapa e mensagem.
+- [ ] “Abrir log” exibe `/api/logs/app.log`.
+- [ ] “Baixar log” baixa o arquivo; “Copiar log” copia o conteúdo.
+- [ ] A allowlist bloqueia nomes desconhecidos.
 - [ ] `LEIA-ME.txt` e `LEIA-ME-PYINSTALLER.txt` têm o contato.
 
 ## 9.4 Protocolo e reprodutibilidade
@@ -193,5 +196,5 @@ O projeto está pronto quando:
 | 2026-11-17 | MKT-120 S01 | OK técnico | 23:05; 11 capítulos; 163 cues; -16,46 LUFS; TP -1,46; MP3 11,1 MB; M4B 11,2 MB; capa 1081x1400. |
 | 2026-11-17 | MKT-120 completo | **OK** | 7 aulas + livro 3:39:26; 1.473 cues; 68 capítulos; loudness -16,45/-16,46 LUFS; TP ≤ -0,94; nenhum silêncio >5 s. |
 | 2026-11-17 | COM-150 completo | **OK** | 7 aulas + livro 7:50:42; 3.457 cues; 92 capítulos; loudness -16,45 LUFS; TP ≤ -0,79; nenhum silêncio >5 s. |
-| 2026-11-18 | Pathway PDF TTS | **OK** | 59 testes; ruff limpo; COM 150 Pathway em ~20 s / 8 capítulos; MKT 120 Pathway / 8 capítulos; job `raw` com 15 arquivos; ZIP principal extraído e executado; `run_hidden` sem novos cmd/conhost. |
+| 2026-11-18 | Pathway PDF TTS | **OK** | 60 testes; ruff limpo; COM 150 Pathway em ~20 s / 8 capítulos; MKT 120 Pathway / 8 capítulos; job `raw` com 15 arquivos; ZIP principal extraído e executado; `run_hidden` sem novos cmd/conhost; logs com allowlist. |
 | 2026-11-18 | App — Smart App Control | **OK na versão principal** | PyInstaller bloqueado por política de aplicativo nesta máquina; versão com `pythonw.exe` assinado pela PSF abriu e passou no health check. |

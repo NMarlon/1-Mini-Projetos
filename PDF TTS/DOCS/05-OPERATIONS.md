@@ -263,6 +263,15 @@ Ao relatar, inclua:
 
 O app não envia nada automaticamente; o link apenas abre o cliente de e-mail.
 
+`mailto:` não permite anexar arquivos. Por isso o card tem:
+
+- **Abrir log** — `/api/logs/app.log` no navegador, para copiar/colar;
+- **Baixar log** — `/api/logs/app.log?download=1`, para anexar;
+- **Copiar log** — copia o conteúdo para a área de transferência.
+
+Os endpoints só servem arquivos da allowlist (`app.log`, `launcher.log`,
+`crash.log`, `launcher-error.log`).
+
 ### App: reanalisar com outro perfil
 
 Na tela de análise, troque **Perfil de detecção** ou clique em **Reanalisar**.

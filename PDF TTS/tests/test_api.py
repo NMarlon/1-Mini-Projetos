@@ -9,6 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 
+import pdf_tts.api as api_module
 from pdf_tts.api import app
 
 
@@ -89,3 +90,16 @@ def test_rejects_invalid_content_mode(tmp_path: Path) -> None:
         },
     )
     assert job.status_code == 400
+
+
+def test_logs_are_limited_to_known_files(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(api_module, "LOG_DIR", tmp_path)
+    (tmp_path / "app.log").write_text("linha de teste\n", encoding="utf-8")
+    client = TestClient(app)
+    response = client.get("/api/logs/app.log")
+    assert response.status_code == 200
+    assert "linha de teste" in response.text
+    download = client.get("/api/logs/app.log?download=1")
+    assert download.status_code == 200
+    assert "attachment" in download.headers["content-disposition"]
+    assert client.get("/api/logs/segredo.txt").status_code == 404

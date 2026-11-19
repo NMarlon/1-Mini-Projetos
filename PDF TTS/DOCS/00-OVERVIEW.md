@@ -134,9 +134,9 @@ Checklist detalhado em [`11-VERIFICATION.md`](11-VERIFICATION.md).
 
 ## Estado atual
 
-**T00–T19 concluídas; 59 testes passando.** O modo curado entregou MKT 120 e
+**T00–T20 concluídas; 60 testes passando.** O modo curado entregou MKT 120 e
 COM 150; o app Pathway PDF TTS está implementado e empacotado; o tutorial de
-download está em DOCS/13, o protocolo em DOCS/14 e o suporte por e-mail está na
-interface. Ver
+download está em DOCS/13, o protocolo em DOCS/14 e o suporte inclui e-mail e
+acesso ao log. Ver
 [`06-TASKS.md`](06-TASKS.md) para o estado detalhado e o próximo passo. Este
 documento descreve o **alvo**; as tarefas descrevem **onde estamos**.

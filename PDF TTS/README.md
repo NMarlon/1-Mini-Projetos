@@ -7,10 +7,10 @@ outros PDFs com camada de texto.
 
 ## Estado atual
 
-**T00–T19 concluídas.** Os dois livros estão montados e verificados; o app
+**T00–T20 concluídas.** Os dois livros estão montados e verificados; o app
 Pathway PDF TTS está implementado e empacotado, o tutorial de download está em
-DOCS/13, o protocolo do repositório está em DOCS/14 e a interface tem canal de
-suporte por e-mail.
+DOCS/13, o protocolo do repositório está em DOCS/14 e o suporte inclui e-mail,
+abertura, download e cópia do log.
 
 | Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
 |---|---|---|---|---|---|
@@ -18,7 +18,7 @@ suporte por e-mail.
 | `COM 150` | S01–S07 | 07:50:42 | 92 | 3.457 | ~910 MB |
 | **Total** | **14** | **11:30:08** | **160** | **4.930** | **1,335 GB** |
 
-- 59 testes automatizados passando.
+- 60 testes automatizados passando.
 - `verify --project all`: MP3/M4B/SRT/capítulos/capa/loudness **OK**; nenhum
   silêncio > 5 s.
 - Áudios em `output/MKT-120/` e `output/COM-150/` (não versionados).
@@ -87,7 +87,9 @@ Encontrou um bug ou algo estranho no app? Envie um e-mail para
 - se possível, o arquivo `logs/app.log`.
 
 O contato também aparece no rodapé e no card **“Encontrou um bug?”** da
-interface.
+interface. Nesse card, use **Abrir log** para copiar o conteúdo, **Baixar log**
+para anexar ou **Copiar log** para colar no e-mail. O navegador não consegue
+anexar arquivos automaticamente em um link `mailto:`.
 
 ## Tutorial: como baixar o PDF do livro
 

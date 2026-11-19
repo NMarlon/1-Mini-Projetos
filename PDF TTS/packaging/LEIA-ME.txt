@@ -56,6 +56,10 @@ Envie um e-mail para marlonrviana@gmail.com com:
 - o nome do PDF usado;
 - se possível, o arquivo logs/app.log.
 
+Na tela do app, use "Abrir log" para copiar o conteúdo, "Baixar log" para
+anexar ou "Copiar log" para colar no e-mail. O navegador não anexa o arquivo
+automaticamente.
+
 Problemas
 ---------
 - Se o Windows bloquear com "Uma política de Controle de Aplicativo bloqueou

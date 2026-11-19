@@ -685,6 +685,43 @@ function onProfileChange() {
   reanalyze();
 }
 
+async function copyLog() {
+  const button = $("copyLog");
+  const original = button.textContent;
+  try {
+    const response = await fetch("/api/logs/app.log", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(response.status === 404 ? "O log ainda não existe." : `Erro HTTP ${response.status}`);
+    }
+    const text = await response.text();
+    let copied = false;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      } catch (_) {
+        copied = false;
+      }
+    }
+    if (!copied) {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      copied = document.execCommand("copy");
+      area.remove();
+    }
+    if (!copied) throw new Error("O navegador bloqueou a cópia.");
+    button.textContent = "Log copiado!";
+    setTimeout(() => { button.textContent = original; }, 2500);
+  } catch (_) {
+    button.textContent = "Use Abrir/Baixar";
+    setTimeout(() => { button.textContent = original; }, 3000);
+  }
+}
+
 function setupDropzone() {
   const drop = $("dropzone");
   const input = $("fileInput");
@@ -735,6 +772,7 @@ function init() {
     if (ok && state.jobId) pollJob();
   });
   $("generate").addEventListener("click", generate);
+  $("copyLog").addEventListener("click", copyLog);
   applyRecipe();
   state.healthTimer = setInterval(checkHealth, 5000);
 }

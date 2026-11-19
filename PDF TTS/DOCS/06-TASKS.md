@@ -1,9 +1,9 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T19 concluídas.** Os dois livros estão montados e
+> **Estado atual:** **T00–T20 concluídas.** Os dois livros estão montados e
 > verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado;
 > o tutorial de download está em DOCS/13; o protocolo do repositório está em
-> DOCS/14; a interface tem canal de suporte por e-mail.
+> DOCS/14; o suporte por e-mail inclui abrir, baixar e copiar o log.
 > Áudios em `output/MKT-120/` e `output/COM-150/`; app em
 > `dist/Pathway PDF TTS/Pathway PDF TTS.exe` (local, não versionado).
 > **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
@@ -36,6 +36,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T17 | Tutorial visual: como baixar o PDF pelo site | `[x]` | `docs(pathway-tts): tutorial de download do PDF` |
 | T18 | Protocolo permanente do repositório e lock reproduzível | `[x]` | `chore(repo): formaliza protocolo de continuidade e lock` |
 | T19 | Canal de suporte por e-mail na interface e no LEIA-ME | `[x]` | `feat(pathway-tts): canal de suporte por e-mail` |
+| T20 | Abrir, baixar e copiar o log no card de suporte | `[x]` | `feat(pathway-tts): acesso ao log para relato de bug` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -83,7 +84,7 @@ Os manifests versionados estão em `manifests/MKT-120.json` e
 - Nenhum silêncio > 5 s.
 - Capítulos e capa presentes em todos os M4B.
 - SRT termina dentro da duração de cada áudio.
-- 59 testes automatizados (`pytest`) passando.
+- 60 testes automatizados (`pytest`) passando.
 - Nenhum PDF/texto/áudio versionado no Git.
 
 ### Limitações conhecidas
@@ -388,7 +389,7 @@ falhas**; montagem gerou S01–S07 + livro completo (7:50:42, 92 capítulos);
 - `api.py` + `web/` + `launcher.py`: upload, análise, editor de capítulos,
   progresso, abrir pasta, fila SQLite.
 - `packaging/`: spec PyInstaller, entrypoint, LEIA-ME, build portátil.
-- `tests`: 59 testes, incluindo descoberta, API e montagem.
+- `tests`: 60 testes, incluindo descoberta, API, logs e montagem.
 - Teste real do `.exe` com PDF sintético: upload → job → MP3/M4B/SRT → OK.
 
 **Critério de aceite atendido:**
@@ -573,6 +574,28 @@ O link só abre o cliente de e-mail do usuário.
 - `ruff` e `pytest` passando;
 - portáteis rebuildados.
 
+---
+
+## T20 — Acesso ao log para relato de bug (2026-11-18)
+
+**Status:** `[x]`
+
+**Contexto:** o usuário queria anexar o log automaticamente ao e-mail. Como
+`mailto:` não permite anexos, a solução foi oferecer acesso local ao log.
+
+**Entregas:**
+- `GET /api/logs/{name}` com allowlist (`app.log`, `launcher.log`, `crash.log`,
+  `launcher-error.log`); exibe em texto ou baixa com `?download=1`.
+- Card de suporte com **Abrir log**, **Baixar log**, **Copiar log** e
+  **Enviar e-mail**.
+- **Copiar log** usa `navigator.clipboard`, com fallback para textarea.
+- Estado de erro do job aponta para baixar/abrir o log.
+- LEIA-MEs, README, DOCS/05 e DOCS/12 atualizados.
+- Teste de API para allowlist, exibição, download e arquivo desconhecido.
+
+**Limitação documentada:** o navegador não anexa arquivos automaticamente em
+`mailto:`. O usuário baixa o log e anexa, ou copia e cola o conteúdo.
+
 ## Diário de progresso
 
 | Data | Tarefa | Observação |
@@ -597,3 +620,4 @@ O link só abre o cliente de e-mail do usuário.
 | 2026-11-18 | T17 | Tutorial em Markdown + PDF (6 páginas) para baixar o PDF pelo site; imagens tratadas e script de regeneração. |
 | 2026-11-18 | T18 | Protocolo permanente em DOCS/14; AGENTS atualizado; lock de dependências e setup reproduzível; `temp/` ignorado. |
 | 2026-11-18 | T19 | Card e rodapé com e-mail de suporte; link no erro do job; LEIA-MEs e docs atualizados. |
+| 2026-11-18 | T20 | Botões Abrir/Baixar/Copiar log; endpoints com allowlist; teste de API; portáteis rebuildados. |

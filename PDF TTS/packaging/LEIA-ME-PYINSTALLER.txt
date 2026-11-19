@@ -26,6 +26,7 @@ abre janelas de prompt durante a conversão.
 Encontrou um bug?
 -----------------
 Envie um e-mail para marlonrviana@gmail.com com o que aconteceu, o nome do PDF
-usado e, se possível, o arquivo logs/app.log.
+usado e, se possível, o arquivo logs/app.log. Na tela do app, use "Abrir log"
+ou "Baixar log" para obter o arquivo; o navegador não o anexa sozinho.
 
 Uso pessoal. O conteúdo dos PDFs pertence aos autores originais.

@@ -270,6 +270,14 @@ ul#resultFiles { margin: 10px 0 0; padding-left: 20px; color: var(--muted); font
 .support h3 { margin: 2px 0 6px; }
 .support p { color: var(--muted); margin: 0; max-width: 720px; }
 .support a { color: var(--accent); font-weight: 700; }
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.support-actions .button-link { color: var(--ink); font-weight: 700; }
+.support-actions .primary.button-link { color: var(--accent-ink); }
 .button-link {
   display: inline-block;
   text-decoration: none;
