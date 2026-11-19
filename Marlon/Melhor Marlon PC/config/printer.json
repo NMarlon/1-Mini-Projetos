@@ -1,0 +1,36 @@
+{
+  "model": "Epson EcoTank L3150",
+  "vendor": "Seiko Epson Corporation",
+  "deviceName": "EPSON7E9CF4",
+  "connection": "infraestrutura (Wi-Fi 2,4 GHz do roteador)",
+  "ip": "192.168.0.227",
+  "mac": "50:57:9C:7E:9C:F4",
+  "ssid": "FamiliaViana",
+  "security": "WPA2-PSK(AES)",
+  "band": "2.4 GHz",
+  "link": "Wi-Fi-72Mbps",
+  "signal": "Excellent",
+  "ports": {
+    "raw": 9100,
+    "lpr": 515,
+    "http": 80,
+    "https": 443,
+    "ipp": 631
+  },
+  "wifiDirect": {
+    "enabled": true,
+    "ssid": "DIRECT-9C-EPSON-7E9CF4",
+    "ip": "192.168.223.1",
+    "channel": 4,
+    "security": "WPA2-PSK(AES)"
+  },
+  "driverName": "EPSON L3150 Series",
+  "portName": "EP7E9CF4:L3150 SERIES",
+  "portType": "EpsonNet Print (LPR 515, queue ENPQueue)",
+  "ipMode": "dhcp",
+  "dhcpReservation": false,
+  "printerStatus": "Available",
+  "notes": "Instalada em 2026-11-19 pelo Epson Installer oficial (L3150_Lite_LA.exe). A impressora estava Available na interface web; o Windows marcava Error por causa de um job de 78 MB travado na fila, nao por defeito. IP via DHCP; sem reserva porque a senha do roteador e desconhecida. Se o IP mudar, reencontrar pelo MAC.",
+  "discoveredAt": "2026-11-19",
+  "updatedAt": "2026-11-19"
+}

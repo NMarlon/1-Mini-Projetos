@@ -94,6 +94,40 @@ automatizada.
 **Lição:** ter fallback: página de suporte do modelo, Epson Setup Navi, ou
 driver IPP nativo do Windows. Registrar URL/hash quando obtiver o arquivo.
 
+### E11 — Job de 78 MB travado deixou a impressora em “Error”
+
+**Erro:** o Windows mostrava `PrinterStatus: Error` e a impressora não
+imprimia. A interface web da própria impressora dizia **“Printer Status:
+Available”**.
+
+**Causa:** um job de **78 MB** (“Imagens Petroski em um PDF — OpenCode”) ficou
+preso em `Error, Printing, Retained`. O **Epson Event Manager**
+(`EEventManager`) mantinha o arquivo `FP00003.SHD` aberto, então
+`Remove-PrintJob` só marcava `Deleting` e não removia. A fila ficava bloqueada
+e o Windows marcava a impressora como erro.
+
+**Correção:** parar o `EEventManager`, parar o Spooler, remover os arquivos de
+`C:\Windows\System32\spool\PRINTERS`, iniciar o Spooler. Status voltou a
+`Normal`, `JobCount: 0`. Script: `tools/restart-spooler.ps1` (elevado).
+
+**Lição:** antes de culpar driver/porta, rodar `Get-PrintJob`. Se o job estiver
+`Retained`/`Deleting` e não sair, o problema é o spooler, não a impressora. O
+script de limpeza **precisa** garantir `Start-Service Spooler` no `finally` —
+a primeira versão parou o serviço e falhou antes de religar.
+
+### E12 — Porta EpsonNet/LPR pode deixar o job em “Printing”
+
+**Observação:** a porta criada pelo instalador (`EP7E9CF4:L3150 SERIES`,
+EpsonNet Print, LPR 515, queue `ENPQueue`) aceitou o job, mas ele ficou em
+`Printing, Retained` por mais de 28 s, sem sair na impressora.
+
+**Plano:** trocar para **TCP/IP RAW 9100** (`tools/set-tcp-port.ps1`). A porta
+9100 respondeu em todos os testes e é o caminho mais direto.
+
+**Lição:** para impressora de rede, preferir TCP/IP RAW a LPR/WSD. O
+instalador da Epson cria a porta proprietária; ela funciona em muitos casos,
+mas não é a mais previsível.
+
 ## Modelo para novas entradas
 
 ```markdown

@@ -1,0 +1,38 @@
+{
+  "pc": "DESKTOP-P05PR2E",
+  "os": "Windows 11 Pro (build 26300, x64)",
+  "ethernet": {
+    "ip": "192.168.0.17",
+    "prefix": 24,
+    "gateway": "192.168.0.1"
+  },
+  "wifi": {
+    "ip": "192.168.0.53",
+    "ssid": "FamiliaViana_5G",
+    "band": "5 GHz",
+    "channel": 149,
+    "security": "WPA2-Personal (CCMP)",
+    "rssiDbm": -84,
+    "signalPercent": 35
+  },
+  "router": {
+    "brand": "Claro / Kaon",
+    "mac": "74:3A:EF:5D:CE:D5",
+    "adminUrl": "http://192.168.0.1",
+    "adminPasswordKnown": false
+  },
+  "network24": {
+    "exists": true,
+    "ssid": "FamiliaViana",
+    "security": "WPA2-PSK(AES)",
+    "note": "Confirmado pela pagina de status da impressora em 2026-11-19."
+  },
+  "printer": {
+    "ip": "192.168.0.227",
+    "mac": "50:57:9C:7E:9C:F4",
+    "ssid": "FamiliaViana",
+    "link": "Wi-Fi-72Mbps",
+    "signal": "Excellent"
+  },
+  "updatedAt": "2026-11-19"
+}

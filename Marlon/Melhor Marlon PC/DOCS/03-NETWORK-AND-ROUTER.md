@@ -14,9 +14,11 @@
 | Gateway | `192.168.0.1` |
 | Roteador | **Claro / Kaon** (MAC `74:3A:EF:5D:CE:D5`) |
 | Admin do roteador | `http://192.168.0.1` — **senha desconhecida** |
-| Rede 2,4 GHz | **Existe** (confirmado pelo usuário); nome exato a registrar |
-| Impressora na LAN | **Não** (0 portas 9100/631/515 em toda a /24) |
-| Driver Epson | Nenhum |
+| Rede 2,4 GHz | **`FamiliaViana`**, WPA2-PSK(AES) — confirmado pela impressora |
+| Impressora na LAN | **Sim**: `192.168.0.227` (descoberta em 19/11/2026) |
+| MAC da impressora | `50:57:9C:7E:9C:F4` (Seiko Epson) |
+| Link da impressora | Wi-Fi 72 Mbps, sinal “Excellent”, SSID `FamiliaViana` |
+| Driver Epson | Instalado: `EPSON L3150 Series` (EpsonNet Print, LPR 515) |
 
 ## Implicações
 
