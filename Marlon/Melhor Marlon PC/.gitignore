@@ -1,0 +1,14 @@
+# Driver e instaladores baixados (reproduzíveis via driver.lock.json)
+vendor/
+
+# Relatórios e logs de execução (regeneráveis)
+reports/
+logs/
+
+# Configuração local que não deve ser versionada
+config/*.local.json
+
+# Temporários
+temp/
+*.tmp
+*.log

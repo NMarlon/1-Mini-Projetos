@@ -8,6 +8,7 @@ seu próprio `AGENTS.md` e a sua própria documentação.
 | Pasta | Documento principal |
 |---|---|
 | `PDF TTS/` | [`PDF TTS/AGENTS.md`](PDF%20TTS/AGENTS.md) — pipeline de PDF para audiolivro |
+| `Marlon/` | [`Marlon/Melhor Marlon PC/AGENTS.md`](Marlon/Melhor%20Marlon%20PC/AGENTS.md) — impressora L3150 na rede |
 | `Alexandre - Videos/` | (sem AGENTS.md específico) |
 | `Hermes-Mobile/` | (sem AGENTS.md específico) |
 | `PackStickMaker/` | (sem AGENTS.md específico) |
