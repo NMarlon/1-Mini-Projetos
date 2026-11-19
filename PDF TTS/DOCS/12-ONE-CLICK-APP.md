@@ -304,6 +304,25 @@ os scripts de build são versionados; o executável é regenerado.
 | `run_hidden` (10 chamadas ffmpeg) | nenhum `cmd.exe`/`conhost.exe` novo |
 | PyInstaller | build OK, mas bloqueado nesta máquina pelo Smart App Control |
 
+## Suporte e relato de bugs
+
+O app mostra o contato em dois lugares:
+
+- card **“Encontrou um bug?”**, no fim da página;
+- rodapé de todas as telas.
+
+E-mail: **marlonrviana@gmail.com**
+
+O link usa `mailto:` com assunto preenchido. Quando um job falha, o app mostra
+um link **“envie um e-mail”** que já inclui:
+
+- ID do job;
+- etapa;
+- mensagem de erro.
+
+Peça ao usuário que anexe `logs/app.log` e informe o nome do PDF. Não há
+telemetria automática; nada é enviado sem o usuário clicar.
+
 ## Diagnóstico rápido
 
 ### “Failed to fetch”

@@ -156,6 +156,10 @@
         <span id="progressCount"></span>
         <span id="progressPercent"></span>
       </div>
+      <p class="hint" id="errorHelp" hidden>
+        Se o problema continuar, <a id="reportErrorLink" href="mailto:marlonrviana@gmail.com">envie um e-mail</a>
+        com o ID do job, a mensagem acima e o arquivo <code>logs/app.log</code>.
+      </p>
       <div class="result" id="result" hidden>
         <h3>Pronto!</h3>
         <div id="resultSummary"></div>
@@ -189,10 +193,24 @@
         <li>Páginas só de imagem são listadas; OCR fica para uma versão futura.</li>
       </ul>
     </section>
+
+    <section class="card support">
+      <div>
+        <div class="eyebrow">Suporte</div>
+        <h3>Encontrou um bug?</h3>
+        <p>
+          Envie um e-mail para <a href="mailto:marlonrviana@gmail.com">marlonrviana@gmail.com</a>
+          com o que aconteceu, o nome do PDF e, se possível, o arquivo
+          <code>logs/app.log</code>. Isso ajuda a corrigir mais rápido.
+        </p>
+      </div>
+      <a class="primary button-link" href="mailto:marlonrviana@gmail.com?subject=Pathway%20PDF%20TTS%20-%20relato%20de%20bug">Enviar e-mail</a>
+    </section>
   </main>
 
   <footer>
     <span>Pathway PDF TTS · uso pessoal · não redistribua o conteúdo do curso</span>
+    <span>Problemas? <a href="mailto:marlonrviana@gmail.com">marlonrviana@gmail.com</a></span>
   </footer>
   <script src="/static/app.js"></script>
 </body>

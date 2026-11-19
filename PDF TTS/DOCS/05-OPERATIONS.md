@@ -249,6 +249,20 @@ Isso não deve mais acontecer. `ffmpeg`/`ffprobe` são executados por
 `pdf_tts.audio.run_hidden()` com `CREATE_NO_WINDOW`. Se voltar, procure
 `subprocess.run` direto em `src/pdf_tts/` e troque por `run_hidden`.
 
+### App: reportar um bug
+
+O contato fica no card **“Encontrou um bug?”** e no rodapé:
+**marlonrviana@gmail.com**.
+
+Ao relatar, inclua:
+
+- o que aconteceu e em qual passo;
+- o nome do PDF;
+- o ID do job, se houver;
+- `logs/app.log` (e `logs/crash.log`, se existir).
+
+O app não envia nada automaticamente; o link apenas abre o cliente de e-mail.
+
 ### App: reanalisar com outro perfil
 
 Na tela de análise, troque **Perfil de detecção** ou clique em **Reanalisar**.

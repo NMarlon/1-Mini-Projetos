@@ -1,9 +1,9 @@
 # 06 — Tarefas
 
-> **Estado atual:** **T00–T18 concluídas.** Os dois livros estão montados e
+> **Estado atual:** **T00–T19 concluídas.** Os dois livros estão montados e
 > verificados; o **Pathway PDF TTS** está implementado, renomeado e empacotado;
-> o tutorial de download do PDF está em DOCS/13; o protocolo do repositório e o
-> lock reproduzível estão em DOCS/14 e `requirements.lock.txt`.
+> o tutorial de download está em DOCS/13; o protocolo do repositório está em
+> DOCS/14; a interface tem canal de suporte por e-mail.
 > Áudios em `output/MKT-120/` e `output/COM-150/`; app em
 > `dist/Pathway PDF TTS/Pathway PDF TTS.exe` (local, não versionado).
 > **Próximo passo:** ouvir as amostras/S01 e testar PDFs reais no app; OCR,
@@ -35,6 +35,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` concluído · `[!]` bloqu
 | T16 | Perfil Pathway, “Tudo literal”, robustez e app assinado | `[x]` | `feat(pathway-tts): perfil Pathway, modos de conteúdo e interface` |
 | T17 | Tutorial visual: como baixar o PDF pelo site | `[x]` | `docs(pathway-tts): tutorial de download do PDF` |
 | T18 | Protocolo permanente do repositório e lock reproduzível | `[x]` | `chore(repo): formaliza protocolo de continuidade e lock` |
+| T19 | Canal de suporte por e-mail na interface e no LEIA-ME | `[x]` | `feat(pathway-tts): canal de suporte por e-mail` |
 
 Tarefas opcionais no [`07-BACKLOG.md`](07-BACKLOG.md).
 
@@ -545,6 +546,33 @@ soluções profissionais.
 tem critério de aceite e termina com commit. Dúvida real → perguntar antes de
 editar.
 
+---
+
+## T19 — Canal de suporte por e-mail (2026-11-18)
+
+**Status:** `[x]`
+
+**Contexto:** o usuário pediu um lugar visível no site para receber relatos de
+bug em `marlonrviana@gmail.com`.
+
+**Entregas:**
+- Card **“Encontrou um bug?”** no fim da interface, com botão `mailto:`.
+- Rodapé com o e-mail em todas as telas.
+- Link de relato no estado de erro do job, já com ID, etapa e mensagem.
+- Orientação para anexar `logs/app.log` e informar o PDF.
+- Contato também no `LEIA-ME.txt` e no `LEIA-ME-PYINSTALLER.txt`.
+- Documentação em `README`, `DOCS/05` e `DOCS/12`.
+
+**Segurança/privacidade:** não há telemetria; nada é enviado automaticamente.
+O link só abre o cliente de e-mail do usuário.
+
+**Validação:**
+- interface carrega sem erro de console;
+- links `mailto:` corretos;
+- modo de erro mostra o link com dados do job;
+- `ruff` e `pytest` passando;
+- portáteis rebuildados.
+
 ## Diário de progresso
 
 | Data | Tarefa | Observação |
@@ -568,3 +596,4 @@ editar.
 | 2026-11-18 | T16 | App renomeado para Pathway PDF TTS; perfil Pathway; Tudo útil/literal; upload em blocos; instância única; sem janelas CMD; 59 testes. |
 | 2026-11-18 | T17 | Tutorial em Markdown + PDF (6 páginas) para baixar o PDF pelo site; imagens tratadas e script de regeneração. |
 | 2026-11-18 | T18 | Protocolo permanente em DOCS/14; AGENTS atualizado; lock de dependências e setup reproduzível; `temp/` ignorado. |
+| 2026-11-18 | T19 | Card e rodapé com e-mail de suporte; link no erro do job; LEIA-MEs e docs atualizados. |

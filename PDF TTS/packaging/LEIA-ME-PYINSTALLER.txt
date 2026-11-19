@@ -23,4 +23,9 @@ O funcionamento é o mesmo da versão principal: perfis Pathway/Genérico,
 modos Automático / Tudo útil / Tudo literal e edição de capítulos. O app não
 abre janelas de prompt durante a conversão.
 
+Encontrou um bug?
+-----------------
+Envie um e-mail para marlonrviana@gmail.com com o que aconteceu, o nome do PDF
+usado e, se possível, o arquivo logs/app.log.
+
 Uso pessoal. O conteúdo dos PDFs pertence aos autores originais.

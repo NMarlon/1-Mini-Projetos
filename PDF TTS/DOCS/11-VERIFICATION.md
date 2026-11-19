@@ -112,7 +112,14 @@ Para cada projeto:
 - [ ] O texto menciona o app e o aviso de uso pessoal.
 - [ ] `python scripts/build_download_tutorial.py` regenera o PDF.
 
-## 9.3 Protocolo e reprodutibilidade
+## 9.3 Suporte
+
+- [ ] Card “Encontrou um bug?” visível no fim da interface.
+- [ ] Rodapé mostra `marlonrviana@gmail.com`.
+- [ ] Link de erro inclui ID do job, etapa e mensagem.
+- [ ] `LEIA-ME.txt` e `LEIA-ME-PYINSTALLER.txt` têm o contato.
+
+## 9.4 Protocolo e reprodutibilidade
 
 - [ ] `AGENTS.md` aponta para `DOCS/14-REPO-PROTOCOL.md`.
 - [ ] `requirements.lock.txt` reflete o `.venv` (`pip check`).

@@ -7,9 +7,10 @@ outros PDFs com camada de texto.
 
 ## Estado atual
 
-**T00–T18 concluídas.** Os dois livros estão montados e verificados; o app
+**T00–T19 concluídas.** Os dois livros estão montados e verificados; o app
 Pathway PDF TTS está implementado e empacotado, o tutorial de download está em
-DOCS/13 e o protocolo do repositório está em DOCS/14.
+DOCS/13, o protocolo do repositório está em DOCS/14 e a interface tem canal de
+suporte por e-mail.
 
 | Livro | Aulas | Duração | Capítulos | Cues SRT | Tamanho |
 |---|---|---|---|---|---|
@@ -75,6 +76,18 @@ Resultado: `dist/Pathway PDF TTS (PyInstaller)/` e
 - Logs em `logs/app.log`, `logs/launcher.log` e `logs/crash.log`.
 
 Detalhes completos em [`DOCS/12-ONE-CLICK-APP.md`](DOCS/12-ONE-CLICK-APP.md).
+
+## Suporte
+
+Encontrou um bug ou algo estranho no app? Envie um e-mail para
+**marlonrviana@gmail.com** com:
+
+- o que aconteceu e em qual passo;
+- o nome do PDF usado;
+- se possível, o arquivo `logs/app.log`.
+
+O contato também aparece no rodapé e no card **“Encontrou um bug?”** da
+interface.
 
 ## Tutorial: como baixar o PDF do livro
 

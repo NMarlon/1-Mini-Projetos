@@ -49,6 +49,13 @@ Pathway e outros PDFs
 - Se não encontrar nada, o app avisa e divide o PDF em blocos de 10 páginas.
 - PDFs escaneados (só imagem) ainda não têm OCR nesta versão.
 
+Encontrou um bug?
+-----------------
+Envie um e-mail para marlonrviana@gmail.com com:
+- o que aconteceu e em qual passo;
+- o nome do PDF usado;
+- se possível, o arquivo logs/app.log.
+
 Problemas
 ---------
 - Se o Windows bloquear com "Uma política de Controle de Aplicativo bloqueou

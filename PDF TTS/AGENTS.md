@@ -58,10 +58,12 @@ O conteúdo é falado com **Edge TTS**, voz **pt-BR-FranciscaNeural**, ritmo
 
 ## 3. Estado atual (2026-11-18)
 
-- **T00–T18 concluídas.**
+- **T00–T19 concluídas.**
 - **59 testes** passando; `ruff` limpo.
 - Protocolo permanente e lock reproduzível em `DOCS/14-REPO-PROTOCOL.md` e
   `requirements.lock.txt`.
+- Suporte por e-mail na interface, no rodapé e nos LEIA-MEs:
+  `marlonrviana@gmail.com`.
 - MKT 120 e COM 150 montados e verificados:
   - MKT 120: 3:39:26, 68 capítulos, 1.473 cues;
   - COM 150: 7:50:42, 92 capítulos, 3.457 cues.

@@ -1,5 +1,11 @@
 const $ = (id) => document.getElementById(id);
 
+const SUPPORT_EMAIL = "marlonrviana@gmail.com";
+
+function supportMailto(subject, body) {
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 const RECIPES = {
   auto: { content: "auto", chapters: "auto", label: "Automático" },
   review: { content: "auto", chapters: "manual", label: "Identificar capítulos" },
@@ -108,6 +114,33 @@ function stageLabel(stage) {
     "erro": "Erro",
   };
   return labels[stage] || stage || "—";
+}
+
+function showErrorHelp(job = {}) {
+  const help = $("errorHelp");
+  const link = $("reportErrorLink");
+  if (!help || !link) return;
+  const details = [
+    "Olá, Marlon!",
+    "",
+    "O Pathway PDF TTS apresentou um problema.",
+    "",
+    `Job: ${job.id || state.jobId || "(sem job)"}`,
+    `Etapa: ${job.stage || "(desconhecida)"}`,
+    `Mensagem: ${job.message || job.error || "(sem mensagem)"}`,
+    "",
+    "O que eu estava fazendo:",
+    "",
+    "",
+    "Se possível, anexei o arquivo logs/app.log.",
+  ].join("\n");
+  link.href = supportMailto("Pathway PDF TTS - erro na conversão", details);
+  help.hidden = false;
+}
+
+function hideErrorHelp() {
+  const help = $("errorHelp");
+  if (help) help.hidden = true;
 }
 
 function currentRecipe() {
@@ -479,6 +512,7 @@ async function generate() {
   $("progressBar").classList.remove("indeterminate");
   $("progressCount").textContent = "";
   $("progressPercent").textContent = "";
+  hideErrorHelp();
   try {
     const data = await api("/api/jobs", {
       method: "POST",
@@ -538,6 +572,7 @@ async function pollJob() {
       $("progressStage").textContent = "Concluído";
       $("progressBar").classList.remove("indeterminate");
       $("progressBar").style.width = "100%";
+      hideErrorHelp();
       renderResult(job);
       $("generate").disabled = false;
     } else if (job.status === "error" || job.status === "interrupted") {
@@ -548,12 +583,14 @@ async function pollJob() {
       $("progressStage").textContent = "Erro";
       $("progressBar").classList.remove("indeterminate");
       $("progressBar").style.width = "0%";
+      showErrorHelp(job);
       $("generate").disabled = false;
     }
   } catch (error) {
     if (error instanceof ConnectionError) {
       setConnectionState(false);
       $("progressMessage").textContent = "Conexão com o programa perdida. Mantenha a janelinha aberta e aguarde ou clique em Tentar novamente.";
+      showErrorHelp({ message: "A conexão com o servidor local caiu durante a conversão." });
     } else {
       $("progressMessage").textContent = error.message;
     }
