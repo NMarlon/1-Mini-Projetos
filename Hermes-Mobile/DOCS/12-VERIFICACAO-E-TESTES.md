@@ -1,6 +1,6 @@
 # 12 — Verificação e testes
 
-Última atualização: **2026-11-17**
+Última atualização: **2026-11-20**
 
 > Registre aqui **evidências reais** (comando + saída resumida + data).
 > Não declare “pronto” sem testar.
@@ -11,7 +11,7 @@
 
 | # | Teste | Status | Evidência |
 |---|---|---|---|
-| 1 | Hermes instalado e versão | 🟢 | 0.23.1 |
+| 1 | Hermes instalado e versão | 🟢 | 0.23.2 |
 | 2 | `hermes serve` rodando em 80 | 🟢 | PID 15672 |
 | 3 | `/api/status` local com `auth_required: true` | 🟢 | HTTP 200 |
 | 4 | Login local funciona | 🟢 | cookies + `/api/profiles` 200 |
@@ -60,7 +60,7 @@ Esperado:
 
 ```json
 {
-  "version": "0.23.1",
+  "version": "0.23.2",
   "auth_required": true,
   "auth_providers": ["basic"],
   "profiles": ["default", "..."]
@@ -234,7 +234,7 @@ Registrar data/hora e resultado.
 - Gateway instalado como login item (`Hermes_Gateway.vbs`).
 - `HERMES_WEBAPP_DIST` aponta para `%LOCALAPPDATA%\HermesMobile\webapp-dist`.
 - Login público 200; HTML com `__HERMES_UI_SURFACE__`; `/login` 200.
-- **Mono Hermes:** aviso de versão (UI 0.22.0 vs servidor 0.23.1) — informativo.
+- **Mono Hermes:** aviso de versão (UI 0.22.0 vs servidor 0.23.2) — informativo.
 - **Pomelu:** conectado; chat/sessões via `:8443`.
 
 ## 6. Problemas conhecidos
@@ -246,3 +246,14 @@ Registrar data/hora e resultado.
 | Mono Hermes 0.22 vs 0.23 | aviso de versão | usar Webapp `:8444` ou ignorar |
 | PC dorme | perde acesso | manter na tomada / `Manter-Acordado.ps1` |
 | Celular em doze | timeout inicial | Tailscale sem restrição de bateria |
+
+---
+
+## 7. Estado verificado em 2026-11-20
+
+- `curl http://127.0.0.1/api/status` → **200**, `version: 0.23.2`,
+  `gateway_running: true`.
+- `tailscale serve status` → três rotas ativas:
+  `443 → 127.0.0.1:28894` (OpenCode), `8443 → 127.0.0.1:80` (Hermes) e
+  `8444 → 127.0.0.1:9120` (Webapp).
+- Coleta feita pelo gestor; a documentação foi sincronizada com esses valores.

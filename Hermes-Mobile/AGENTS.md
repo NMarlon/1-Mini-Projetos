@@ -3,7 +3,7 @@
 > **Arquivo de referência para a próxima IA/dev que continuar este projeto.**
 > Leia na íntegra ANTES de modificar qualquer coisa.
 
-Última atualização: **2026-11-17** (sessão: IA assistindo Marlon)
+Última atualização: **2026-11-20** (sessão: sincronização de documentação)
 
 ---
 
@@ -29,12 +29,12 @@ Resultado esperado:
 - ❌ Não gerencia modelos, chaves de provider nem licenças.
 - ❌ Não abre porta no roteador nem usa Tailscale Funnel.
 
-## 3. Estado atual (2026-11-17)
+## 3. Estado atual (2026-11-20)
 
 | Item | Valor |
 |---|---|
 | Sistema | Windows 11 Pro (Dell Latitude 5440) |
-| Hermes | **v0.23.1 stable**, instalado via Microsoft Store/MSIX |
+| Hermes | **v0.23.2 stable**, instalado via Microsoft Store/MSIX |
 | Home do Hermes | `C:\Users\Marlon\AppData\Local\hermes` |
 | CLI | `hermes` no PATH (alias da Store); aviso pré-existente `install out of sync` |
 | Servidor | `hermes serve` em `127.0.0.1:80` (Mono Hermes Origin) |
@@ -48,9 +48,9 @@ Resultado esperado:
 | OpenCode | continua em `https://marlon-dell-pc.tail6ded59.ts.net` (443 → 28894) |
 | App Android | **Pomelu** (`se.royan.pomelu`) + **Mono Hermes** (APK, aviso de versão) |
 | Autostart | Tarefa `Hermes Mobile - Servidor` + Startup `Hermes_Gateway.vbs` |
-| Webapp | habilitado em 9120/8444 (renderer copiado do app 0.23.1) |
+| Webapp | habilitado em 9120/8444 (renderer copiado do app instalado) |
 | Energia | **não alterada** (decisão do Marlon em 16/11/2026) |
-| Plugin Pomelu | **não instalado** (backlog; ver `DOCS/11-BACKLOG-E-IDEIAS.md`) |
+| Plugin Pomelu | **não instalado** (parkeado em 20/11/2026; ver `DOCS/11-BACKLOG-E-IDEIAS.md`) |
 | Segredos | fora do Git (`.env` + `secrets.json`) |
 
 ## 4. ⚠️ REGRAS OBRIGATÓRIAS
@@ -274,5 +274,5 @@ Antes de encerrar, **atualize obrigatoriamente**:
 
 ## 12. Colaborador
 
-Marlon — projeto criado e mantido junto com Hermes Agent v0.23.1, Pomelu,
+Marlon — projeto criado e mantido junto com Hermes Agent v0.23.2, Pomelu,
 Tailscale v1.104.6, no Windows 11.

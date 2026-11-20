@@ -9,7 +9,7 @@
 
 ## 1. O que já está pronto no PC
 
-- [x] Hermes v0.23.1 rodando.
+- [x] Hermes v0.23.2 rodando.
 - [x] `hermes serve` em `127.0.0.1:80`.
 - [x] Auth básica com hash scrypt + secret.
 - [x] `dashboard.public_url` configurado.
@@ -69,7 +69,7 @@
 
 - APK v0.4.0: <https://github.com/Monoperro0207/mono-hermes/releases/latest>
 - URL: `https://marlon-dell-pc.tail6ded59.ts.net:8443`
-- Mostra sessões/histórico, mas a UI é de Hermes 0.22.0; no servidor 0.23.1
+- Mostra sessões/histórico, mas a UI é de Hermes 0.22.0; no servidor 0.23.2
   aparece um **aviso de versão informativo**.
 - Para o workspace completo e alinhado, use o Webapp `:8444`.
 

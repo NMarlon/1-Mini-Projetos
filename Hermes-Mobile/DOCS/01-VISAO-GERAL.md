@@ -1,6 +1,6 @@
 # 01 — Visão geral
 
-Última atualização: **2026-11-17**
+Última atualização: **2026-11-20**
 
 ---
 
@@ -39,11 +39,11 @@ instalado, servido pelo gateway em `:8444`.
 - Abrir portas no roteador ou usar Tailscale Funnel.
 - Alterar configurações de energia do PC.
 
-## 3. Estado atual (2026-11-17)
+## 3. Estado atual (2026-11-20)
 
 | Item | Valor |
 |---|---|
-| Hermes | v0.23.1 stable (Microsoft Store/MSIX) |
+| Hermes | v0.23.2 stable (Microsoft Store/MSIX) |
 | Home | `C:\Users\Marlon\AppData\Local\hermes` |
 | Servidor | `hermes serve` em `127.0.0.1:80` |
 | Gateway/Webapp | gateway em `127.0.0.1:9120` |
@@ -97,10 +97,10 @@ O gateway injeta `window.__HERMES_UI_SURFACE__="webapp"` e serve o workspace
 completo em `:8444`.
 
 - **Vantagem:** sessões, projetos, arquivos, Git e terminal, alinhado ao
-  servidor 0.23.1.
+  servidor 0.23.2.
 - **Manutenção:** após atualizar o Hermes, rodar
   `Configurar-Webapp.ps1 -Forcar`.
-- **Mono Hermes:** o app v0.4.0 usa a UI 0.22.0; no servidor 0.23.1 mostra
+- **Mono Hermes:** o app v0.4.0 usa a UI 0.22.0; no servidor 0.23.2 mostra
   um aviso de versão informativo.
 
 Detalhes em [`09-ERROS-E-APRENDIZADOS.md`](09-ERROS-E-APRENDIZADOS.md).

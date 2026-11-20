@@ -42,7 +42,7 @@
   (`app.asar.unpacked\dist`) para
   `%LOCALAPPDATA%\HermesMobile\webapp-dist` e aponta `HERMES_WEBAPP_DIST`.
 - **Resultado:** sessões, projetos, arquivos, Git e terminal no navegador,
-  alinhado ao servidor 0.23.1.
+  alinhado ao servidor 0.23.2.
 - **Manutenção:** após atualizar o Hermes, rodar
   `Configurar-Webapp.ps1 -Forcar`.
 - **Quando usar:** quando precisar de projetos/arquivos/Git/terminal.
@@ -66,7 +66,7 @@
   `hermes serve`.
 - **Vantagens:** UI idêntica ao Desktop; sessões/histórico; Tailscale.
 - **Desvantagens:** projeto pequeno; UI congelada em **0.22.0**; sem push;
-  **aviso de versão** no servidor 0.23.1 (informativo).
+  **aviso de versão** no servidor 0.23.2 (informativo).
 - **Quando usar:** se quiser uma UI nativa de sessões; para o workspace
   completo, use o Webapp `:8444`.
 

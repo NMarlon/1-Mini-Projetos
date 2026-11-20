@@ -50,7 +50,7 @@
 | Componente | Versão |
 |---|---|
 | Windows | 11 Pro (Dell Latitude 5440) |
-| Hermes Agent | 0.23.1 stable (Microsoft Store/MSIX) |
+| Hermes Agent | 0.23.2 stable (Microsoft Store/MSIX) |
 | Python do Hermes | 3.14.9 |
 | Tailscale | 1.104.6 |
 | PowerShell | 5.1 |
@@ -74,7 +74,7 @@ Referência completa: `docs/PROTOCOL.md` do Pomelu.
 
 ## 7. Notas importantes
 
-- O Pomelu foi checado contra **Hermes 0.22.2**; nossa versão é **0.23.1**.
+- O Pomelu foi checado contra **Hermes 0.22.2**; nossa versão é **0.23.2**.
   Testar `/api/status` e o handshake após qualquer atualização.
 - O Hermes da Microsoft Store emite o aviso `install out of sync`; é
   pré-existente e não impede o uso. Não atualizar sem backup (REGRA 13).

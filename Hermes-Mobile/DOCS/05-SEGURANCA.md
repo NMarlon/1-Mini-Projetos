@@ -93,7 +93,7 @@ Isso gera nova senha/hash/secret. Depois:
 
 - O gateway escuta `127.0.0.1:9120`; o Tailscale Serve publica em `:8444`.
 - O login é o mesmo (`hermes` + senha); `webapp.public_url` liga o gate.
-- O renderer é copiado da instalação 0.23.1 para
+- O renderer é copiado da instalação atual para
   `%LOCALAPPDATA%\HermesMobile\webapp-dist`; o manifesto
   `webapp-dist.json` guarda a versão e o SHA-256 do `index.html`.
 - O webapp dá acesso a terminal/arquivos/Git; trate como acesso ao PC.

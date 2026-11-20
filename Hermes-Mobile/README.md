@@ -80,7 +80,7 @@ Esse script:
    ```
 
 > O **Mono Hermes** (APK) também conecta no `:8443` e mostra sessões, mas a
-> UI dele é de Hermes 0.22.0; no servidor 0.23.1 aparece um **aviso de versão**
+> UI dele é de Hermes 0.22.0; no servidor 0.23.2 aparece um **aviso de versão**
 > (informativo). Para o workspace completo e alinhado, use o Webapp `:8444`.
 
 ## Comandos do dia a dia

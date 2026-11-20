@@ -1,6 +1,6 @@
 # 10 — Tarefas do projeto
 
-Última atualização: **2026-11-17**
+Última atualização: **2026-11-20**
 
 > **Para a próxima IA:** encontre a tarefa 🟡, leia o “como proceder” e
 > continue. Atualize o status e faça commit ao terminar.
@@ -56,7 +56,7 @@
 
 ```json
 {
-  "version": "0.23.1",
+  "version": "0.23.2",
   "auth_required": true,
   "auth_providers": ["basic"],
   "profiles": ["..."]
@@ -74,14 +74,18 @@
 
 ## Fase 2 — Tailscale Serve `:8443`
 
-**Status:** ⚪
+**Status:** 🟢 (concluída em 2026-11-20)
 
-- [ ] Criar `scripts/Configurar-Tailscale.ps1`.
-- [ ] Criar handler `:8443 → 127.0.0.1:80`.
-- [ ] Confirmar que `:443 → 127.0.0.1:28894` continua.
-- [ ] Testar `/api/status` via HTTPS.
-- [ ] Testar login via HTTPS.
-- [ ] Commit.
+- [x] Criar `scripts/Configurar-Tailscale.ps1`.
+- [x] Criar handler `:8443 → 127.0.0.1:80`.
+- [x] Confirmar que `:443 → 127.0.0.1:28894` continua.
+- [x] Testar `/api/status` via HTTPS.
+- [x] Testar login via HTTPS.
+- [x] Commit.
+
+**Evidência (2026-11-20):** `tailscale serve status` mostra três rotas ativas —
+`443 → 127.0.0.1:28894` (OpenCode), `8443 → 127.0.0.1:80` (Hermes) e
+`8444 → 127.0.0.1:9120` (Webapp).
 
 **Critério de aceite:**
 
@@ -141,7 +145,7 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 **Status:** 🟢
 
-- [x] Copiar renderer do app 0.23.1 para `webapp-dist`.
+- [x] Copiar renderer do app instalado para `webapp-dist`.
 - [x] Gravar `HERMES_WEBAPP_DIST` no `.env`.
 - [x] Ligar `webapp.enabled` no gateway (9120) e `public_url` 8444.
 - [x] Instalar o gateway como login item (`Hermes_Gateway.vbs`).
@@ -171,7 +175,7 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 
 ---
 
-## Estado final (2026-11-17)
+## Estado final (2026-11-20)
 
 | Item | Estado |
 |---|---|
@@ -186,13 +190,13 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 | Agente via HTTPS/WSS | 🟢 respondeu `OK` |
 | Pomelu no celular | 🟢 conectado |
 | Mono Hermes | 🟡 aviso de versão (0.22 vs 0.23) |
-| Plugin de push | ⚪ backlog |
+| Plugin de push | ⚪ parkeada (decisão do Marlon em 20/11/2026) |
 
 ---
 
-## Fase 5 — Plugin Pomelu (backlog)
+## Fase 5 — Plugin Pomelu (parkeada)
 
-**Status:** ⚪ (backlog)
+**Status:** ⚪ parkeada (decisão do Marlon em 2026-11-20)
 
 - [ ] Avaliar o plugin `ateymoori/pomelu-hermes-plugin`.
 - [ ] Instalar `hermes plugins install ateymoori/pomelu-hermes-plugin --enable`.
@@ -202,6 +206,7 @@ curl.exe -s https://marlon-dell-pc.tail6ded59.ts.net:8443/api/status
 - [ ] Documentar em `DOCS/11-BACKLOG-E-IDEIAS.md`.
 
 **Decisão do Marlon em 16/11/2026:** deixar no backlog.
+**Decisão do Marlon em 20/11/2026:** parkear — fica para depois, sem ação no momento.
 
 ---
 

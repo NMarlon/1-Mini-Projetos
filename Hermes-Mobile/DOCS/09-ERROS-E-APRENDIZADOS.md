@@ -342,12 +342,12 @@
 ## E026 — Aviso de versão no Mono Hermes
 
 - **Data:** 2026-11-17
-- **Contexto:** Mono Hermes v0.4.0 conectado ao servidor 0.23.1.
+- **Contexto:** Mono Hermes v0.4.0 conectado ao servidor 0.23.2.
 - **O que aconteceu:** aviso de versão (UI construída para Hermes 0.22.0).
 - **Causa:** o app é comunitário e congela a UI em 0.22.0; não há release
   mais nova até 17/11/2026.
 - **Correção:** o aviso é informativo; para o workspace completo e alinhado,
-  usar o **Webapp oficial em `:8444`** (renderer 0.23.1). Acompanhar novas
+  usar o **Webapp oficial em `:8444`** (renderer do app instalado). Acompanhar novas
   releases do Mono Hermes.
 - **Como evitar:** não confundir aviso de versão com falha de gateway; testar
   `/api/status` e o chat.
@@ -378,7 +378,7 @@
   - `https://marlon-dell-pc.tail6ded59.ts.net:8443` → OK
 - **Causa:** o WebView do Mono Hermes usa `androidScheme: http` e
   `hostname: localhost`, então envia `Origin: http://localhost` (porta 80).
-  O Hermes 0.23.1 endureceu a checagem: uma origem loopback só é confiável
+  O Hermes 0.23.2 endureceu a checagem: uma origem loopback só é confiável
   se a porta for igual à `state.bound_port` (ou se o `public_url` for
   loopback). Com o serve em 9119, 80 ≠ 9119 → 403 antes de abrir o socket.
   O app foi construído para 0.22.0, quando a checagem era mais permissiva.

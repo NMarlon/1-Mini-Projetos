@@ -270,7 +270,7 @@ Para trocar só a sessão (sem persistir), use o slash command no chat:
 ## 9. Aviso de versão no Mono Hermes
 
 O Mono Hermes v0.4.0 foi construído para Hermes **0.22.0**. No servidor
-**0.23.1** ele mostra um aviso de versão (informativo, dispensável). Não há
+**0.23.2** ele mostra um aviso de versão (informativo, dispensável). Não há
 release mais nova do app até 17/11/2026.
 
 - Se o chat/sessões funcionarem, ignore o aviso.

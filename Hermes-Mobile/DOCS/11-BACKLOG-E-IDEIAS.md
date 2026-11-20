@@ -53,7 +53,7 @@ superfície de segurança.
 
 ## 3. Webapp oficial (habilitado)
 
-- Já habilitado em `:8444` com o renderer copiado do app **0.23.1**.
+- Já habilitado em `:8444` com o renderer copiado do app instalado.
 - O Pomelu continua no `:8443`; o webapp é para projetos/arquivos/Git/terminal.
 - **Manutenção:** após atualizar o Hermes, rodar
   `Configurar-Webapp.ps1 -Forcar` para recopiar o renderer.
@@ -69,7 +69,7 @@ superfície de segurança.
 - **Mono Hermes** (sessões/histórico):
   <https://github.com/Monoperro0207/mono-hermes>
   - apontar para `https://marlon-dell-pc.tail6ded59.ts.net:8443`.
-  - **Aviso de versão:** UI 0.22.0 vs servidor 0.23.1 — informativo.
+  - **Aviso de versão:** UI 0.22.0 vs servidor 0.23.2 - informativo.
   - **Backlog:** acompanhar releases; quando sair uma versão para 0.23.x,
     atualizar.
 

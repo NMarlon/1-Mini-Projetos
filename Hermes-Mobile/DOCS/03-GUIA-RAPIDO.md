@@ -6,7 +6,7 @@
 
 ## 1. Pré-requisitos
 
-- Hermes Agent **0.21.5+** instalado no PC (atual: 0.23.1).
+- Hermes Agent **0.21.5+** instalado no PC (atual: 0.23.2).
 - Tailscale instalado e logado no PC e no celular, na **mesma conta**.
 - Celular Android **10+** (Galaxy A32 atende).
 - PC ligado e acordado.
@@ -67,7 +67,7 @@ O gateway serve o workspace do Desktop em `:8444`:
    ```
 
 > O **Mono Hermes** (APK) mostra sessões no `:8443`, mas a UI dele é de
-> Hermes 0.22.0; no servidor 0.23.1 aparece um aviso de versão informativo.
+> Hermes 0.22.0; no servidor 0.23.2 aparece um aviso de versão informativo.
 > Para o workspace completo e alinhado, use o Webapp `:8444`.
 
 ## 4. Passo a passo manual (se não quiser o Instalar-Tudo)
@@ -107,7 +107,7 @@ hermes serve --host 127.0.0.1 --port 80 --skip-build
 ```
 
 > A porta local é **80** (não 9119) porque o WebView do Mono Hermes envia
-> `Origin: http://localhost`; o Hermes 0.23.1 só aceita esse Origin quando a
+> `Origin: http://localhost`; o Hermes 0.23.2 só aceita esse Origin quando a
 > porta local é 80. O URL público continua `:8443`.
 
 ### 4.3. Publicar no Tailscale

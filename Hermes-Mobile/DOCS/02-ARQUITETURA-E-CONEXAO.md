@@ -24,13 +24,13 @@
 │                                              │
 │  hermes serve (127.0.0.1:80)               │
 │  gateway      (127.0.0.1:9120)               │
-│  └─ webapp = renderer copiado do app 0.23.1  │
+│  └─ webapp = renderer copiado do app atual   │
 └──────────────────────────────────────────────┘
 ```
 
 ## 2. Componentes (de baixo para cima)
 
-1. **Hermes Agent v0.23.1** — CLI + agent core.
+1. **Hermes Agent v0.23.2** — CLI + agent core.
    Home: `%LOCALAPPDATA%\hermes`.
 2. **`hermes serve`** — backend headless. Bind `127.0.0.1:80`.
    Expõe REST e WebSocket; é o mesmo backend que o Desktop usa.
@@ -42,7 +42,7 @@
 5. **Pomelu** — app Flutter. Fala REST + JSON-RPC/WebSocket com o gateway.
    Guarda credenciais no Android Keystore.
 6. **Gateway/Webapp** — processo do gateway em `127.0.0.1:9120`.
-   Serve o renderer do Desktop copiado do app instalado (v0.23.1) com
+   Serve o renderer do Desktop copiado do app instalado com
    `HERMES_WEBAPP_DIST`; o Tailscale Serve publica em `:8444`.
    É o workspace completo: sessões, projetos, arquivos, Git e terminal.
 
@@ -92,7 +92,7 @@ Usuário escreve no Pomelu
 - **Por quê:** é o backend que o Pomelu documenta; mantém o serviço em
   loopback; o Tailscale Serve faz a exposição.
 - **Porta 80:** o WebView do Mono Hermes envia `Origin: http://localhost`;
-  o Hermes 0.23.1 só aceita esse Origin quando a porta local é 80 (ou o
+  o Hermes 0.23.2 só aceita esse Origin quando a porta local é 80 (ou o
   Origin é a URL pública). O URL público continua `:8443` via Tailscale
   Serve. O Pomelu também usa `:8443` e não precisa mudar.
 - **Alternativa:** `hermes dashboard --host 127.0.0.1 --port 80 --no-open`
@@ -135,7 +135,7 @@ Usuário escreve no Pomelu
   código-fonte. O renderer do Desktop é o mesmo produto e funciona no
   navegador quando o gateway injeta `window.__HERMES_UI_SURFACE__`.
 - **Resultado:** workspace completo (sessões, projetos, arquivos, Git,
-  terminal) alinhado ao servidor 0.23.1.
+  terminal) alinhado ao servidor 0.23.2.
 - **Manutenção:** após atualizar o Hermes, rodar
   `Configurar-Webapp.ps1 -Forcar` para recopiar o renderer.
 - **Alternativas descartadas:** compilar `apps/desktop` do zero (sem fonte
