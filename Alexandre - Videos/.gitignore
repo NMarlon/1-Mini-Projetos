@@ -6,7 +6,7 @@ __pycache__/
 
 # Fontes BRUTAS (vídeos de entrada) NÃO são versionadas — decisão do usuário (2026-11):
 # o repo fica leve; os brutos vivem só no disco. Entregáveis (output/) continuam versionados.
-/*.mp4
+*.mp4
 /Tradução do chinês/*.mp4
 /raw/*
 !/raw/.gitkeep
