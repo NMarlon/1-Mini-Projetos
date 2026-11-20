@@ -106,6 +106,23 @@
 
 ---
 
+## [2026-11] `.mp4` no histórico: `git rm --cached` NÃO alivia o GitHub
+
+- **Erro:** acreditei que tirar os mp4 do versionamento diminuiria o repo no GitHub —
+  os blobs continuavam nos commits antigos (136,9 MB) e no remoto.
+- **Causa:** o histórico guarda todos os objetos já commitados; o gitignore só evita
+  novos.
+- **Solução (2026-11-20):** reescrever o histórico inteiro com
+  `git filter-branch --index-filter 'git ls-files -z "*.mp4" | xargs -0 -r git rm -q --cached --ignore-unmatch' --tag-name-filter cat -- --all`
+  (backup automático em `refs/original/`) e depois `git push --force-with-lease`.
+- **Aprendizado:** (1) limpeza de tamanho exige **rewrite + force push**; (2) antes do
+  push, `git ls-remote origin main` para saber o SHA remoto e usar
+  `--force-with-lease=main:<sha>`; (3) após confirmar, apagar `refs/original/*` e rodar
+  `git gc --prune=now` para liberar espaço local; (4) o GitHub só zera o espaço dos
+  objetos inalcançáveis depois do GC dele — se não encolher, abrir pedido ao suporte.
+
+---
+
 ## [2026-11] `split` não serve para áudio — usar `asplit`
 
 - **Erro:** `Media type mismatch between 'concat' output (audio) and 'split' input (video)`

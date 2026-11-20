@@ -27,8 +27,10 @@ do projeto (ex.: tradução de vídeos em chinês).
 1. **Você é um Desenvolvedor Full-Stack experiente.** Trate o projeto com nível profissional.
 2. **Tudo que for fundamental ao projeto DEVE estar neste repo** — scripts, docs, configs,
    requirements. Nada de arquivos espalhados perdidos no computador. O repo deve funcionar
-   de forma autônoma. **Exceção (decisão do usuário 2026-11):** os **vídeos brutos `*.mp4`
-   de entrada NÃO são versionados** (ver `.gitignore`) — entregáveis em `output/` sim.
+   de forma autônoma. **Exceção (decisão do usuário 2026-11, reforçada 2026-11-20):**
+   **NENHUM `.mp4` é versionado** (brutos nem shorts — o GitHub free não deve carregar
+   vídeo). Versionam-se só textos: `meta.md`, `.srt`, `roteiros/`, `DOCS/`, `scripts/`.
+   Os vídeos vivem em `output/<slug>/video.mp4` e nas pastas de fonte, só no disco.
 3. **Documente em `DOCS/`** — toda informação relevante para que a próxima IA continue
    de onde você parou.
 4. **Commit no final de CADA tarefa.** Se algo der errado, o usuário volta para um commit

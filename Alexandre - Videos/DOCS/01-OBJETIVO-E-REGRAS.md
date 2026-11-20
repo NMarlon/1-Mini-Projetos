@@ -10,6 +10,8 @@
 
 1. Atuar como Dev Full-Stack experiente, com método profissional.
 2. Tudo essencial ao projeto vive **dentro do repo** (autonomia total do repositório).
+   **Única exceção: nenhum `.mp4` é versionado** (brutos nem shorts) — vídeo não pesa
+   no GitHub free; os arquivos ficam só em `output/` e nas fontes, no disco.
 3. Toda a documentação em `DOCS/`, legível pela próxima IA.
 4. **Um commit por tarefa concluída.**
 5. **Máxima autonomia** sem ação humana.

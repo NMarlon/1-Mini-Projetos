@@ -4,9 +4,9 @@ work/*
 __pycache__/
 *.py[cod]
 
-# Fontes BRUTAS (vídeos de entrada) NÃO são versionadas — decisão do usuário (2026-11):
-# o repo fica leve; os brutos vivem só no disco. Entregáveis (output/) continuam versionados.
+# NENHUM .mp4 é versionado — decisão do usuário (2026-11, reforçada em 2026-11-20):
+# o GitHub free não deve carregar vídeo. Brutos E shorts vivem só no disco
+# (output/<slug>/video.mp4). Versionam-se apenas textos (meta.md, .srt, roteiros, docs).
 *.mp4
-/Tradução do chinês/*.mp4
 /raw/*
-!/raw/.gitkeep
+!/.gitkeep
